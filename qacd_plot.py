@@ -14,7 +14,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.style as mps
 from matplotlib.ticker import AutoMinorLocator
 
-mps.use('qacd_xmap')
+#mps.use('qacd_xmap')
 
 def savefig_map(Settings):
     figtitle = Settings['figtitle']
@@ -52,7 +52,7 @@ def savefig_map(Settings):
         sz = "3%"
     else:
         sz = 0.3
-    print sz    
+    print sz
     if mapvar in ells:
         im = axes.imshow(dsm,cmap=my_cmap,interpolation='nearest',aspect='equal')
         axes.set_title(figtitle)
@@ -119,13 +119,13 @@ def savefig_map(Settings):
     plt.close()
     gc.collect()
     return
-def data_ret(varProj,phase,mapvar,datagroup):        
+def data_ret(varProj,phase,mapvar,datagroup):
         if phase == 'No Phase':
             f = tb.open_file(varProj,mode='a')
             Filt = f.root._f_get_child(datagroup)
             tp = f.get_node(Filt,mapvar)
             dsm = tp.read()
-            dsm[np.isnan(dsm)]=0         
+            dsm[np.isnan(dsm)]=0
             dsm[np.isnan(dsm)]=0
             dsm[np.isinf(dsm)]=0
             fname = path.join(mkdtemp(),'pmap.dat')
@@ -156,13 +156,13 @@ def data_ret(varProj,phase,mapvar,datagroup):
             f.close()
         gc.collect()
         return dsx
-def data_ret2(varProj, dataset, phase, mapvar, datagroup):        
+def data_ret2(varProj, dataset, phase, mapvar, datagroup):
     if phase == 'No Phase':
         f = tb.open_file(varProj,mode='a')
         Filt = f.root._f_get_child(datagroup)
         tp = f.get_node(Filt,mapvar)
         dsm = tp.read()
-        dsm[np.isnan(dsm)]=0         
+        dsm[np.isnan(dsm)]=0
         dsm[np.isnan(dsm)]=0
         dsm[np.isinf(dsm)]=0
         fname = path.join(mkdtemp(),'pmap.dat')
@@ -234,7 +234,7 @@ def savefig_hist(Settings):
                 coltitles = ['bin_centers','frequency']
                 df = DataFrame(datdic,columns=coltitles)
                 fname = str(filetitle)+".csv"
-                df.to_csv(fname, header=True, index=False)  
+                df.to_csv(fname, header=True, index=False)
             else:
                 print "continue"
         else:
@@ -287,7 +287,7 @@ def savefig_hist(Settings):
                 coltitles = ['bin_centers','frequency']
                 df = DataFrame(datdic,columns=coltitles)
                 fname = str(filetitle)+".csv"
-                df.to_csv(fname, header=True, index=False)            
+                df.to_csv(fname, header=True, index=False)
         else:
             ax.hist(dsm,bins=100,range=(0.0, 1.0))
             if expt == 10:
@@ -371,7 +371,7 @@ def data_hist(varProj, mapvar, phase, datagroup):
         f.close()
     gc.collect()
     return dsx, num
-def data_hist2(varProj, mapvar, phase, dataset,  datagroup):        
+def data_hist2(varProj, mapvar, phase, dataset,  datagroup):
     if phase == 'No Phase':
         f = tb.open_file(varProj,mode='a')
         Filt = f.root._f_get_child(datagroup)
@@ -429,7 +429,7 @@ def savefig_pmap(Settings):
     varProj = Settings['varProj']
     mapvar = Settings['mapvar']
     dataset = Settings['dataset']
-    
+
     f = tb.open_file(varProj,mode='a')
     tm = f.root._f_get_child(dataset)
     Grp = tm._f_get_child(mapvar)
@@ -450,7 +450,7 @@ def savefig_pmap(Settings):
             names.append(item)
             ds = f.get_node(masks,item).read()
             ds1 = ds * 1.0
-            num = np.sum(ds)                
+            num = np.sum(ds)
             string = str(item) + ", "+str(num)+" pixels"
             phpix.append(int(num))
             annot.append(string)
@@ -477,17 +477,17 @@ def savefig_pmap(Settings):
     names.append('PhaseMap')
     phpix.append(Total)
     phmod.append(1.0)
-    
+
     dat = np.column_stack((names, phpix, phmod))
     np.savetxt('PhaseMap_Stats.csv', dat, delimiter="\t", fmt=('%s','%s','%s'), header='Phase\tPixels(N)\tMode', comments='')
-    
+
     mini = np.nanmin(phasemap)
     maxi = np.nanmax(phasemap)
-        
+
     my_cmap = cm.get_cmap('gnuplot',maxi-mini+1)
     my_cmap.set_under('k', alpha=0)
     my_cmap.set_over('k', alpha=0)
-    
+
     if width <= 10.0:
         sz = "3%"
     else:
@@ -504,7 +504,7 @@ def savefig_pmap(Settings):
     cb.ax.set_yticklabels(annot)
     cb.ax.tick_params(labelsize=10)
     fig.tight_layout()
-    
+
     xmin,xmax = axes.get_xlim()
     xticks = axes.get_xticks()
     Length = len(xticks)
@@ -533,4 +533,4 @@ def savefig_pmap(Settings):
     plt.close()
     gc.collect()
     return
-    
+

@@ -78,9 +78,9 @@ def elratio(varProj): #This function normalises the element maps to the calculat
     tmpfile = tb.open_file('temp.h5', mode='a')
     atom = tb.Atom.from_dtype(stack.dtype)
     shaper = (stack.shape[0],)
-    total = f.createCArray(tmpfile.root,'Total',atom,shaper,filters=filters)
+    total = f.create_carray(tmpfile.root,'Total',atom,shaper,filters=filters)
     total[:] = np.sum(stack,axis=1) #add together every element for each pixel
-    stackR = f.createCArray(f.root,"NormStack",atom,stack.shape,filters=filters)
+    stackR = f.create_carray(f.root,"NormStack",atom,stack.shape,filters=filters)
     stackR.attrs.Size=(stack.shape)
     st1 = f.get_node(f.root,"Stack2")
     stackR.attrs.Shape=(st1.attrs.Size)
@@ -108,7 +108,7 @@ def h_factor(varProj): #This function produces the h-factor from Philibert (1967
         sta = sta[:,] + (stack[:,i] * (el_a[var]))
     hfac = 1.2 * (sta / (stz**2))    
     atom = tb.Atom.from_dtype(hfac.dtype)
-    factor = f.createCArray(f.root,"HFactor",atom,hfac.shape,filters=filters)
+    factor = f.create_carray(f.root,"HFactor",atom,hfac.shape,filters=filters)
     factor.attrs.Size=(hfac.shape)
     factor[:] = hfac
     del hfac

@@ -22,7 +22,7 @@ import matplotlib.style as mps
 
 class MyMplCanvas(FigureCanvas):
     def __init__(self,parent=None,width=10,height=6,dpi=100):
-        mps.use('qacd_xmap')
+        #mps.use('qacd_xmap')
         fig = Figure(figsize=(width,height),dpi=dpi)
         self.axes = fig.add_subplot(111)
         #we want the axes cleared every time plot() is called
@@ -37,7 +37,7 @@ class MyMplCanvas(FigureCanvas):
         FigureCanvas.updateGeometry(self)
     def compute_initial_figure(self):
         pass
-        
+
 class MplCanvas_hist(MyMplCanvas):
     def compute_initial_figure(self):
         f = tb.open_file('figtemp.h5',mode='a')
@@ -51,16 +51,16 @@ class MplCanvas_hist(MyMplCanvas):
         self.PixSize, self.pixun = self.pix_ret()
         self.data = self.data_ret2()
         print self.data
-        
+
         mini = np.nanmin(self.data)
         maxi = np.nanmax(self.data)
         print mini, maxi
         print maxi-mini+1
-        
+
         self.my_cmap = cm.get_cmap('gnuplot',maxi-mini+1)
         self.my_cmap.set_under('k', alpha=0)
         self.my_cmap.set_over('k', alpha=0)
-        
+
         im = self.axes.imshow(self.data,cmap=self.my_cmap,interpolation='nearest',
                               vmin = mini-.5, vmax = maxi+.5)
         self.axes.set_title(self.title)
@@ -70,7 +70,7 @@ class MplCanvas_hist(MyMplCanvas):
         cb.ax.tick_params(labelsize=10)
         fig.subplots_adjust(left=0.0,right=0.75, top=0.95, bottom=0.05)
         fig.tight_layout()
-        
+
         xmin,xmax = self.axes.get_xlim()
         xticks = self.axes.get_xticks()
         self.axes.yaxis.set_ticks_position('left')
@@ -94,7 +94,7 @@ class MplCanvas_hist(MyMplCanvas):
         fig.canvas.draw()
         self.axes.set_xticklabels(xlabels)
         self.axes.set_yticklabels([])
-        
+
     def pix_ret(self):
         f = tb.open_file(self.varProj,mode='a')
         pxsz = f.get_node(f.root,'PixSize').read()
@@ -103,7 +103,7 @@ class MplCanvas_hist(MyMplCanvas):
         f.close()
         print PixSize, pxun
         return PixSize, pxun
-    def data_ret2(self):        
+    def data_ret2(self):
         f = tb.open_file(self.varProj,mode='a')
         tm = f.root._f_get_child(self.dataset)
         Grp = tm._f_get_child('PhaseMap')
@@ -123,7 +123,7 @@ class MplCanvas_hist(MyMplCanvas):
                 self.names.append(item)
                 ds = f.get_node(masks,item).read()
                 ds1 = ds * 1.0
-                num = np.sum(ds)                
+                num = np.sum(ds)
                 string = str(item) + ", "+str(num)+" pixels"
                 self.phpix.append(num)
                 self.annot.append(string)
@@ -137,7 +137,7 @@ class MplCanvas_hist(MyMplCanvas):
             ds = mskls[i]
             phasemap = phasemap + ds
         print phasemap
-        print np.nanmax(phasemap), np.nanmin(phasemap)        
+        print np.nanmax(phasemap), np.nanmin(phasemap)
         Total = np.sum(self.phpix)
         print Total
         phasemap[phasemap==0]=np.nan
@@ -145,7 +145,7 @@ class MplCanvas_hist(MyMplCanvas):
         f.close()
         gc.collect()
         return phasemap
-        
+
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
@@ -157,15 +157,15 @@ class Ui_Dialog(object):
         f.close()
         self.statck = 0
         self.titleck = 1
-        self.fmtvar = ''  
-                
+        self.fmtvar = ''
+
         Dialog.setObjectName("Dialog")
         Dialog.resize(1022, 742)
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/main_icon/16x16.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         Dialog.setWindowIcon(icon)
         Dialog.setWindowTitle("QACD- Figure 1")
-        
+
         self.mplwidget = QtGui.QWidget(self)
         self.mplwidget.setGeometry(QtCore.QRect(10, 0, 1000, 600))
         self.mvl = QtGui.QVBoxLayout(self.mplwidget)
@@ -175,12 +175,12 @@ class Ui_Dialog(object):
         self.mvl.addWidget(sc)
         self.mplwidget.setFocus()
 
-                            
+
         self.widget = QtGui.QWidget(Dialog)
         self.widget.setGeometry(QtCore.QRect(15, 600, 991, 131))
         self.gridLayout = QtGui.QGridLayout(self.widget)
         self.gridLayout.setMargin(0)
-        
+
         font2 = QtGui.QFont()
         font2.setUnderline(True)
         #Options Labels
@@ -192,7 +192,7 @@ class Ui_Dialog(object):
         font1.setWeight(50)
         self.label_ExpSet.setFont(font1)
         self.gridLayout.addWidget(self.label_ExpSet, 0, 0, 1, 3)
-        
+
         #Width objects
         self.label_Wid = QtGui.QLabel("Width (in):",self.widget)
         self.label_Wid.setFont(font2)
@@ -218,7 +218,7 @@ class Ui_Dialog(object):
         self.spinBox_DPI = QtGui.QSpinBox(self.widget)
         self.spinBox_DPI.setRange(0,900)
         self.spinBox_DPI.setValue(300)
-        self.gridLayout.addWidget(self.spinBox_DPI, 1, 6, 1, 1)        
+        self.gridLayout.addWidget(self.spinBox_DPI, 1, 6, 1, 1)
         #Filename objects
         self.label_fname = QtGui.QLabel("File name:",self.widget)
         self.label_fname.setFont(font2)
@@ -240,7 +240,7 @@ class Ui_Dialog(object):
         self.checkBox_Stats.toggled.connect(self.StatCheck)
         self.label_StatOptions = QtGui.QLabel("Options:",self.widget)
         self.label_StatOptions.setFont(font2)
-        self.gridLayout.addWidget(self.label_StatOptions, 2, 2, 1, 1)        
+        self.gridLayout.addWidget(self.label_StatOptions, 2, 2, 1, 1)
         self.checkBox_Pix = QtGui.QCheckBox("Pixels (N)",self.widget)
         self.checkBox_Pix.setDisabled(True)
         self.gridLayout.addWidget(self.checkBox_Pix, 2, 3, 1, 2)
@@ -252,23 +252,23 @@ class Ui_Dialog(object):
         self.gridLayout.addWidget(self.checkBox_Median, 2, 7, 1, 1)
         self.checkBox_Std = QtGui.QCheckBox("Standard Deviation",self.widget)
         self.checkBox_Std.setDisabled(True)
-        self.gridLayout.addWidget(self.checkBox_Std, 2, 9, 1, 4)        
+        self.gridLayout.addWidget(self.checkBox_Std, 2, 9, 1, 4)
         #Title Objects
         self.lineEdit_Title = QtGui.QLineEdit(self.widget)
         self.lineEdit_Title.setEnabled(True)
-        self.gridLayout.addWidget(self.lineEdit_Title, 3, 3, 1, 6) 
+        self.gridLayout.addWidget(self.lineEdit_Title, 3, 3, 1, 6)
         self.checkBox_Title = QtGui.QCheckBox("Include Figure Title",self.widget)
         self.checkBox_Title.toggled.connect(self.TitleCheck)
         self.checkBox_Title.setChecked(True)
         self.gridLayout.addWidget(self.checkBox_Title, 3, 0, 1, 2)
         self.label_Title = QtGui.QLabel("Figure Title:",self.widget)
         self.label_Title.setFont(font2)
-        self.gridLayout.addWidget(self.label_Title, 3, 2, 1, 1)                    
+        self.gridLayout.addWidget(self.label_Title, 3, 2, 1, 1)
         #Export Buttons
         self.pushButton_Export = QtGui.QPushButton("Export Figure and Phase Stats Text File",self.widget)
         self.pushButton_Export.clicked.connect(self.FigureExport)
         self.gridLayout.addWidget(self.pushButton_Export, 3, 10, 1, 3)
-        
+
         self.gridLayout.addWidget(self.label_fname, 1, 10, 1, 2)
         self.gridLayout.setRowStretch(1, 1)
         self.gridLayout.setRowStretch(2, 1)
@@ -283,7 +283,7 @@ class Ui_Dialog(object):
             self.comboBox_format.addItem(item)
         index = self.comboBox_format.findText('pdf')
         self.comboBox_format.setCurrentIndex(index)
-        QtCore.QMetaObject.connectSlotsByName(Dialog) 
+        QtCore.QMetaObject.connectSlotsByName(Dialog)
     def FigureExport(self):
         figtitle = str(self.lineEdit_Title.text())
         filetitle = str(self.lineEdit_fname.text())
@@ -292,7 +292,7 @@ class Ui_Dialog(object):
         width = float(self.doubleSpinBox_wid.value())
         dpi = int(self.spinBox_DPI.value())
         Settings = dict(figtitle=figtitle,filetitle=filetitle,
-                        filefmt=filefmt,height=height,width=width,options=self.statck, 
+                        filefmt=filefmt,height=height,width=width,options=self.statck,
                         dpi=dpi,varProj=self.varProj,mapvar=str(self.mapvar),
                         dataset=str(self.dataset))
         import qacd_plot as qp
@@ -320,9 +320,9 @@ class Ui_Dialog(object):
             self.lineEdit_Title.setEnabled(True)
         else:
             self.titleck = 0
-            self.lineEdit_Title.setDisabled(True)            
+            self.lineEdit_Title.setDisabled(True)
         return
-    
+
 import ProjectManager_rc
 
 if __name__=='_main__':

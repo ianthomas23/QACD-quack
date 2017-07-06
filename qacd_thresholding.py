@@ -53,7 +53,7 @@ def worker2(threshDic, varProj, phase):
     print mask10
     mask = mask10/(len(mks))
     atom2 = tb.Atom.from_dtype(mask.dtype)
-    tmp = f.createCArray(Phas,phasename,atom2,mask.shape,filters=filters)
+    tmp = f.create_carray(Phas,phasename,atom2,mask.shape,filters=filters)
     tmp[:] = mask
     y, x = mask.shape[0], mask.shape[1]
     tmp.attrs.sizeY = y

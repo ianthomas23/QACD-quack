@@ -20,7 +20,7 @@ import matplotlib.style as mps
 
 class MyMplCanvas(FigureCanvas):
     def __init__(self,parent=None,width=10,height=6,dpi=100):
-        mps.use('qacd_xmap')
+        #mps.use('qacd_xmap')
         fig = Figure(figsize=(width,height),dpi=dpi)
         self.axes = fig.add_subplot(111)
         #we want the axes cleared every time plot() is called
@@ -35,19 +35,19 @@ class MyMplCanvas(FigureCanvas):
         self.compute_initial_figure()
     def compute_initial_figure(self):
         pass
-        
+
 class MplCanvas_hist(MyMplCanvas):
     def compute_initial_figure(self):
         self.data = DataHolder()
         self.mapnames = self.data.get_maplist()
         self.annot = "Some"
-        self.title = 'Some'        
+        self.title = 'Some'
         self.my_cmap = cm.gnuplot
         name = self.mapnames[0]
         self.curmap = name
         ds = self.data.get_series_data(name)
         im = self.axes.imshow(ds)
-        print str(name)            
+        print str(name)
         fig = self.axes.get_figure()
         global cb
         cb = fig.colorbar(im)
@@ -73,11 +73,11 @@ class MplCanvas_hist(MyMplCanvas):
         gc.collect()
         self.close()
         return
-        
+
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         self.imageref = []
-        
+
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         Dialog.setObjectName("Dialog")
         Dialog.resize(1451, 868)
@@ -90,8 +90,8 @@ class Ui_Dialog(object):
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/main_icon/16x16.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         Dialog.setWindowIcon(icon)
-        Dialog.setWindowTitle("QACD-3b.Pick the best Phase Map")                                
-        
+        Dialog.setWindowTitle("QACD-3b.Pick the best Phase Map")
+
         self.mplwindow = QtGui.QWidget(self)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
@@ -105,24 +105,24 @@ class Ui_Dialog(object):
         self.mvl.addWidget(self.toolbar)
         self.mvl.addWidget(self.sc)
         self.mplwindow.setFocus()
-        
+
         self.first_plot()
         maxi = len(self.imageref)
         self.curzord = maxi
-        
+
         self.gridLayout = QtGui.QGridLayout(Dialog)
         self.gridLayout.addWidget(self.mplwindow, 0, 0, 2, 5)
 
         self.label_2 = QtGui.QLabel("Phase Maps:",Dialog)
         self.gridLayout.addWidget(self.label_2, 2, 0, 1, 1)
-        
+
         self.horizontalSlider = QtGui.QSlider(Dialog)
         self.horizontalSlider.setOrientation(QtCore.Qt.Horizontal)
         self.horizontalSlider.setRange(0,(maxi-1))
-        self.horizontalSlider.sliderReleased.connect(self.update_plot) 
+        self.horizontalSlider.sliderReleased.connect(self.update_plot)
         self.horizontalSlider.setValue(0)
         self.gridLayout.addWidget(self.horizontalSlider, 2, 1, 1, 1)
-        
+
         self.label_6 = QtGui.QLabel("Current:",Dialog)
         self.gridLayout.addWidget(self.label_6, 2, 3, 1, 1)
         self.lineEdit = QtGui.QLineEdit(Dialog)
@@ -137,9 +137,9 @@ class Ui_Dialog(object):
         self.pushButton_CreatePhase = QtGui.QPushButton("Edit/Use Selected Phase Mask",Dialog)
         self.pushButton_CreatePhase.clicked.connect(self.cont_ph)
         self.gridLayout.addWidget(self.pushButton_CreatePhase, 3, 3, 1, 2)
-        
+
         QtCore.QMetaObject.connectSlotsByName(Dialog)
-        
+
     def first_plot(self):
         self.imageref = self.sc.get_image_labels()
         return
@@ -225,8 +225,8 @@ class DataHolder(object):
         x,y = im2.size[0],im2.size[1]
         sz = (1150,int((1150.0/x)*y))
         return im2.resize(sz)
-        
-        
+
+
 import ProjectManager_rc
 
 if __name__=='_main__':

@@ -37,7 +37,7 @@ def monte_carlo(K): #Main function for carrying out Kmeans clustering
         f.create_array(grp, "centroids", centroids)
         f.create_array(grp, "labels", labels)
         atom2 = tb.Atom.from_dtype(pmap.dtype)
-        dset = f.createCArray(grp,"pmap",atom2,pmap.shape,filters=filters)
+        dset = f.create_carray(grp,"pmap",atom2,pmap.shape,filters=filters)
         dset[:] = pmap
         string = 'Finished with ' + str(k)
         del centroids, labels, mbk,  var

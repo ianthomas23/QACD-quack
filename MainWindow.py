@@ -17,7 +17,7 @@ import logging
 import psutil
 
 gc.set_threshold(10, 5, 5)
-        
+
 
 class QtHandler(logging.Handler):
     def __init__(self):
@@ -26,7 +26,7 @@ class QtHandler(logging.Handler):
         record = self.format(record)
         if record: XStream.stdout().write('%s\n'%record)
         # originally: XStream.stdout().write("{}\n".format(record))
-        
+
 logger = logging.getLogger(__name__)
 handler = QtHandler()
 handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
@@ -68,7 +68,7 @@ class Ui_MainWindow(object):
                           'Map Width','Map Height','Map Area','Pixels (N)','Phase Masks',
                           'Phases Thresh.','Phases Clust.','Total Phases','Ratio Maps',
                           'Last Ratio Map','Last Map Plot','Last Hist Plot']
-        
+
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(371, 960)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.MinimumExpanding)
@@ -91,20 +91,20 @@ class Ui_MainWindow(object):
         self.Proj_tableWidget.setGeometry(QtCore.QRect(10, 495, 349, 151))
         self.Proj_tableWidget.setStatusTip('Info regarding the project')
         self.table_initialise()
-        
+
         self.label_Output = QtGui.QLabel("Program Output and Errors:", self.centralwidget)
         self.label_Output.setGeometry(QtCore.QRect(10, 695, 349, 16))
-        
+
         self._console = QtGui.QTextBrowser(self.centralwidget)
         self._console.setGeometry(QtCore.QRect(10, 715, 349, 181))
         self._console.setReadOnly(True)
         self._console.setLineWrapMode(QtGui.QTextEdit.NoWrap)
         self._console.ensureCursorVisible()
         self._console.textChanged.connect(self.cons_scroll)
-        
-        XStream.stdout().messageWritten.connect( self._console.insertPlainText )
-        XStream.stderr().messageWritten.connect( self._console.insertPlainText )
-        
+
+        #XStream.stdout().messageWritten.connect( self._console.insertPlainText )
+        #XStream.stderr().messageWritten.connect( self._console.insertPlainText )
+
         self.label3_ProjDesc = QtGui.QLabel("Project Info and Log:", self.centralwidget)
         self.label3_ProjDesc.setGeometry(QtCore.QRect(10, 475, 349, 16))
 
@@ -177,12 +177,12 @@ class Ui_MainWindow(object):
         self.popMenu_Clust.addAction(QtGui.QAction('Edit Previous Cluster Group', self))
         self.popMenu_Clust.setToolTip('Jump to the final Cluster dialog to continue editing a previous session.')
         self.popMenu_Clust.triggered.connect(self.clust_popup)
-        
+
         self.popMenu_Import = QtGui.QMenu(self)
         self.popMenu_Import.addAction(QtGui.QAction('Finish creating NormStack and H Factor', self))
         self.popMenu_Import.setToolTip('Perform final data import methods on large projects limited by memory')
         self.popMenu_Import.triggered.connect(self.data_popup)
-        
+
         #Setup the menubar
         self.menubar = QtGui.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 310, 26))
@@ -202,7 +202,7 @@ class Ui_MainWindow(object):
         self.menuProject.addSeparator()
         self.menuProject.addAction(self.actionExit)
         self.menubar.addAction(self.menuProject.menuAction())
-        
+
         #Setup the Help Menu
         self.menuHelp = QtGui.QMenu("Help",self.menubar)
         self.actionGetting_Started = QtGui.QAction("Getting Started...",MainWindow)
@@ -227,25 +227,25 @@ class Ui_MainWindow(object):
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtGui.QStatusBar(MainWindow)
         MainWindow.setStatusBar(self.statusbar)
-        
+
         self.MemLabel = QtGui.QLabel("MemUsage",self.centralwidget)
         self.statusbar.addWidget(self.MemLabel)
-        
+
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.Time)
         self.timer.start(2500)
-        
+
         self.dirName = 'direct'
         self.varProj = 'file'
-        
-        
+
+
         #Set the central widget
         MainWindow.setCentralWidget(self.centralwidget)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
         QtCore.QObject
-        
+
         self.config_up()
-        
+
     def config_up(self):
         filedir = os.path.dirname(os.path.abspath(__file__))
         filet = "LastFile.txt"
@@ -364,11 +364,11 @@ class Ui_MainWindow(object):
         self.logDict['Last Map Plot']=log[15] #date of last
         self.logDict['Last Hist Plot']=log[16] #date of last
         for i in xrange(0, len(self.rowtitles)):
-            var = self.rowtitles[i]            
+            var = self.rowtitles[i]
             var2 = str(self.logDict[var])
             self.Proj_tableWidget.setItem(i,1,QtGui.QTableWidgetItem(var2))
         self.Proj_tableWidget.resizeColumnToContents(1)
-        return        
+        return
     def on_treeView_clicked(self, index):
         indexItem = self.Dir_model.index(index.row(), 0, index.parent())
         fileName = self.Dir_model.fileName(indexItem)
@@ -388,7 +388,7 @@ class Ui_MainWindow(object):
             stringer = "Working Directory: " + str(self.dirName)
             self.label1_WD.setText(stringer)
             #add in the population of the directory model view with the WD folder contents
-            
+
             self.Dir_model.setRootPath(self.dirName)
             self.Dir_treeView.setModel(self.Dir_model)
             self.Dir_treeView.setRootIndex(self.Dir_model.index(self.dirName))
@@ -407,6 +407,7 @@ class Ui_MainWindow(object):
     def New_Proj(self):
         fnm = QtGui.QFileDialog.getSaveFileName(self,"Save project as...",'',"HDF5 Files (*.h5)")
         self.projname = str(fnm)
+        print("########### hello", self.projname)
         if self.projname and self.projname.strip():
             name = ''.join(self.projname)#format name as strings
             pname,  fname = os.path.split(name)
@@ -528,18 +529,18 @@ class Ui_MainWindow(object):
             f = tb.open_file(self.varProj, mode='a')
             self.cluster = f.get_node(f.root, "nums").read()
             f.close()
-            group = "Cluster" + str(self.cluster) 
+            group = "Cluster" + str(self.cluster)
             f = tb.open_file("temp.h5", mode='a')
             tmp = f.root
             lis = tmp._v_children
             if 'clust' in lis.keys():
                 f.remove_node(tmp, "clust")
-            else: 
+            else:
                 print
             f.create_array(tmp, "clust", group)
             if 'nums' in lis.keys():
                 f.remove_node(tmp, "nums")
-            else: 
+            else:
                 print
             f.create_array(tmp, "nums", self.cluster)
             f.close()
@@ -614,7 +615,7 @@ class Ui_MainWindow(object):
         self.model = QtGui.QFileSystemModel()
         self.Proj_treeView.setModel(self.model)
         gc.collect()
-        del gc.garbage[:]       
+        del gc.garbage[:]
         return
 #    def closeEvent(self, e):
 #        cfg = open(self.cfgname, 'w')
@@ -624,7 +625,7 @@ class Ui_MainWindow(object):
 #        return
     def Save_and_Exit(self):
         gc.collect()
-        del gc.garbage[:] 
+        del gc.garbage[:]
         self.close()
         return
     def Export_Arrays(self):
@@ -633,7 +634,7 @@ class Ui_MainWindow(object):
         self.expDlg.exec_()
         self.expDlg = ""
         gc.collect()
-        del gc.garbage[:] 
+        del gc.garbage[:]
         return
     def Start_Docu(self):
         return
@@ -650,7 +651,7 @@ class Ui_MainWindow(object):
         gc.collect()
         del gc.garbage[:]
         return
-    
+
 import ProjectManager_rc
 
 if __name__=='__main__':

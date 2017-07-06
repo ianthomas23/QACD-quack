@@ -9,7 +9,8 @@ import dask.array as da
 from scipy.ndimage.filters import median_filter as medfilt
 
 filters = tb.Filters(complevel=5, complib='blosc')
-def Data_Load1(dict d, int l):
+
+def Data_Load1(d, l):
     filters = tb.Filters(complevel=5, complib='blosc')
     Dict = d
     Length = l
@@ -45,7 +46,7 @@ def Data_Load1(dict d, int l):
         del ds1
         ds1_f = medfilt(ds1_m,size=(3,3),mode='nearest')
         atom = tb.Atom.from_dtype(ds1_f.dtype)
-        dset = f.createCArray(Filt,var,atom,ds1_f.shape,filters=filters)
+        dset = f.create_carray(Filt,var,atom,ds1_f.shape,filters=filters)
         dset[:] = ds1_f
         dset.attrs.Size = (sizeX,sizeY)
         del ds1_m,ds1_f
@@ -57,7 +58,8 @@ def Data_Load1(dict d, int l):
     print r
     statcalc(varProj,pxszopt)
     return
-def Data_Load2(dict d, int l):
+
+def Data_Load2(d, l):
     filters = tb.Filters(complevel=5, complib='blosc')
     Dict = d
     Length = l
@@ -92,7 +94,7 @@ def Data_Load2(dict d, int l):
         ds1_f = ds1/Total_m
         del ds1
         atom = tb.Atom.from_dtype(ds1_f.dtype)
-        dset = f.createCArray(Filt,var,atom,ds1_f.shape,filters=filters)
+        dset = f.create_carray(Filt,var,atom,ds1_f.shape,filters=filters)
         dset[:] = ds1_f
         dset.attrs.Size = (sizeX,sizeY)
         del ds1_f
@@ -104,7 +106,8 @@ def Data_Load2(dict d, int l):
     print r
     statcalc(varProj,pxszopt)
     return
-def Data_Load3(dict d, int l):
+
+def Data_Load3(d, l):
     ffilters = tb.Filters(complevel=5, complib='blosc')
     Dict = d
     Length = l
@@ -128,7 +131,7 @@ def Data_Load3(dict d, int l):
         ds1_f = medfilt(ds1,size=(3,3),mode='nearest')
         del ds1
         atom = tb.Atom.from_dtype(ds1_f.dtype)
-        dset = f.createCArray(Filt,var,atom,ds1_f.shape,filters=filters)
+        dset = f.create_carray(Filt,var,atom,ds1_f.shape,filters=filters)
         dset[:] = ds1_f
         dset.attrs.Size = (sizeX,sizeY)
         del ds1_f
@@ -148,11 +151,11 @@ def stack_arrays(varProj):
     ells1 = []
     lis = Filt._v_children
     if 'Ca' in lis.keys():
-        ells1.append('Ca')        
+        ells1.append('Ca')
     if 'Mg' in lis.keys():
         ells1.append('Mg')
     if 'Al' in lis.keys():
-        ells1.append('Al')        
+        ells1.append('Al')
     if 'Si' in lis.keys():
         ells1.append('Si')
     if 'Fe' in lis.keys():
@@ -177,18 +180,18 @@ def stack_arrays(varProj):
         del d, tp
         print item
     del el_sh, ells1, ells2
-    fp = da.concatenate(mlis2, axis=1)    
+    fp = da.concatenate(mlis2, axis=1)
     atom = tb.Atom.from_dtype(fp.dtype)
-    dset = f.createCArray(f.root,"Stack1",atom,fp.shape,filters=filters)
+    dset = f.create_carray(f.root,"Stack1",atom,fp.shape,filters=filters)
     dset.attrs.Size=(x,y)
     da.store(fp, dset)
     del fp, mlis2, atom
-    fp = da.concatenate(mlis, axis=1)    
+    fp = da.concatenate(mlis, axis=1)
     atom = tb.Atom.from_dtype(fp.dtype)
-    dset = f.createCArray(f.root,"Stack2",atom,fp.shape,filters=filters)
+    dset = f.create_carray(f.root,"Stack2",atom,fp.shape,filters=filters)
     dset.attrs.Size=(x,y)
     da.store(fp, dset)
-    del fp, mlis, atom, 
+    del fp, mlis, atom,
     f.close()
     gc.collect()
     string = 'Stacked'
@@ -254,4 +257,4 @@ def statcalc(varProj,pxszopt):
     gc.collect()
     print 'Stats Calculated'
     return
-    
+

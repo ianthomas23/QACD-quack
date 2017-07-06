@@ -36,10 +36,10 @@ class Ui_QACD_Import(object):
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/main_icon/16x16.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         QACD_Import.setWindowIcon(icon)
-        
+
         self.widget = QtGui.QWidget(QACD_Import)
         self.widget.setGeometry(QtCore.QRect(10, 10, 311, 431))
-        
+
         self.label_2 = QtGui.QLabel("<html><head/><body><p>Step 1. Choose your map files.</p><p>Step 2. Choose your Map Filtration options.</p><p>Step 3. It is optional to provide the step/pixel size.</p><p>Step 4. Import and filter selected maps.</p></body></html>",QACD_Import)
         self.label_2.setGeometry(QtCore.QRect(10, 450, 311, 101))
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Fixed)
@@ -50,11 +50,11 @@ class Ui_QACD_Import(object):
         self.label_2.setScaledContents(True)
         self.label_2.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
         self.label_2.setWordWrap(True)
-        
-        
+
+
         self.gridLayout = QtGui.QGridLayout(self.widget)
         self.gridLayout.setMargin(0)
-        
+
         self.label_Files = QtGui.QLabel("Map Files (.CSV):",self.widget)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -66,7 +66,7 @@ class Ui_QACD_Import(object):
         self.gridLayout.addWidget(self.Button_Files, 0, 1, 1, 3)
         self.Button_Files.clicked.connect(self.File_Set)
         self.Button_Files.setToolTip("<html><head/><body><p>Step 1. Choose your map files.</p></body></html>")
-        
+
         self.listWidget_Files = QtGui.QListWidget(self.widget)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -74,9 +74,9 @@ class Ui_QACD_Import(object):
         sizePolicy.setHeightForWidth(self.listWidget_Files.sizePolicy().hasHeightForWidth())
         self.listWidget_Files.setSizePolicy(sizePolicy)
         self.gridLayout.addWidget(self.listWidget_Files, 1, 0, 1, 4)
-        
-        
-        
+
+
+
         self.label_Filt = QtGui.QLabel("2. Map Filtration:",self.widget)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
@@ -85,7 +85,7 @@ class Ui_QACD_Import(object):
         self.label_Filt.setSizePolicy(sizePolicy)
         self.label_Filt.setToolTip("<html><head/><body><p>Step 2. Choose your Map Filtration options.</p></body></html>")
         self.gridLayout.addWidget(self.label_Filt, 2, 0, 1, 4)
-        
+
         self.checkBox_pix = QtGui.QCheckBox("Pixel Totals (Salt-N-Pepper Noise)",self.widget)
         self.checkBox_pix.stateChanged.connect(self.pix_check)
         self.gridLayout.addWidget(self.checkBox_pix, 3, 0, 1, 4)
@@ -93,7 +93,7 @@ class Ui_QACD_Import(object):
         self.checkBox_med = QtGui.QCheckBox("3-by-3 Median Filter",self.widget)
         self.checkBox_med.stateChanged.connect(self.med_check)
         self.gridLayout.addWidget(self.checkBox_med, 4, 0, 1, 4)
-        
+
         self.Button_Engage = QtGui.QPushButton("4. Import and Filter Selected Maps",self.widget)
         self.Button_Engage.setToolTip("The data import and filtration process can be tedious and long. The dialog may become unresponsive for a moment after clicking this button.")
         self.Button_Engage.clicked.connect(self.Engage)
@@ -105,7 +105,7 @@ class Ui_QACD_Import(object):
         font.setWeight(50)
         self.Button_Engage.setFont(font)
         self.gridLayout.addWidget(self.Button_Engage, 9, 0, 1, 4)
-        
+
         self.label_opt = QtGui.QLabel("3. Optional Information for Map Import:",self.widget)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
@@ -113,7 +113,7 @@ class Ui_QACD_Import(object):
         sizePolicy.setHeightForWidth(self.label_opt.sizePolicy().hasHeightForWidth())
         self.label_opt.setSizePolicy(sizePolicy)
         self.gridLayout.addWidget(self.label_opt, 6, 0, 1, 4)
-        
+
         self.checkBox_opt = QtGui.QCheckBox("Include Pixel Step Size:",self.widget)
         self.checkBox_opt.clicked.connect(self.optional_chck)
         self.checkBox_opt.setChecked(True)
@@ -123,28 +123,28 @@ class Ui_QACD_Import(object):
         self.doubleSpinBox.setMaximum(10000.0)
         self.doubleSpinBox.setProperty("value", 10.0)
         self.gridLayout.addWidget(self.doubleSpinBox, 7, 2, 1, 2)
-        
+
         self.label = QtGui.QLabel("Pixel Step Size Units:",self.widget)
         self.gridLayout.addWidget(self.label, 8, 0, 1, 1)
         self.radio_group=QtGui.QButtonGroup(self.widget)
         self.radio_group.setExclusive(True)
         self.radbut_1 = QtGui.QRadioButton("mm",self.widget)
-        self.gridLayout.addWidget(self.radbut_1, 8, 1, 1, 1)  
+        self.gridLayout.addWidget(self.radbut_1, 8, 1, 1, 1)
         self.radbut_2 = QtGui.QRadioButton("um",self.widget)
-        self.gridLayout.addWidget(self.radbut_2, 8, 2, 1, 1)        
+        self.gridLayout.addWidget(self.radbut_2, 8, 2, 1, 1)
         self.radbut_3 = QtGui.QRadioButton("nm",self.widget)
         self.gridLayout.addWidget(self.radbut_3, 8, 3, 1, 1)
         self.radbut_1.setChecked(True)
-        self.radio_group.addButton(self.radbut_1, 1)        
+        self.radio_group.addButton(self.radbut_1, 1)
         self.radio_group.addButton(self.radbut_2, 2)
         self.radio_group.addButton(self.radbut_3, 3)
-        
+
         self.radbut_1.clicked.connect(self.btnstate)
         self.radbut_2.clicked.connect(self.btnstate)
         self.radbut_3.clicked.connect(self.btnstate)
-        
+
         QtCore.QMetaObject.connectSlotsByName(QACD_Import)
-        
+
         self.set_project_file()
     def optional_chck(self):
         if self.checkBox_opt.isChecked() == True:
@@ -153,14 +153,14 @@ class Ui_QACD_Import(object):
             self.label.setEnabled(True)
             self.radbut_1.setEnabled(True)
             self.radbut_2.setEnabled(True)
-            self.radbut_3.setEnabled(True)            
+            self.radbut_3.setEnabled(True)
         elif self.checkBox_opt.isChecked() == False:
             print'No pixel options!'
             self.doubleSpinBox.setEnabled(False)
             self.label.setEnabled(False)
             self.radbut_1.setEnabled(False)
             self.radbut_2.setEnabled(False)
-            self.radbut_3.setEnabled(False) 
+            self.radbut_3.setEnabled(False)
         return
     def btnstate(self, b):
         var = self.radio_group.checkedId()
@@ -174,7 +174,7 @@ class Ui_QACD_Import(object):
         return
     def set_project_file(self):
         import tables as tb
-        f = tb.open_file('temp.h5', mode='a')        
+        f = tb.open_file('temp.h5', mode='a')
         tm = f.get_node(f.root, 'varProj')
         self.varProj = tm.read()
         f.close()
@@ -296,15 +296,15 @@ class Ui_QACD_Import(object):
         if pixVar=='True' and medVar =='True':
             print 'Filtering data by pixel totals and a 3-by-3 nearest neighbor median filter...'
             import dataInit2 as di
-            di.Data_Load1(Dict,Length)            
+            di.Data_Load1(Dict,Length)
         elif pixVar=='True' and medVar =='False':
             print 'Filtering data by pixel totals...'
             import dataInit2 as di
-            di.Data_Load2(Dict,Length)  
+            di.Data_Load2(Dict,Length)
         elif pixVar=='False' and medVar =='True':
             print 'Filtering data with a 3-by-3 nearest neighbor median filter...'
             import dataInit2 as di
-            di.Data_Load3(Dict,Length)  
+            di.Data_Load3(Dict,Length)
         print 'Data Loaded'
         import qacd_corr as qcr
         st1 = qcr.elratio(self.varProj)

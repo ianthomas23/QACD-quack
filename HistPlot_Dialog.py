@@ -19,7 +19,7 @@ from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.style as mps
 from matplotlib.ticker import AutoMinorLocator
 
-mps.use('qacd_xmap')
+#mps.use('qacd_xmap')
 
 class MyMplCanvas(FigureCanvas):
     def __init__(self,parent=None,width=10,height=6,dpi=100):
@@ -76,7 +76,7 @@ class MplCanvas_hist(MyMplCanvas):
                                va="top",ha="left",bbox=bbox_props)
             fig = self.axes.get_figure()
             fig.tight_layout()
-        else:            
+        else:
             self.axes.hist(self.data,bins=100,range=(0.0, 1.0))
             self.axes.set_ylabel("Frequency (N)")
             self.axes.set_title(self.title)
@@ -94,7 +94,7 @@ class MplCanvas_hist(MyMplCanvas):
                             va="top",ha="left",bbox=bbox_props)
             fig = self.axes.get_figure()
             fig.tight_layout()
-            
+
     def closeFigure(self):
         del self.varProj, self.mapvar, self.phase, self.dataset, self.annot, self.title
         fig = fig = self.axes.get_figure()
@@ -161,7 +161,7 @@ class MplCanvas_hist(MyMplCanvas):
             return dsx, num
         print dsx
         return dsx, num
-    def data_ret2(self):        
+    def data_ret2(self):
         if self.phase == 'No Phase':
             f = tb.open_file(self.varProj,mode='a')
             Filt = f.root._f_get_child(self.datagroup)
@@ -214,14 +214,14 @@ class MplCanvas_hist(MyMplCanvas):
             dsx[:] = dsm[:]
             del dsm
             num = np.sum(mask)
-            del mask            
+            del mask
             self.annot = ("$Mean = " + str(mean) + "$\n$Median = " + str(median) + "$\n$\sigma = " + str(stdev) + "$\n$N = " + str(num) +"$")
             self.title = ('Histogram of ' + str(self.mapvar) + 'in ' + str(self.phase))
             f.close()
             return dsx, num
         print dsx
         return dsx, num
-        
+
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
@@ -237,27 +237,27 @@ class Ui_Dialog(object):
         f.close()
         self.statck = 0
         self.titleck = 1
-        self.fmtvar = ''   
-                
+        self.fmtvar = ''
+
         Dialog.setObjectName("Dialog")
         Dialog.resize(1022, 742)
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/main_icon/16x16.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         Dialog.setWindowIcon(icon)
         Dialog.setWindowTitle("QACD- Figure 1")
-        
+
         self.mplwidget = QtGui.QWidget(self)
         self.mplwidget.setGeometry(QtCore.QRect(10, 0, 1000, 600))
         self.mvl = QtGui.QVBoxLayout(self.mplwidget)
         self.sc = MplCanvas_hist(self.mplwidget, width=10,height=6,dpi=100)
         self.mvl.addWidget(self.sc)
         self.mplwidget.setFocus()
-                            
+
         self.widget = QtGui.QWidget(Dialog)
         self.widget.setGeometry(QtCore.QRect(15, 600, 991, 131))
         self.gridLayout = QtGui.QGridLayout(self.widget)
         self.gridLayout.setMargin(0)
-        
+
         font2 = QtGui.QFont()
         font2.setUnderline(True)
         #Options Labels
@@ -269,7 +269,7 @@ class Ui_Dialog(object):
         font1.setWeight(50)
         self.label_ExpSet.setFont(font1)
         self.gridLayout.addWidget(self.label_ExpSet, 0, 0, 1, 3)
-        
+
         #Width objects
         self.label_Wid = QtGui.QLabel("Width (in):",self.widget)
         self.label_Wid.setFont(font2)
@@ -295,7 +295,7 @@ class Ui_Dialog(object):
         self.spinBox_DPI = QtGui.QSpinBox(self.widget)
         self.spinBox_DPI.setRange(0,900)
         self.spinBox_DPI.setValue(200)
-        self.gridLayout.addWidget(self.spinBox_DPI, 1, 6, 1, 1)        
+        self.gridLayout.addWidget(self.spinBox_DPI, 1, 6, 1, 1)
         #Filename objects
         self.label_fname = QtGui.QLabel("File name:",self.widget)
         self.label_fname.setFont(font2)
@@ -317,7 +317,7 @@ class Ui_Dialog(object):
         self.checkBox_Stats.toggled.connect(self.StatCheck)
         self.label_StatOptions = QtGui.QLabel("Options:",self.widget)
         self.label_StatOptions.setFont(font2)
-        self.gridLayout.addWidget(self.label_StatOptions, 2, 2, 1, 1)        
+        self.gridLayout.addWidget(self.label_StatOptions, 2, 2, 1, 1)
         self.checkBox_Pix = QtGui.QCheckBox("Pixels (N)",self.widget)
         self.checkBox_Pix.setDisabled(True)
         self.gridLayout.addWidget(self.checkBox_Pix, 2, 3, 1, 2)
@@ -334,23 +334,23 @@ class Ui_Dialog(object):
         self.gridLayout.addWidget(self.label_sample, 2, 10, 1, 1)
         self.lineEdit_sample = QtGui.QLineEdit(self.widget)
         self.gridLayout.addWidget(self.lineEdit_sample, 2, 11, 1, 2)
-        
+
         #Title Objects
         self.lineEdit_Title = QtGui.QLineEdit(self.widget)
         self.lineEdit_Title.setEnabled(True)
-        self.gridLayout.addWidget(self.lineEdit_Title, 3, 3, 1, 7) 
+        self.gridLayout.addWidget(self.lineEdit_Title, 3, 3, 1, 7)
         self.checkBox_Title = QtGui.QCheckBox("Include Figure Title",self.widget)
         self.checkBox_Title.toggled.connect(self.TitleCheck)
         self.checkBox_Title.setChecked(True)
         self.gridLayout.addWidget(self.checkBox_Title, 3, 0, 1, 2)
         self.label_Title = QtGui.QLabel("Figure Title:",self.widget)
         self.label_Title.setFont(font2)
-        self.gridLayout.addWidget(self.label_Title, 3, 2, 1, 1)                    
+        self.gridLayout.addWidget(self.label_Title, 3, 2, 1, 1)
         #Export Buttons
         self.pushButton_Export = QtGui.QPushButton("Export Figure with the Above Settings",self.widget)
         self.pushButton_Export.clicked.connect(self.FigureExport)
         self.gridLayout.addWidget(self.pushButton_Export, 3, 10, 1, 3)
-        
+
         self.gridLayout.addWidget(self.label_fname, 1, 10, 1, 2)
         self.gridLayout.setRowStretch(1, 1)
         self.gridLayout.setRowStretch(2, 1)
@@ -365,7 +365,7 @@ class Ui_Dialog(object):
             self.comboBox_format.addItem(item)
         index = self.comboBox_format.findText('pdf')
         self.comboBox_format.setCurrentIndex(index)
-        QtCore.QMetaObject.connectSlotsByName(Dialog) 
+        QtCore.QMetaObject.connectSlotsByName(Dialog)
     def FigureExport(self):
         figtitle = str(self.lineEdit_Title.text())
         filetitle = str(self.lineEdit_fname.text())+"_hist"
@@ -381,8 +381,8 @@ class Ui_Dialog(object):
             export1 = 10
         else:
             export1 = 5
-        Settings = dict(figtitle=figtitle,filetitle=filetitle,sample=samplenm, 
-                        filefmt=filefmt,height=height,width=width,options=self.statck, 
+        Settings = dict(figtitle=figtitle,filetitle=filetitle,sample=samplenm,
+                        filefmt=filefmt,height=height,width=width,options=self.statck,
                         dpi=dpi,varProj=self.varProj,phase=str(self.phase),
                         mapvar=str(self.mapvar), dataset=self.dataset,export=export1, datagroup=self.datagroup)
         import qacd_plot as qp
@@ -412,9 +412,9 @@ class Ui_Dialog(object):
             self.lineEdit_Title.setEnabled(True)
         else:
             self.titleck = 0
-            self.lineEdit_Title.setDisabled(True)            
+            self.lineEdit_Title.setDisabled(True)
         return
-    
+
 import ProjectManager_rc
 
 if __name__=='_main__':

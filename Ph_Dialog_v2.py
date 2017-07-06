@@ -18,11 +18,11 @@ import gc
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.backends.backend_qt4agg import (FigureCanvasQTAgg as FigureCanvas,NavigationToolbar2QT as NavigationToolbar)
 import matplotlib.style as mps
-mps.use('qacd_xmap')
+#mps.use('qacd_xmap')
 
 class MyMplCanvas(FigureCanvas):
     def __init__(self,parent=None,width=10,height=6,dpi=100):
-        mps.use('qacd_xmap')
+        #mps.use('qacd_xmap')
         fig = Figure(figsize=(width,height),dpi=dpi)
         self.axes = fig.add_subplot(111)
         #we want the axes cleared every time plot() is called
@@ -110,7 +110,7 @@ class MplCanvas_hist(MyMplCanvas):
         del self.data, self.imagelims, self.mapnames, self.curmap, self.my_cmap,  self.im
         del self.axes
         gc.collect()
-        self.close()        
+        self.close()
         return
 class Ui_Phase_Dialog(object):
     valueChanged = QtCore.pyqtSignal(int)
@@ -126,9 +126,9 @@ class Ui_Phase_Dialog(object):
         self.mapvar = ''
         self.varProj = ''
         self.statdic = {}
-        
+
         self.threshDic = {}
-        self.threshCount = 0        
+        self.threshCount = 0
         self.counter = 0
         self.Thcheck = {}
 
@@ -140,13 +140,13 @@ class Ui_Phase_Dialog(object):
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/main_icon/16x16.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         Dialog.setWindowIcon(icon)
-        
+
         self.mplwindow = QtGui.QWidget(self)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.mplwindow.sizePolicy().hasHeightForWidth())
-        self.mplwindow.setSizePolicy(sizePolicy)        
+        self.mplwindow.setSizePolicy(sizePolicy)
         self.mplvl = QtGui.QVBoxLayout(self.mplwindow)
         self.mplvl.setMargin(0)
         self.sc = MplCanvas_hist(self.mplwindow, width=11.5,height=6.5,dpi=100)
@@ -159,7 +159,7 @@ class Ui_Phase_Dialog(object):
         self.gridLayout.addWidget(self.label_Maps, 0, 4, 1, 1)
 
         self.first_plot()
-        
+
         self.mplfigs = QtGui.QListWidget(Dialog)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Maximum, QtGui.QSizePolicy.Maximum)
         sizePolicy.setHorizontalStretch(0)
@@ -168,14 +168,14 @@ class Ui_Phase_Dialog(object):
         self.mplfigs.setSizePolicy(sizePolicy)
         self.mplfigs.setMaximumSize(QtCore.QSize(256, 192))
         self.gridLayout.addWidget(self.mplfigs, 1, 4, 1, 2)
-        
+
         self.mplfigs.itemClicked.connect(self.changemap)
-        
+
         self.list_pop()
-        
+
         self.label_SelMapDet = QtGui.QLabel("Selected Map Details:",Dialog)
         self.gridLayout.addWidget(self.label_SelMapDet, 2, 4, 1, 2)
-        
+
         self.textBrowser_Details = QtGui.QPlainTextEdit(Dialog)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Maximum, QtGui.QSizePolicy.Maximum)
         sizePolicy.setHorizontalStretch(0)
@@ -185,13 +185,13 @@ class Ui_Phase_Dialog(object):
         self.textBrowser_Details.setMaximumSize(QtCore.QSize(256, 192))
         self.textBrowser_Details.setReadOnly(True)
         self.gridLayout.addWidget(self.textBrowser_Details, 3, 4, 1, 2)
-        
+
         self.label_ThreshTb = QtGui.QLabel("Thresholded Map Values:",Dialog)
         self.gridLayout.addWidget(self.label_ThreshTb, 4, 4, 1, 2)
-        
+
         self.First_Figure()
         Length = len(self.ells)
-        
+
         self.tableWidget_Thresh = QtGui.QTableWidget(Dialog)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Maximum, QtGui.QSizePolicy.Maximum)
         sizePolicy.setHorizontalStretch(0)
@@ -226,21 +226,21 @@ class Ui_Phase_Dialog(object):
         self.pushButton_UpdateTb = QtGui.QPushButton("Update Current Threshold Values",Dialog)
         self.gridLayout.addWidget(self.pushButton_UpdateTb, 6, 4, 1, 2)
         self.pushButton_UpdateTb.clicked.connect(self.get_thresh)
-        
+
         self.label_2 = QtGui.QLabel("Upper:",Dialog)
-        self.gridLayout.addWidget(self.label_2, 7, 0, 1, 1)        
+        self.gridLayout.addWidget(self.label_2, 7, 0, 1, 1)
         self.horizontalSlider = QtGui.QSlider(Dialog)
         self.horizontalSlider.setOrientation(QtCore.Qt.Horizontal)
         self.horizontalSlider.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.horizontalSlider.setRange(self.varmin, self.varmax)
         self.horizontalSlider.setValue(self.varmax)
-        self.horizontalSlider.setSingleStep(1)        
+        self.horizontalSlider.setSingleStep(1)
         self.gridLayout.addWidget(self.horizontalSlider, 7, 1, 1, 1)
         self.lineEdit_upper = QtGui.QLineEdit(Dialog)
         self.lineEdit_upper.setText(str(self.varmax))
         self.lineEdit_upper.setReadOnly(True)
         self.gridLayout.addWidget(self.lineEdit_upper, 7, 2, 1, 1)
-        
+
         self.label_3 = QtGui.QLabel("Lower:",Dialog)
         self.gridLayout.addWidget(self.label_3, 8, 0, 1, 1)
         self.horizontalSlider_2 = QtGui.QSlider(Dialog)
@@ -253,8 +253,8 @@ class Ui_Phase_Dialog(object):
         self.lineEdit_lower = QtGui.QLineEdit(Dialog)
         self.lineEdit_lower.setText(str(self.varmin))
         self.lineEdit_lower.setReadOnly(True)
-        self.gridLayout.addWidget(self.lineEdit_lower, 8, 2, 1, 1)   
-        
+        self.gridLayout.addWidget(self.lineEdit_lower, 8, 2, 1, 1)
+
         self.horizontalSlider.sliderReleased.connect(self.maxSlider)
         self.lineEdit_upper.connect(self.horizontalSlider,QtCore.SIGNAL('valueChanged(int)'), self.Upper_Label)
         self.horizontalSlider_2.sliderReleased.connect(self.minSlider)
@@ -262,10 +262,10 @@ class Ui_Phase_Dialog(object):
 
         spacerItem = QtGui.QSpacerItem(10, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.gridLayout.addItem(spacerItem, 7, 3, 1, 1)
-        
+
         self.label_6 = QtGui.QLabel("Name your phase:",Dialog)
         self.gridLayout.addWidget(self.label_6, 7, 4, 1, 1)
-        
+
         self.lineEdit = QtGui.QLineEdit(Dialog)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Maximum, QtGui.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -274,14 +274,14 @@ class Ui_Phase_Dialog(object):
         self.lineEdit.setSizePolicy(sizePolicy)
         self.lineEdit.setMaximumSize(QtCore.QSize(144, 16777215))
         self.gridLayout.addWidget(self.lineEdit, 7, 5, 1, 1)
-                
+
         self.pushButton_CreatePhase = QtGui.QPushButton("Exit and Create New Phase Mask",Dialog)
         self.gridLayout.addWidget(self.pushButton_CreatePhase, 8, 4, 1, 2)
         self.gridLayout.setColumnStretch(1, 1)
         self.pushButton_CreatePhase.clicked.connect(self.calculate_ph)
 
         QtCore.QMetaObject.connectSlotsByName(Dialog)
-        
+
         f = tb.open_file("temp.h5",mode='a')
         self.varProj = f.get_node(f.root,"varProj").read()
         f.close()
@@ -303,7 +303,7 @@ class Ui_Phase_Dialog(object):
         return
     def first_plot(self):
         self.ells = self.sc.get_image_labels()
-        return        
+        return
     def Map_Stat(self):
         Stats = self.statdic[self.mapvar]
         self.textBrowser_Details.setPlainText(Stats)
@@ -333,7 +333,7 @@ class Ui_Phase_Dialog(object):
         print log
         f.remove_node(f.root, "Log")
         f.create_array(f.root, "Log", log)
-        f.close()        
+        f.close()
         self.sc.del_data()
         del self.sc
         gc.collect()
@@ -399,7 +399,7 @@ class Ui_Phase_Dialog(object):
         lims = self.sc.get_current_image_lims(self.mapvar)
         self.fig_lims[self.mapvar]=lims
         self.varmin = lims[0]
-        self.varmax = lims[1]        
+        self.varmax = lims[1]
         self.counter = self.counter + 1
         return
     def changemap(self,item):
@@ -433,16 +433,17 @@ class DataHolder(object):
         Filt = f.root.Filtered
         Para = f.root.parameters
         self.names = f.get_node(Para, "ElementList").read()
-        
+
         for i in xrange(0, len(self.names)):
             item = self.names[i]
-            d = f.get_node(Filt,item)            
+            d = f.get_node(Filt,item)
             self.stats[item]=str(d.attrs.stats)
         item = str(self.names[0])
         fname = path.join(mkdtemp(),'map.dat')
         d = f.get_node(Filt,item)
         ds = d.read()
-        ds[np.isinf(ds)]=np.nan
+        #print("==> CHECK", ds)
+        #ds[np.isinf(ds)]=np.nan
         y, x = ds.shape[0], ds.shape[1]
         dty = ds.dtype
         dsx = np.memmap(fname,dtype=dty,mode='w+',shape=(y,x))
@@ -460,7 +461,7 @@ class DataHolder(object):
         fname = path.join(mkdtemp(),'map.dat')
         d = f.get_node(Filt,name)
         ds = d.read()
-        ds[np.isinf(ds)]=np.nan
+        #ds[np.isinf(ds)]=np.nan
         self.stats=str(d.attrs.stats)
         y, x = ds.shape[0], ds.shape[1]
         dty = ds.dtype
@@ -472,7 +473,7 @@ class DataHolder(object):
     def del_data(self):
         del self.varProj, self.names, self.stats
         return
-        
+
 import ProjectManager_rc
 
 if __name__=='_main__':
@@ -483,4 +484,4 @@ if __name__=='_main__':
     ui.setupUi(myDialog)
     myDialog.show()
     sys.exit(app.exec_())
- 
+

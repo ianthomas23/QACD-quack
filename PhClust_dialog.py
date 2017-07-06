@@ -26,7 +26,7 @@ from matplotlib.ticker import AutoMinorLocator
 
 class MyMplCanvas(FigureCanvas):
     def __init__(self,parent=None,width=12.51,height=7.78,dpi=100):
-        mps.use('qacd_xmap')
+        #mps.use('qacd_xmap')
         fig = Figure(figsize=(width,height),dpi=dpi)
         self.axes = fig.add_subplot(111)
         #we want the axes cleared every time plot() is called
@@ -58,7 +58,7 @@ class MplCanvas(MyMplCanvas):
         self.my_cmap = self.discrete_cmap(N, 'nipy_spectral')#, valls)
         self.my_cmap.set_under('k', alpha=0)
         self.my_cmap.set_over('k', alpha=0)
-        self.im = self.axes.imshow(imag,cmap=self.my_cmap, 
+        self.im = self.axes.imshow(imag,cmap=self.my_cmap,
                                    interpolation='nearest',
                                    vmin = mini-.5, vmax = maxi+.5)
         self.im.set_clim(mini, maxi)
@@ -97,7 +97,7 @@ class MplCanvas(MyMplCanvas):
         self.stats = self.datahold.get_statdic()
         self.phasemap = []
         self.phasemap = self.datahold.get_pmap()
-        return        
+        return
     def get_names(self):
         self.names = []
         self.names = self.datahold.get_names()
@@ -148,7 +148,7 @@ class MplCanvas(MyMplCanvas):
         gc.collect()
         self.axes.clear()
         return
-        
+
 class Ui_PhClust_Dialog(object):
     def setupUi(self, PhClust_Dialog):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
@@ -159,7 +159,7 @@ class Ui_PhClust_Dialog(object):
         self.data = {}
         self.phasemap = []
         self.stats = {}
-        
+
         PhClust_Dialog.setObjectName("PhClust_Dialog")
         PhClust_Dialog.resize(1551, 824)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
@@ -171,9 +171,9 @@ class Ui_PhClust_Dialog(object):
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/main_icon/16x16.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         PhClust_Dialog.setWindowIcon(icon)
-        PhClust_Dialog.setWindowTitle("QACD-3b.Phase Cluster Edit") 
+        PhClust_Dialog.setWindowTitle("QACD-3b.Phase Cluster Edit")
 
-        
+
         self.widget_mpl = QtGui.QWidget(PhClust_Dialog)
         self.widget_mpl.setGeometry(QtCore.QRect(290, 10, 1251, 801))
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
@@ -199,34 +199,34 @@ class Ui_PhClust_Dialog(object):
         self.gridLayout.addWidget(self.label_curph, 0, 0, 1, 1)
         spacerItem = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.gridLayout.addItem(spacerItem, 0, 1, 1, 1)
-        
+
         self.spinBox_CurPh = QtGui.QSpinBox(self.widget)
         self.spinBox_CurPh.setReadOnly(True)
         self.spinBox_CurPh.setRange(0, 255)
         self.gridLayout.addWidget(self.spinBox_CurPh, 0, 2, 1, 1)
-        
+
         self.listView_Phases = QtGui.QListWidget(self.widget)
         self.listView_Phases.itemClicked.connect(self.phase_select)
         self.gridLayout.addWidget(self.listView_Phases, 1, 0, 1, 3)
-        
+
         self.lineEdit_Phname = QtGui.QLineEdit(self.widget)
-        self.gridLayout.addWidget(self.lineEdit_Phname, 2, 0, 1, 2)                
-        
+        self.gridLayout.addWidget(self.lineEdit_Phname, 2, 0, 1, 2)
+
         self.label_pha = QtGui.QLabel("Phase A:",self.widget)
         self.label_pha.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
-        self.gridLayout.addWidget(self.label_pha, 4, 0, 1, 1)        
+        self.gridLayout.addWidget(self.label_pha, 4, 0, 1, 1)
         self.comboBox_pha = QtGui.QComboBox(self.widget)
         self.gridLayout.addWidget(self.comboBox_pha, 4, 1, 1, 2)
-        
+
         self.label_phb = QtGui.QLabel("Phase B:",self.widget)
         self.label_phb.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
-        self.gridLayout.addWidget(self.label_phb, 5, 0, 1, 1)        
+        self.gridLayout.addWidget(self.label_phb, 5, 0, 1, 1)
         self.comboBox_phb = QtGui.QComboBox(self.widget)
         self.gridLayout.addWidget(self.comboBox_phb, 5, 1, 1, 2)
-        
+
         self.label_info = QtGui.QLabel("Phase Map Info:",self.widget)
         self.gridLayout.addWidget(self.label_info, 7, 0, 1, 3)
-        
+
         self.tableWidget_info = QtGui.QTableWidget(self.widget)
         self.tableWidget_info.setColumnCount(0)
         self.tableWidget_info.setRowCount(0)
@@ -235,15 +235,15 @@ class Ui_PhClust_Dialog(object):
         self.pushButton_Rename = QtGui.QPushButton("Rename",self.widget)
         self.pushButton_Rename.clicked.connect(self.ph_rename)
         self.gridLayout.addWidget(self.pushButton_Rename, 2, 2, 1, 1)
-        
+
         self.pushButton_Create_Exit = QtGui.QPushButton("Create Phase Masks and Exit",self.widget)
         self.pushButton_Create_Exit.clicked.connect(self.phase_create)
         self.gridLayout.addWidget(self.pushButton_Create_Exit, 9, 0, 1, 3)
-        
+
         self.pushButton_phmerge = QtGui.QPushButton("Merge Phase A into Phase B",self.widget)
         self.pushButton_phmerge.clicked.connect(self.ph_merge)
         self.gridLayout.addWidget(self.pushButton_phmerge, 6, 0, 1, 3)
-        
+
         self.pushButton_Delete = QtGui.QPushButton("Delete the Selected Phase",self.widget)
         self.pushButton_Delete.clicked.connect(self.ph_delete)
         self.gridLayout.addWidget(self.pushButton_Delete, 3, 0, 1, 3)
@@ -296,7 +296,7 @@ class Ui_PhClust_Dialog(object):
         self.tableWidget_info.resizeColumnToContents(0)
         self.tableWidget_info.resizeColumnToContents(1)
         print self.stats
-        return        
+        return
     def phase_select(self, item):
         var = unicode(item.text(),'utf-8')
         print var
@@ -304,7 +304,7 @@ class Ui_PhClust_Dialog(object):
         self.lineEdit_Phname.setText(var)
         val = self.data[var]
         self.spinBox_CurPh.setValue(val)
-        return        
+        return
     def ph_rename(self):
         self.mskVar = str(self.lineEdit_Phname.text())
         string = self.sc.rename_phase(self.mapvar,self.mskVar)
@@ -320,7 +320,7 @@ class Ui_PhClust_Dialog(object):
         self.combo_populate()
         print self.names
         print self.data
-        return      
+        return
     def ph_merge(self):
         phA = unicode(self.comboBox_pha.currentText(),'utf-8')
         phB = unicode(self.comboBox_phb.currentText(),'utf-8')
@@ -340,7 +340,7 @@ class Ui_PhClust_Dialog(object):
         if 'nums' in lis.keys():
             nums = f.get_node(f.root,"nums").read()
             ftime = 'Yes'
-        else: 
+        else:
             ftime = 'No'
         f.close()
         f = tb.open_file(varProj,mode='a')
@@ -373,7 +373,7 @@ class Ui_PhClust_Dialog(object):
                 val = self.data[item]
                 ds = pmap==val
                 atom2 = tb.Atom.from_dtype(ds.dtype)
-                dset = f.createCArray(Pmsk,item,atom2,ds.shape,filters=filters)
+                dset = f.create_carray(Pmsk,item,atom2,ds.shape,filters=filters)
                 dset[:] = ds
                 num = np.sum(ds)
                 ls.append(num)
@@ -384,7 +384,7 @@ class Ui_PhClust_Dialog(object):
             total = total + item
         self.stats['PhaseMap']=total
         atom2 = tb.Atom.from_dtype(pmap.dtype)
-        mp = f.createCArray(Pmsk,"PhaseMap",atom2,pmap.shape,filters=filters)
+        mp = f.create_carray(Pmsk,"PhaseMap",atom2,pmap.shape,filters=filters)
         mp[:] = pmap
         phasnum = len(self.names)
         mp.attrs.phasenum = phasnum
@@ -445,7 +445,7 @@ class DataHolder(object):
                 phname = "Removed"
                 self.names.append(phname)
             else:
-                phname = "Phase " + str(i)            
+                phname = "Phase " + str(i)
                 self.names.append(phname)
         Length = len(self.names)
         for i in xrange(0,Length):
@@ -523,7 +523,7 @@ class DataHolder(object):
     def delete_phase(self,mapvar):
         v = self.data[mapvar]
         self.phasemap[self.phasemap == v] = 0.0
-        self.phasemap.flush()   
+        self.phasemap.flush()
         self.data.pop(mapvar)
         self.stats.pop(mapvar)
         tpN = self.names
@@ -542,7 +542,7 @@ class DataHolder(object):
         self.stats['Removed']=pix
         print np.sum(self.phasemap[self.phasemap==v])
         return
-        
+
 import ProjectManager_rc
 
 if __name__=='_main__':
