@@ -17,7 +17,7 @@
    <iconset resource="ProjectManager.qrc">
     <normaloff>:/main_icon/16x16.png</normaloff>:/main_icon/16x16.png</iconset>
   </property>
-  <widget class="QWidget" name="">
+  <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
      <x>11</x>
@@ -28,7 +28,7 @@
    </property>
    <layout class="QGridLayout" name="gridLayout" rowstretch="0,1,0,0,0,0,0,0">
     <item row="7" column="1" alignment="Qt::AlignHCenter">
-     <widget class="QPushButton" name="pushButton">
+     <widget class="QPushButton" name="okButton">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
         <horstretch>0</horstretch>
@@ -36,7 +36,7 @@
        </sizepolicy>
       </property>
       <property name="text">
-       <string>Cancel</string>
+       <string>OK</string>
       </property>
       <property name="default">
        <bool>false</bool>

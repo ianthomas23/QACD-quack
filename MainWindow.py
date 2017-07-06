@@ -646,11 +646,7 @@ class Ui_MainWindow(object):
         from dlg_about import myDialog
         abDlg = myDialog(self)
         abDlg.exec_()
-        del abDlg
-        gc.collect()
-        gc.collect()
-        del gc.garbage[:]
-        return
+
 
 import ProjectManager_rc
 
