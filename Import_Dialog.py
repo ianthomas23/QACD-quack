@@ -319,7 +319,7 @@ class Ui_QACD_Import(object):
         return
 import ProjectManager_rc
 
-if __name__=='_main__':
+if __name__=='__main__':
     app = QtGui.QApplication(sys.argv)
     myDialog = QtGui.QDialog()
     ui = Ui_QACD_Import()

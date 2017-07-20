@@ -10,11 +10,11 @@ ui_files = [
     #'PhClust_Dialog.ui',
     #'Clust_Dialog.ui',
     #'Export_Dialog.ui',
-    #'Import_Dialog.ui',
+    'Import_Dialog.ui',
     #'MainWindow.ui',
     #'Ratio_Dialog.ui',
     ]
-force_all = True
+force_all = False
 
 
 for ui_file in ui_files:

@@ -1,0 +1,158 @@
+# -*- coding: utf-8 -*-
+
+# Form implementation generated from reading ui file 'Import_Dialog.ui'
+#
+# Created: Thu Jul 20 15:21:11 2017
+#      by: PyQt4 UI code generator 4.11.3
+#
+# WARNING! All changes made in this file will be lost!
+
+from PyQt4 import QtCore, QtGui
+
+try:
+    _fromUtf8 = QtCore.QString.fromUtf8
+except AttributeError:
+    def _fromUtf8(s):
+        return s
+
+try:
+    _encoding = QtGui.QApplication.UnicodeUTF8
+    def _translate(context, text, disambig):
+        return QtGui.QApplication.translate(context, text, disambig, _encoding)
+except AttributeError:
+    def _translate(context, text, disambig):
+        return QtGui.QApplication.translate(context, text, disambig)
+
+class Ui_QACD_Import(object):
+    def setupUi(self, QACD_Import):
+        QACD_Import.setObjectName(_fromUtf8("QACD_Import"))
+        QACD_Import.resize(331, 563)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(QACD_Import.sizePolicy().hasHeightForWidth())
+        QACD_Import.setSizePolicy(sizePolicy)
+        QACD_Import.setMaximumSize(QtCore.QSize(331, 563))
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(_fromUtf8(":/main_icon/16x16.png")), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        QACD_Import.setWindowIcon(icon)
+        self.layoutWidget = QtGui.QWidget(QACD_Import)
+        self.layoutWidget.setGeometry(QtCore.QRect(10, 10, 311, 431))
+        self.layoutWidget.setObjectName(_fromUtf8("layoutWidget"))
+        self.gridLayout = QtGui.QGridLayout(self.layoutWidget)
+        self.gridLayout.setMargin(0)
+        self.gridLayout.setObjectName(_fromUtf8("gridLayout"))
+        self.chooseFilesButton = QtGui.QPushButton(self.layoutWidget)
+        self.chooseFilesButton.setObjectName(_fromUtf8("chooseFilesButton"))
+        self.gridLayout.addWidget(self.chooseFilesButton, 0, 1, 1, 3)
+        self.checkBox_med = QtGui.QCheckBox(self.layoutWidget)
+        self.checkBox_med.setObjectName(_fromUtf8("checkBox_med"))
+        self.gridLayout.addWidget(self.checkBox_med, 4, 0, 1, 4)
+        self.spinPixelStepSize = QtGui.QDoubleSpinBox(self.layoutWidget)
+        self.spinPixelStepSize.setDecimals(2)
+        self.spinPixelStepSize.setMaximum(1000.0)
+        self.spinPixelStepSize.setProperty("value", 10.0)
+        self.spinPixelStepSize.setObjectName(_fromUtf8("spinPixelStepSize"))
+        self.gridLayout.addWidget(self.spinPixelStepSize, 6, 2, 1, 2)
+        self.label_opt = QtGui.QLabel(self.layoutWidget)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.label_opt.sizePolicy().hasHeightForWidth())
+        self.label_opt.setSizePolicy(sizePolicy)
+        self.label_opt.setObjectName(_fromUtf8("label_opt"))
+        self.gridLayout.addWidget(self.label_opt, 5, 0, 1, 4)
+        self.label_Filt = QtGui.QLabel(self.layoutWidget)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.label_Filt.sizePolicy().hasHeightForWidth())
+        self.label_Filt.setSizePolicy(sizePolicy)
+        self.label_Filt.setObjectName(_fromUtf8("label_Filt"))
+        self.gridLayout.addWidget(self.label_Filt, 2, 0, 1, 4)
+        self.checkBox_opt = QtGui.QCheckBox(self.layoutWidget)
+        self.checkBox_opt.setObjectName(_fromUtf8("checkBox_opt"))
+        self.gridLayout.addWidget(self.checkBox_opt, 6, 0, 1, 2)
+        self.label_Files = QtGui.QLabel(self.layoutWidget)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.label_Files.sizePolicy().hasHeightForWidth())
+        self.label_Files.setSizePolicy(sizePolicy)
+        self.label_Files.setObjectName(_fromUtf8("label_Files"))
+        self.gridLayout.addWidget(self.label_Files, 0, 0, 1, 1)
+        self.checkBox_pix = QtGui.QCheckBox(self.layoutWidget)
+        self.checkBox_pix.setObjectName(_fromUtf8("checkBox_pix"))
+        self.gridLayout.addWidget(self.checkBox_pix, 3, 0, 1, 4)
+        self.listWidget_Files = QtGui.QListWidget(self.layoutWidget)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.listWidget_Files.sizePolicy().hasHeightForWidth())
+        self.listWidget_Files.setSizePolicy(sizePolicy)
+        self.listWidget_Files.setObjectName(_fromUtf8("listWidget_Files"))
+        self.gridLayout.addWidget(self.listWidget_Files, 1, 0, 1, 4)
+        self.engageButton = QtGui.QPushButton(self.layoutWidget)
+        font = QtGui.QFont()
+        font.setPointSize(8)
+        font.setBold(False)
+        font.setItalic(False)
+        font.setUnderline(False)
+        font.setWeight(50)
+        self.engageButton.setFont(font)
+        self.engageButton.setObjectName(_fromUtf8("engageButton"))
+        self.gridLayout.addWidget(self.engageButton, 8, 0, 1, 4)
+        self.buttonUnits_mm = QtGui.QRadioButton(self.layoutWidget)
+        self.buttonUnits_mm.setObjectName(_fromUtf8("buttonUnits_mm"))
+        self.groupUnits = QtGui.QButtonGroup(QACD_Import)
+        self.groupUnits.setObjectName(_fromUtf8("groupUnits"))
+        self.groupUnits.addButton(self.buttonUnits_mm)
+        self.gridLayout.addWidget(self.buttonUnits_mm, 7, 1, 1, 1)
+        self.buttonUnits_um = QtGui.QRadioButton(self.layoutWidget)
+        self.buttonUnits_um.setObjectName(_fromUtf8("buttonUnits_um"))
+        self.groupUnits.addButton(self.buttonUnits_um)
+        self.gridLayout.addWidget(self.buttonUnits_um, 7, 2, 1, 1)
+        self.buttonUnits_nm = QtGui.QRadioButton(self.layoutWidget)
+        self.buttonUnits_nm.setObjectName(_fromUtf8("buttonUnits_nm"))
+        self.groupUnits.addButton(self.buttonUnits_nm)
+        self.gridLayout.addWidget(self.buttonUnits_nm, 7, 3, 1, 1)
+        self.label = QtGui.QLabel(self.layoutWidget)
+        self.label.setObjectName(_fromUtf8("label"))
+        self.gridLayout.addWidget(self.label, 7, 0, 1, 1)
+        self.label_2 = QtGui.QLabel(QACD_Import)
+        self.label_2.setGeometry(QtCore.QRect(10, 450, 311, 101))
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.label_2.sizePolicy().hasHeightForWidth())
+        self.label_2.setSizePolicy(sizePolicy)
+        self.label_2.setScaledContents(True)
+        self.label_2.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_2.setWordWrap(True)
+        self.label_2.setObjectName(_fromUtf8("label_2"))
+
+        self.retranslateUi(QACD_Import)
+        QtCore.QMetaObject.connectSlotsByName(QACD_Import)
+
+    def retranslateUi(self, QACD_Import):
+        QACD_Import.setWindowTitle(_translate("QACD_Import", "QACD- 1.Data Import", None))
+        self.chooseFilesButton.setToolTip(_translate("QACD_Import", "<html><head/><body><p>Step 1. Choose your map files.</p></body></html>", None))
+        self.chooseFilesButton.setWhatsThis(_translate("QACD_Import", "<html><head/><body><p>Step 1. Choose your map files.</p></body></html>", None))
+        self.chooseFilesButton.setText(_translate("QACD_Import", "1. Choose Files", None))
+        self.checkBox_med.setText(_translate("QACD_Import", "3-by-3 Median Filter", None))
+        self.label_opt.setText(_translate("QACD_Import", "3. Optional Information for Map Import:", None))
+        self.label_Filt.setToolTip(_translate("QACD_Import", "<html><head/><body><p>Step 2. Choose your Map Filtration options.</p></body></html>", None))
+        self.label_Filt.setText(_translate("QACD_Import", "2. Map Filtration:", None))
+        self.checkBox_opt.setText(_translate("QACD_Import", "Include Pixel Step Size:", None))
+        self.label_Files.setText(_translate("QACD_Import", "Map Files (.CSV):", None))
+        self.checkBox_pix.setToolTip(_translate("QACD_Import", "<html><head/><body><p>Pixel Totals: Recommended on larger maps.</p></body></html>", None))
+        self.checkBox_pix.setWhatsThis(_translate("QACD_Import", "<html><head/><body><p>Pixel Totals: Recommended on larger maps. Stacks the maps and creates a new map of the sum total of the stack for each pixel.</p></body></html>", None))
+        self.checkBox_pix.setText(_translate("QACD_Import", "Pixel Totals (Salt-N-Pepper Noise)", None))
+        self.engageButton.setText(_translate("QACD_Import", "4. Import and Filter Selected Maps", None))
+        self.buttonUnits_mm.setText(_translate("QACD_Import", "mm", None))
+        self.buttonUnits_um.setText(_translate("QACD_Import", "um", None))
+        self.buttonUnits_nm.setText(_translate("QACD_Import", "nm", None))
+        self.label.setText(_translate("QACD_Import", "Pixel Step Size Units:", None))
+        self.label_2.setText(_translate("QACD_Import", "<html><head/><body><p>Step 1. Choose your map files.</p><p>Step 2. Choose your Map Filtration options.</p><p>Step 3. It is optional to provide the step/pixel size.</p><p>Step 4. Import and filter selected maps.</p></body></html>", None))
+
+import ProjectManager_rc
