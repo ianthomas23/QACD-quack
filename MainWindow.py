@@ -556,27 +556,18 @@ class Ui_MainWindow(object):
             f.create_array(f.root, "nums", self.cluster)
             f.close()
         from dlg_K import myDialog
+        print('==> opening dlg_K')
         PhKDlg = myDialog(self)
         PhKDlg.exec_()
-        del PhKDlg
-        gc.collect()
-        gc.collect()
-        del gc.garbage[:]
         from dlg_clust import myDialog
+        print('==> opening dlg_clust')
         PhCDlg = myDialog(self)
         PhCDlg.exec_()
-        del PhCDlg
-        gc.collect()
-        gc.collect()
-        del gc.garbage[:]
         from dlg_phclust import myDialog
+        print('==> opening dlg_phclust')
         PhCDlg2 = myDialog(self)
         PhCDlg2.exec_()
         self.cluster = clust + 1
-        del PhCDlg2
-        gc.collect()
-        gc.collect()
-        del gc.garbage[:]
         model = htv.HDF5TreeViewModel()
         self.Proj_treeView.setModel(model)
         self.Proj_treeView.setUniformRowHeights(True)
@@ -584,7 +575,6 @@ class Ui_MainWindow(object):
         self.Proj_treeView.show()
         self.log_trans()
         self.log_trans()
-        return
     def Ratio_Calc(self):
         from dlg_ratio import myDialog
         RDlg = myDialog(self)

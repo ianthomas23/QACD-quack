@@ -6,7 +6,7 @@ ui_files = [
     'About_Dialog.ui',
     #'Edit_Dialog.ui',
     #'Figure_Dialog.ui',
-    #'K_dialog.ui',
+    'K_dialog.ui',
     #'PhClust_Dialog.ui',
     #'Clust_Dialog.ui',
     #'Export_Dialog.ui',
