@@ -49,8 +49,8 @@ class MplCanvas_hist(MyMplCanvas):
         name = self.mapnames[0]
         self.curmap = name
         ds = self.data.get_series_data(name)
-        mini = np.nanmin(ds)
-        maxi = np.nanmax(ds)
+        mini = np.nanmin(ds[np.isfinite(ds)])
+        maxi = np.nanmax(ds[np.isfinite(ds)])
         tmp = [mini, maxi]
         self.imagelims[name]=tmp
         self.im = self.axes.imshow(ds, cmap=self.my_cmap, interpolation='nearest')
@@ -79,8 +79,8 @@ class MplCanvas_hist(MyMplCanvas):
         return self.imagelims
     def change_map(self, name):
         ds = self.data.get_series_data(name)
-        mini = np.nanmin(ds)
-        maxi = np.nanmax(ds)
+        mini = np.nanmin(ds[np.isfinite(ds)])
+        maxi = np.nanmax(ds[np.isfinite(ds)])
         tmp = [mini, maxi]
         self.imagelims[name]=tmp
         global im
@@ -442,8 +442,7 @@ class DataHolder(object):
         fname = path.join(mkdtemp(),'map.dat')
         d = f.get_node(Filt,item)
         ds = d.read()
-        #print("==> CHECK", ds)
-        #ds[np.isinf(ds)]=np.nan
+        ds[np.isinf(ds)]=np.nan
         y, x = ds.shape[0], ds.shape[1]
         dty = ds.dtype
         dsx = np.memmap(fname,dtype=dty,mode='w+',shape=(y,x))
@@ -461,7 +460,7 @@ class DataHolder(object):
         fname = path.join(mkdtemp(),'map.dat')
         d = f.get_node(Filt,name)
         ds = d.read()
-        #ds[np.isinf(ds)]=np.nan
+        ds[np.isinf(ds)]=np.nan
         self.stats=str(d.attrs.stats)
         y, x = ds.shape[0], ds.shape[1]
         dty = ds.dtype
