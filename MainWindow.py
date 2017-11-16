@@ -14,7 +14,7 @@ import os
 import gc
 import sys
 import logging
-import psutil
+#import psutil
 
 gc.set_threshold(10, 5, 5)
 
@@ -272,7 +272,8 @@ class Ui_MainWindow(object):
     def Time(self):
         pid = os.getpid()
         #mem = psutil.Process(pid).memory_info()[0]/float(2**20)
-        mem = (psutil.Process(pid).memory_full_info().uss)/1000.00/1024.00
+        #mem = (psutil.Process(pid).memory_full_info().uss)/1000.00/1024.00
+        mem = 'unknown'
         self.MemLabel.setText("Mem Usage: "+str(mem)+" MB")
     def cons_scroll(self):
         self._console.moveCursor(QtGui.QTextCursor.End)

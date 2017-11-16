@@ -16,11 +16,11 @@ import gc
 import sys
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
-import matplotlib.style as mps
+import utils
 
 class MyMplCanvas(FigureCanvas):
     def __init__(self,parent=None,width=10,height=6,dpi=100):
-        #mps.use('qacd_xmap')
+        utils.set_style()
         fig = Figure(figsize=(width,height),dpi=dpi)
         self.axes = fig.add_subplot(111)
         #we want the axes cleared every time plot() is called

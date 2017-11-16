@@ -11,10 +11,10 @@ import gc
 from tempfile import mkdtemp
 import os.path as path
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-import matplotlib.style as mps
 from matplotlib.ticker import AutoMinorLocator
+import utils
 
-#mps.use('qacd_xmap')
+utils.set_style()
 
 def savefig_map(Settings):
     figtitle = Settings['figtitle']

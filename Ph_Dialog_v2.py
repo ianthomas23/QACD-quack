@@ -17,12 +17,12 @@ import numpy as np
 import gc
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.backends.backend_qt4agg import (FigureCanvasQTAgg as FigureCanvas,NavigationToolbar2QT as NavigationToolbar)
-import matplotlib.style as mps
-#mps.use('qacd_xmap')
+import utils
+utils.set_style()
 
 class MyMplCanvas(FigureCanvas):
     def __init__(self,parent=None,width=10,height=6,dpi=100):
-        #mps.use('qacd_xmap')
+        utils.set_style()
         fig = Figure(figsize=(width,height),dpi=dpi)
         self.axes = fig.add_subplot(111)
         #we want the axes cleared every time plot() is called

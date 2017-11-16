@@ -19,9 +19,9 @@ import gc
 from tempfile import mkdtemp
 import os.path as path
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
-import matplotlib.style as mps
+import utils
 
-#mps.use('qacd_xmap')
+utils.set_style()
 
 class MyMplCanvas(FigureCanvas):
     def __init__(self,parent=None,width=10,height=6,dpi=100):
