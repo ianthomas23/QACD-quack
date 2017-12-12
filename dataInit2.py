@@ -129,6 +129,7 @@ def Data_Load3(d, l):
         ds1 = (np.delete(datamat,(sizeY - 1),1)).astype(np.int32)
         del datamat
         ds1_f = medfilt(ds1,size=(3,3),mode='nearest')
+        ds1_f = ds1_f.astype(np.float64)
         del ds1
         atom = tb.Atom.from_dtype(ds1_f.dtype)
         dset = f.create_carray(Filt,var,atom,ds1_f.shape,filters=filters)
