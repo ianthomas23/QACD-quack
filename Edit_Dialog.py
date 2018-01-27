@@ -14,7 +14,7 @@ class Ui_ClustPop_Dialog(object):
     def setupUi(self, ClustPop_Dialog):
         ClustPop_Dialog.setObjectName("ClustPop_Dialog")
         ClustPop_Dialog.resize(332, 158)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(ClustPop_Dialog.sizePolicy().hasHeightForWidth())
@@ -24,7 +24,7 @@ class Ui_ClustPop_Dialog(object):
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/main_icon/16x16.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         ClustPop_Dialog.setWindowIcon(icon)
-        
+
         self.widget = QtGui.QWidget(ClustPop_Dialog)
         self.widget.setGeometry(QtCore.QRect(10, 10, 311, 137))
         self.gridLayout = QtGui.QGridLayout(self.widget)
@@ -49,7 +49,7 @@ class Ui_ClustPop_Dialog(object):
         self.gridLayout.addWidget(self.buttonBox, 3, 0, 1, 2)
         QtCore.QMetaObject.connectSlotsByName(ClustPop_Dialog)
         self.populate_combo()
-        
+
     def edit_cont(self):
         var = str(self.comboBox.currentText())
         f = tb.open_file("temp.h5",mode='a')
@@ -98,8 +98,8 @@ class Ui_ClustPop_Dialog(object):
                 print item
         print 'Populated'
         f.close()
-        return            
-   
+        return
+
 import ProjectManager_rc
 
 if __name__=='_main__':

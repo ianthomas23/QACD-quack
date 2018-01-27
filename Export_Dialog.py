@@ -22,7 +22,7 @@ class Ui_Export_Dialog(object):
         Export_Dialog.setObjectName("Export_Dialog")
         Export_Dialog.resize(523, 394)
         Export_Dialog.setWindowTitle("QACD- Export Arrays")
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(Export_Dialog.sizePolicy().hasHeightForWidth())
@@ -31,7 +31,7 @@ class Ui_Export_Dialog(object):
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/main_icon/16x16.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         Export_Dialog.setWindowIcon(icon)
-        
+
         self.widget = QtGui.QWidget(Export_Dialog)
         self.widget.setGeometry(QtCore.QRect(10, 10, 502, 366))
         self.gridLayout = QtGui.QGridLayout(self.widget)
@@ -42,7 +42,7 @@ class Ui_Export_Dialog(object):
         self.treeView.setStatusTip('Project File/Groups/Data.')
         self.treeView.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
         self.gridLayout.addWidget(self.treeView, 1, 0, 9, 4)
-        
+
         self.label_1_log = QtGui.QLabel("Export Project Log File:",self.widget)
         font = QtGui.QFont()
         font.setUnderline(True)
@@ -53,7 +53,7 @@ class Ui_Export_Dialog(object):
         self.push_Log = QtGui.QPushButton("Export as CSV",self.widget)
         self.push_Log.clicked.connect(self.export_Log)
         self.gridLayout.addWidget(self.push_Log, 2, 7, 1, 1)
-        
+
         self.label_2_Clust = QtGui.QLabel("Export Clustered Phase Masks",self.widget)
         font = QtGui.QFont()
         font.setUnderline(True)
@@ -73,7 +73,7 @@ class Ui_Export_Dialog(object):
         self.gridLayout.addWidget(self.label_2b_Masks, 5, 4, 1, 1)
         self.combo_2b_Masks = QtGui.QComboBox(self.widget)
         self.gridLayout.addWidget(self.combo_2b_Masks, 5, 5, 1, 3)
-        
+
         self.label_3_Thresh = QtGui.QLabel("Export Thresholded Phase Masks",self.widget)
         font = QtGui.QFont()
         font.setUnderline(True)
@@ -88,7 +88,7 @@ class Ui_Export_Dialog(object):
         self.gridLayout.addWidget(self.push_thresh, 9, 7, 1, 1)
         self.combo_3a_Masks = QtGui.QComboBox(self.widget)
         self.gridLayout.addWidget(self.combo_3a_Masks, 8, 5, 1, 3)
-        
+
         self.label_4_Data = QtGui.QLabel("Export Processed Data",self.widget)
         font = QtGui.QFont()
         font.setUnderline(True)
@@ -102,8 +102,8 @@ class Ui_Export_Dialog(object):
         self.gridLayout.addWidget(self.line_Data, 12, 4, 1, 3)
         self.push_Data = QtGui.QPushButton("Export as CSV",self.widget)
         self.push_Data.clicked.connect(self.export_Data)
-        self.gridLayout.addWidget(self.push_Data, 12, 7, 1, 1)        
-        
+        self.gridLayout.addWidget(self.push_Data, 12, 7, 1, 1)
+
         self.label_5_corr = QtGui.QLabel("Export Corrected Data",self.widget)
         font = QtGui.QFont()
         font.setUnderline(True)
@@ -161,7 +161,7 @@ class Ui_Export_Dialog(object):
             for item in ls:
                 self.combo_2b_Masks.addItem(item)
                 print item
-        else: 
+        else:
             print
         Phase = f.root.Phase
         tmp = Phase._v_children
@@ -202,7 +202,7 @@ class Ui_Export_Dialog(object):
             self.combo_2b_Masks.addItem(item)
             print item
         f.close()
-        return            
+        return
     def export_Log(self):
         self.logDict = {}
         var = str(self.line_Log.text())

@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="sizePolicy">
-   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
@@ -29,13 +29,13 @@
    <iconset resource="ProjectManager.qrc">
     <normaloff>:/main_icon/16x16.png</normaloff>:/main_icon/16x16.png</iconset>
   </property>
-  <widget class="QWidget" name="">
+  <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
      <x>10</x>
      <y>10</y>
      <width>502</width>
-     <height>366</height>
+     <height>401</height>
     </rect>
    </property>
    <layout class="QGridLayout" name="gridLayout">

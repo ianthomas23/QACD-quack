@@ -27,7 +27,7 @@ class Ui_QACD_Import(object):
         QACD_Import.resize(331, 563)
         QACD_Import.setWindowTitle("QACD- 2.Data Import")
         QACD_Import.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(QACD_Import.sizePolicy().hasHeightForWidth())

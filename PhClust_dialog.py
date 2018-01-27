@@ -162,7 +162,7 @@ class Ui_PhClust_Dialog(object):
 
         PhClust_Dialog.setObjectName("PhClust_Dialog")
         PhClust_Dialog.resize(1551, 824)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(PhClust_Dialog.sizePolicy().hasHeightForWidth())

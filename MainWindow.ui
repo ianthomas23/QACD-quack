@@ -11,9 +11,9 @@
    </rect>
   </property>
   <property name="sizePolicy">
-   <sizepolicy hsizetype="Fixed" vsizetype="MinimumExpanding">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
     <horstretch>0</horstretch>
-    <verstretch>2</verstretch>
+    <verstretch>0</verstretch>
    </sizepolicy>
   </property>
   <property name="windowTitle">
@@ -240,7 +240,7 @@
      <x>0</x>
      <y>0</y>
      <width>371</width>
-     <height>26</height>
+     <height>27</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuProject">

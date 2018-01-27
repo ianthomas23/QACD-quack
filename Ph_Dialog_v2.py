@@ -142,7 +142,7 @@ class Ui_Phase_Dialog(object):
         Dialog.setWindowIcon(icon)
 
         self.mplwindow = QtGui.QWidget(self)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Preferred)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.mplwindow.sizePolicy().hasHeightForWidth())
