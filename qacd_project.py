@@ -1,6 +1,3 @@
-# attr for min, max, mean, median, etc.
-# need to save state too.
-
 from contextlib import contextmanager
 from enum import Enum, unique
 import numpy as np
@@ -20,11 +17,24 @@ class State(Enum):
 
 class QACDProject:
     def __init__(self):
-        self._csv_file_re = re.compile('^([A-Z][a-z]?) K series.csv$')
-
         self._state = State.INVALID
         self._filename = None
         self._elements = None  # Cacheing this to avoid reading from file.
+
+        # Regular expression to match input CSV filenames.
+        self._csv_file_re = re.compile('^([A-Z][a-z]?) K series.csv$')
+
+    def _add_array_stats(self, array, h5node):
+        # Add statistics of the specified array to the specified h5 file node.
+        number_invalid = np.isnan(array).sum()
+
+        h5node.attrs.min = np.nanmin(array)
+        h5node.attrs.max = np.nanmax(array)
+        h5node.attrs.mean = np.nanmean(array)
+        h5node.attrs.median = np.nanmedian(array)
+        h5node.attrs.std = np.nanstd(array)
+        h5node.attrs.invalid = number_invalid
+        h5node.attrs.valid = array.size - number_invalid
 
     @contextmanager
     def _h5file(self):
@@ -46,31 +56,49 @@ class QACDProject:
         # Read-only property.
         return self._elements
 
-    def filter(self, median):
-        # median is a boolean.
+    def filter(self, pixel_totals, median):
+        # pixel_totals and median are booleans.
         if self._state != State.RAW:
             raise RuntimeError('Project does not contain raw data')
+
+        if pixel_totals:
+            raw_total, stats = self.get_raw_total(want_stats=True)
+            raw_total_median = stats['median']
+            raw_total_std = stats['std']
+            # Mask of pixels to remove.
+            mask = np.logical_or(raw_total < raw_total_median - 2*raw_total_std,
+                                 raw_total > raw_total_median + raw_total_std)
 
         with self._h5file() as h5file:
             filtered_group = h5file.create_group('/', 'filtered', 'Filtered element maps')
             filters = tables.Filters(complevel=5, complib='blosc')
 
-            for node in h5file.iter_nodes('/raw'):
-                element = node._v_name
-                raw = node.read()
+            total = None
+            for element in self.elements:
+                raw = h5file.get_node('/raw', element).read()
+
+                filtered = np.asarray(raw, dtype=np.float64)
+
+                if pixel_totals:
+                    # Same pixel mask applied to all raw element maps.
+                    filtered[mask] = np.nan
 
                 if median:
                     # Median filter applied separately to each raw element map.
-                    filtered = median_filter(raw, size=(3, 3), mode='nearest')
-                else:
-                    filtered = np.asarray(raw, dtype=np.float64)
+                    filtered = median_filter(filtered, size=(3, 3), mode='nearest')
 
                 node = h5file.create_carray(filtered_group, element, obj=filtered,
                                             filters=filters)
-                node.attrs.min = np.nanmin(filtered)
-                node.attrs.max = np.nanmax(filtered)
-                node.attrs.mean = np.nanmean(filtered)
-                node.attrs.median = np.nanmedian(filtered)
+                self._add_array_stats(filtered, node)
+
+                if total is None:
+                    total = filtered.copy()
+                else:
+                    total += filtered
+
+            filtered_total_node = h5file.create_carray(filtered_group, \
+                'total', obj=total, filters=filters)
+            self._add_array_stats(total, filtered_total_node)
 
         self._state = State.FILTERED
 
@@ -82,7 +110,7 @@ class QACDProject:
 
     def get_filtered(self, element, want_stats=False):
         if self._state in [State.INVALID, State.EMPTY, State.RAW]:
-            raise RuntimeError('No raw data present')
+            raise RuntimeError('No filtered data present')
         if element not in self._elements:
             raise RuntimeError('No such element: {}'.format(element))
 
@@ -110,21 +138,37 @@ class QACDProject:
             else:
                 return raw
 
-    def is_valid_csv_filename(self, csv_filename):
-        return self._csv_file_re.match(csv_filename)
+    def get_raw_total(self, want_stats=False):
+        if self._state in [State.INVALID, State.EMPTY]:
+            raise RuntimeError('No raw data present')
 
-    def load_raw_csv_files(self, directory, csv_filenames):
+        with self._h5file_ro() as h5file:
+            node = h5file.get_node('/raw/total')
+            raw_total = node.read()
+            if want_stats:
+                stats = {key:node.attrs[key] for key in node.attrs._f_list('user')}
+                return raw_total, stats
+            else:
+                return raw_total
+
+    def import_raw_csv_files(self, directory, csv_filenames=None):
+        # If no csv_filenames are specified, loads all appropriate files from
+        # the directory.
         if self._state != State.EMPTY:
             raise RuntimeError('Project already contains raw data')
 
-        csv_filenames.sort()
+        if csv_filenames:
+            csv_filenames.sort()
 
-        # Check csv_filenames are correct.
-        for csv_filename in csv_filenames:
-            if os.path.dirname(csv_filename) != '':
-                raise RuntimeError('Unexpected directory in {}'.format(csv_filename))
-            if not self.is_valid_csv_filename(csv_filename):
-                raise RuntimeError('Invalid CSV file name: {}'.format(csv_filename))
+            # Check csv_filenames are correct.
+            for csv_filename in csv_filenames:
+                if os.path.dirname(csv_filename) != '':
+                    raise RuntimeError('Unexpected directory in {}'.format(csv_filename))
+                if not self.is_valid_csv_filename(csv_filename):
+                    raise RuntimeError('Invalid CSV file name: {}'.format(csv_filename))
+        else:
+            csv_filenames = list(filter(self._csv_file_re.match,
+                                        os.listdir(directory)))
 
         with self._h5file() as h5file:
             raw_group = h5file.create_group('/', 'raw', 'Raw element maps')
@@ -132,6 +176,7 @@ class QACDProject:
 
             # Load files one at a time and save in project file.
             shape = None
+            total = None
             elements = []
             for index, csv_filename in enumerate(csv_filenames):
                 element = self.get_element_from_csv_filename(csv_filename)
@@ -156,15 +201,24 @@ class QACDProject:
                 # Add raw array to project file.
                 node = h5file.create_carray(raw_group, element, obj=raw,
                                             filters=filters)
-                node.attrs.min = np.min(raw)
-                node.attrs.max = np.max(raw)
-                node.attrs.mean = np.mean(raw)
-                node.attrs.median = np.median(raw)
+                self._add_array_stats(raw, node)
+
+                if total is None:
+                    total = raw.astype(np.float64)
+                else:
+                    total += raw
+
+            raw_total_node = h5file.create_carray(raw_group, 'total', obj=total,
+                                                  filters=filters)
+            self._add_array_stats(total, raw_total_node)
 
             h5file.create_array('/', 'elements', obj=elements, title='Elements')
             self._elements = elements
 
         self._state = State.RAW
+
+    def is_valid_csv_filename(self, csv_filename):
+        return self._csv_file_re.match(csv_filename)
 
     def set_filename(self, filename):
         if self._state != State.INVALID:
@@ -179,3 +233,9 @@ class QACDProject:
     def state(self):
         # Read-only property.
         return self._state
+
+    def write_debug(self):
+        with self._h5file_ro() as h5file:
+            print('##########')
+            print(h5file)
+            print('##########')
