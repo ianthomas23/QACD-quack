@@ -1,9 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
+
 from qacd_project import QACDProject
 
 
-want_plot = False
+want_plot = True
 want_histograms = True;
 
 
@@ -55,15 +56,22 @@ if want_plot:
 
     if 1:
         plt.figure()
-        plt.subplot(211)
+        ax = plt.subplot(221)
         raw_total, raw_total_stats = project.get_raw_total(want_stats=True)
         print('raw_total_stats', raw_total_stats)
         plt.imshow(raw_total)
         plt.colorbar()
         plt.title('Raw total')
 
+        plt.subplot(222, sharex=ax, sharey=ax)
+        f_total, f_total_stats = project.get_filtered_total(want_stats=True)
+        print('filtered_total_stats', f_total_stats)
+        plt.imshow(f_total)
+        plt.colorbar()
+        plt.title('Filtered total')
+
         if want_histograms:
-            plt.subplot(212)
+            plt.subplot(223)
             plt.hist(raw_total.ravel(), bins=40)
             plt.axvspan(raw_total_stats['median']-2*raw_total_stats['std'],
                         raw_total_stats['median']+  raw_total_stats['std'], facecolor='y', alpha=0.5)
@@ -71,5 +79,15 @@ if want_plot:
             plt.axvline(raw_total_stats['mean']-raw_total_stats['std'], c='r', alpha=0.5)
             plt.axvline(raw_total_stats['mean']+raw_total_stats['std'], c='r', alpha=0.5)
             plt.axvline(raw_total_stats['median'], c='y')
+
+            plt.subplot(224)
+            data = f_total.ravel()
+            plt.hist(data[np.isfinite(data)], bins=40)
+            plt.axvspan(f_total_stats['median']-2*f_total_stats['std'],
+                        f_total_stats['median']+  f_total_stats['std'], facecolor='y', alpha=0.5)
+            plt.axvline(f_total_stats['mean'], c='r')
+            plt.axvline(f_total_stats['mean']-f_total_stats['std'], c='r', alpha=0.5)
+            plt.axvline(f_total_stats['mean']+f_total_stats['std'], c='r', alpha=0.5)
+            plt.axvline(f_total_stats['median'], c='y')
 
     plt.show()

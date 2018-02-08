@@ -1,18 +1,12 @@
-import matplotlib.style as mps
-import numba
 import numpy as np
-import os
+import numba
 
 
-initial_path = None
-
-
-def set_style():
-    style_path = os.path.join(initial_path, 'qacd_xmap.mplstyle')
-    mps.use(style_path)
-
-
-
+# 3x3 median filter, ignoring nans.
+# Would like to use scipy.ndimage.filters.median_filter but it treats nans as
+# finite numbers.  scipy.ndimage.filters.generic_filter using np.nanmedian works
+# correctly but is very slow.  Here using explicit loops but sped up using
+# numba.
 @numba.jit
 def median_filter_with_nans(input_array):
     ny, nx = input_array.shape

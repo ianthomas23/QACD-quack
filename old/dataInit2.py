@@ -7,10 +7,13 @@ import gc
 import tables as tb
 import dask.array as da
 from scipy.ndimage.filters import median_filter as medfilt
+from scipy.ndimage.filters import generic_filter
+import utils
 
 filters = tb.Filters(complevel=5, complib='blosc')
 
 def Data_Load1(d, l):
+    print('==> Data_Load1 = both filters')
     filters = tb.Filters(complevel=5, complib='blosc')
     Dict = d
     Length = l
@@ -30,6 +33,7 @@ def Data_Load1(d, l):
         datamat = (pd.read_csv(name,header=None)).as_matrix(columns=None)
         sizeX, sizeY = np.shape(datamat)
         ds1 = (np.delete(datamat,(sizeY - 1),1)).astype(np.int32)
+        print('==> raw', var, ds1.shape, np.min(ds1), np.max(ds1), np.median(ds1))
         elmp[i]=ds1
         del datamat,ds1
         print var
@@ -38,16 +42,28 @@ def Data_Load1(d, l):
     Total = sum(elmp)
     vector = Total.reshape(1,(Total.shape[0]*Total.shape[1]))
     Total_m = (Total>((np.median(vector)) - (2*(np.std(vector))))) & (Total<((np.median(vector)) + (np.std(vector))))
+    print('==> Total_m sum', np.sum(Total_m), np.sum(~Total_m))
     del Total,vector
     for i in xrange(0,Length):
         var = ells[i]
         ds1 = elmp[i]
         ds1_m = ds1/Total_m
         del ds1
-        ds1_f = medfilt(ds1_m,size=(3,3),mode='nearest')
+
+        # Cannot use median_filter with nans or infs.
+        #ds1_f = medfilt(ds1_m,size=(3,3),mode='nearest')
+        ds1_m[~np.isfinite(ds1_m)] = np.nan
+        #ds1_f = generic_filter(ds1_m, np.nanmedian, size=(3,3), mode='nearest')
+        ds1_f = utils.median_filter_with_nans(ds1_m)
+
         atom = tb.Atom.from_dtype(ds1_f.dtype)
         dset = f.create_carray(Filt,var,atom,ds1_f.shape,filters=filters)
         dset[:] = ds1_f
+
+        t = ds1_f.copy()
+        t[~np.isfinite(t)] = np.nan
+        print('==> filtered', var, t.shape, np.nanmin(t), np.nanmax(t), np.nanmedian(t), np.nanmean(t), np.isnan(t).sum())
+
         dset.attrs.Size = (sizeX,sizeY)
         del ds1_m,ds1_f
         print var
@@ -60,6 +76,7 @@ def Data_Load1(d, l):
     return
 
 def Data_Load2(d, l):
+    print('==> Data_Load2 = pixel totals only')
     filters = tb.Filters(complevel=5, complib='blosc')
     Dict = d
     Length = l
@@ -79,6 +96,7 @@ def Data_Load2(d, l):
         datamat = (pd.read_csv(name,header=None)).as_matrix(columns=None)
         sizeX, sizeY = np.shape(datamat)
         ds1 = (np.delete(datamat,(sizeY - 1),1)).astype(np.int32)
+        print('==> raw', var, ds1.shape, np.min(ds1), np.max(ds1), np.median(ds1))
         elmp[i]=ds1
         del datamat,ds1
         print var
@@ -87,6 +105,7 @@ def Data_Load2(d, l):
     Total = sum(elmp)
     vector = Total.reshape(1,(Total.shape[0]*Total.shape[1]))
     Total_m = (Total>((np.median(vector)) - (2*(np.std(vector))))) & (Total<((np.median(vector)) + (np.std(vector))))
+    print('==> Total_m sum', np.sum(Total_m), np.sum(~Total_m))
     del Total,vector
     for i in xrange(0,Length):
         var = ells[i]
@@ -96,6 +115,11 @@ def Data_Load2(d, l):
         atom = tb.Atom.from_dtype(ds1_f.dtype)
         dset = f.create_carray(Filt,var,atom,ds1_f.shape,filters=filters)
         dset[:] = ds1_f
+
+        t = ds1_f.copy()
+        t[~np.isfinite(t)] = np.nan
+        print('==> filtered', var, t.shape, np.nanmin(t), np.nanmax(t), np.nanmedian(t), np.isnan(t).sum())
+
         dset.attrs.Size = (sizeX,sizeY)
         del ds1_f
         print var
@@ -108,6 +132,7 @@ def Data_Load2(d, l):
     return
 
 def Data_Load3(d, l):
+    print('==> Data_Load3 = median filter only')
     ffilters = tb.Filters(complevel=5, complib='blosc')
     Dict = d
     Length = l

@@ -4,7 +4,8 @@ import numpy as np
 import os
 import re
 import tables
-from scipy.ndimage.filters import median_filter
+
+import utils
 
 
 @unique
@@ -38,16 +39,24 @@ class QACDProject:
 
     @contextmanager
     def _h5file(self):
+        # All writing to h5 file is done in a 'with self._h5file() as f' block.
+        # State should also be changed within such a block to ensure it is
+        # correctly written to file.
         if self._state == State.INVALID:
             h5file = tables.open_file(self._filename, mode='w', title='QACD-quack file')
+            h5file.root._v_attrs.file_version = 1
         else:
             h5file = tables.open_file(self._filename, mode='r+')
+            assert(State[h5file.root._v_attrs.state] == self._state)
         yield h5file
+        h5file.root._v_attrs.state = self._state.name
         h5file.close()
 
     @contextmanager
     def _h5file_ro(self):
+        # Read only access to h5 file.
         h5file = tables.open_file(self._filename, mode='r')
+        assert(State[h5file.root._v_attrs.state] == self._state)
         yield h5file
         h5file.close()
 
@@ -71,21 +80,24 @@ class QACDProject:
 
         with self._h5file() as h5file:
             filtered_group = h5file.create_group('/', 'filtered', 'Filtered element maps')
+            filtered_group._v_attrs.pixel_totals_filter = pixel_totals
+            filtered_group._v_attrs.median_filter = median
             filters = tables.Filters(complevel=5, complib='blosc')
 
             total = None
             for element in self.elements:
                 raw = h5file.get_node('/raw', element).read()
 
+                # Convert raw array to floats.
                 filtered = np.asarray(raw, dtype=np.float64)
 
                 if pixel_totals:
-                    # Same pixel mask applied to all raw element maps.
+                    # Same pixel mask applied to each element map.
                     filtered[mask] = np.nan
 
                 if median:
-                    # Median filter applied separately to each raw element map.
-                    filtered = median_filter(filtered, size=(3, 3), mode='nearest')
+                    # Median filter applied separately to each element map.
+                    filtered = utils.median_filter_with_nans(filtered)
 
                 node = h5file.create_carray(filtered_group, element, obj=filtered,
                                             filters=filters)
@@ -100,7 +112,7 @@ class QACDProject:
                 'total', obj=total, filters=filters)
             self._add_array_stats(total, filtered_total_node)
 
-        self._state = State.FILTERED
+            self._state = State.FILTERED
 
     def get_element_from_csv_filename(self, csv_filename):
         match = self.is_valid_csv_filename(csv_filename)
@@ -122,6 +134,19 @@ class QACDProject:
                 return filtered, stats
             else:
                 return filtered
+
+    def get_filtered_total(self, want_stats=False):
+        if self._state in [State.INVALID, State.EMPTY, State.RAW]:
+            raise RuntimeError('No filtered data present')
+
+        with self._h5file_ro() as h5file:
+            node = h5file.get_node('/filtered/total')
+            filtered_total = node.read()
+            if want_stats:
+                stats = {key:node.attrs[key] for key in node.attrs._f_list('user')}
+                return filtered_total, stats
+            else:
+                return filtered_total
 
     def get_raw(self, element, want_stats=False):
         if self._state in [State.INVALID, State.EMPTY]:
@@ -158,8 +183,6 @@ class QACDProject:
             raise RuntimeError('Project already contains raw data')
 
         if csv_filenames:
-            csv_filenames.sort()
-
             # Check csv_filenames are correct.
             for csv_filename in csv_filenames:
                 if os.path.dirname(csv_filename) != '':
@@ -169,6 +192,8 @@ class QACDProject:
         else:
             csv_filenames = list(filter(self._csv_file_re.match,
                                         os.listdir(directory)))
+
+        csv_filenames.sort()
 
         with self._h5file() as h5file:
             raw_group = h5file.create_group('/', 'raw', 'Raw element maps')
@@ -215,7 +240,7 @@ class QACDProject:
             h5file.create_array('/', 'elements', obj=elements, title='Elements')
             self._elements = elements
 
-        self._state = State.RAW
+            self._state = State.RAW
 
     def is_valid_csv_filename(self, csv_filename):
         return self._csv_file_re.match(csv_filename)
@@ -226,8 +251,8 @@ class QACDProject:
 
         self._filename = filename
         with self._h5file() as f:
-            pass  # Creates project file.
-        self._state = State.EMPTY
+            # Creates project file.
+            self._state = State.EMPTY
 
     @property
     def state(self):
