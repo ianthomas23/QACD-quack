@@ -73,6 +73,7 @@ def Data_Load1(d, l):
     r = stack_arrays(varProj)
     print r
     statcalc(varProj,pxszopt)
+    print('==> end of Data_Load1')
     return
 
 def Data_Load2(d, l):
@@ -129,6 +130,7 @@ def Data_Load2(d, l):
     r = stack_arrays(varProj)
     print r
     statcalc(varProj,pxszopt)
+    print('==> end of Data_Load2')
     return
 
 def Data_Load3(d, l):
@@ -168,6 +170,7 @@ def Data_Load3(d, l):
     r = stack_arrays(varProj)
     print r
     statcalc(varProj,pxszopt)
+    print('==> end of Data_Load3')
     return
 def stack_arrays(varProj):
     print "Stacking Arrays"

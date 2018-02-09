@@ -5,15 +5,18 @@ import os
 import re
 import tables
 
+from elements import element_properties
 import utils
 
 
 @unique
 class State(Enum):
-    INVALID = -1   # Filename not set.
-    EMPTY = 1      # Filename set.
-    RAW = 2        # Added raw data.
-    FILTERED = 3   # Filtered data.
+    INVALID = -1    # Filename not set.
+    EMPTY = 1       # Filename set.
+    RAW = 2         # Added raw element maps, including total.
+    FILTERED = 3    # Filtered element maps, including total.
+    NORMALISED = 4  # Normalised element maps.
+    H_FACTOR = 5    # Calculation of h factor for each normalised pixel.
 
 
 class QACDProject:
@@ -24,6 +27,9 @@ class QACDProject:
 
         # Regular expression to match input CSV filenames.
         self._csv_file_re = re.compile('^([A-Z][a-z]?) K series.csv$')
+
+        # Compression filters for pytables chunked arrays.
+        self._compression_filters = tables.Filters(complevel=5, complib='blosc')
 
     def _add_array_stats(self, array, h5node):
         # Add statistics of the specified array to the specified h5 file node.
@@ -37,13 +43,25 @@ class QACDProject:
         h5node.attrs.invalid = number_invalid
         h5node.attrs.valid = array.size - number_invalid
 
+    def _get_array(self, full_node_name, want_stats=False):
+        with self._h5file_ro() as h5file:
+            node = h5file.get_node(full_node_name)
+            array = node.read()
+            if want_stats:
+                stats = {key:node.attrs[key] for key
+                         in node.attrs._f_list('user')}
+                return array, stats
+            else:
+                return array
+
     @contextmanager
     def _h5file(self):
         # All writing to h5 file is done in a 'with self._h5file() as f' block.
         # State should also be changed within such a block to ensure it is
         # correctly written to file.
         if self._state == State.INVALID:
-            h5file = tables.open_file(self._filename, mode='w', title='QACD-quack file')
+            h5file = tables.open_file(self._filename, mode='w',
+                                      title='QACD-quack file')
             h5file.root._v_attrs.file_version = 1
         else:
             h5file = tables.open_file(self._filename, mode='r+')
@@ -59,6 +77,28 @@ class QACDProject:
         assert(State[h5file.root._v_attrs.state] == self._state)
         yield h5file
         h5file.close()
+
+    def calculate_h_factor(self):
+        if self._state != State.NORMALISED:
+            raise RuntimeError('Project does not contain normalised data')
+
+        h_factor = None
+        with self._h5file() as h5file:
+            for element in self.elements:
+                Z, A = element_properties[element][
+                normalised = h5file.get_node('/normalised', element).read()
+
+                if h_factor is None:
+                    h_factor = normalised.copy()
+                else:
+                    h_factor += normalised
+
+            node = h5file.create_carray('/', 'h_factor', obj=h_factor,
+                title='H factor (Philibert 1963)',
+                filters=self._compression_filters)
+            self._add_array_stats(h_factor, node)
+
+            self._state = State.H_FACTOR
 
     @property
     def elements(self):
@@ -79,10 +119,10 @@ class QACDProject:
                                  raw_total > raw_total_median + raw_total_std)
 
         with self._h5file() as h5file:
-            filtered_group = h5file.create_group('/', 'filtered', 'Filtered element maps')
+            filtered_group = h5file.create_group('/', 'filtered',
+                                                 'Filtered element maps')
             filtered_group._v_attrs.pixel_totals_filter = pixel_totals
             filtered_group._v_attrs.median_filter = median
-            filters = tables.Filters(complevel=5, complib='blosc')
 
             total = None
             for element in self.elements:
@@ -99,8 +139,8 @@ class QACDProject:
                     # Median filter applied separately to each element map.
                     filtered = utils.median_filter_with_nans(filtered)
 
-                node = h5file.create_carray(filtered_group, element, obj=filtered,
-                                            filters=filters)
+                node = h5file.create_carray(filtered_group, \
+                    element, obj=filtered, filters=self._compression_filters)
                 self._add_array_stats(filtered, node)
 
                 if total is None:
@@ -109,7 +149,7 @@ class QACDProject:
                     total += filtered
 
             filtered_total_node = h5file.create_carray(filtered_group, \
-                'total', obj=total, filters=filters)
+                'total', obj=total, filters=self._compression_filters)
             self._add_array_stats(total, filtered_total_node)
 
             self._state = State.FILTERED
@@ -126,27 +166,29 @@ class QACDProject:
         if element not in self._elements:
             raise RuntimeError('No such element: {}'.format(element))
 
-        with self._h5file_ro() as h5file:
-            node = h5file.get_node('/filtered', element)
-            filtered = node.read()
-            if want_stats:
-                stats = {key:node.attrs[key] for key in node.attrs._f_list('user')}
-                return filtered, stats
-            else:
-                return filtered
+        return self._get_array('/filtered/total', want_stats)
 
     def get_filtered_total(self, want_stats=False):
         if self._state in [State.INVALID, State.EMPTY, State.RAW]:
             raise RuntimeError('No filtered data present')
 
-        with self._h5file_ro() as h5file:
-            node = h5file.get_node('/filtered/total')
-            filtered_total = node.read()
-            if want_stats:
-                stats = {key:node.attrs[key] for key in node.attrs._f_list('user')}
-                return filtered_total, stats
-            else:
-                return filtered_total
+        return self._get_array('/filtered/total', want_stats)
+
+    def get_h_factor(self, want_stats=False):
+        if self._state in [State.INVALID, State.EMPTY, State.RAW,
+                           State.FILTERED, State.NORMALISED]:
+            raise RuntimeError('No h factor present')
+
+        return self._get_array('/h_factor', want_stats)
+
+    def get_normalised(self, element, want_stats=False):
+        if self._state in [State.INVALID, State.EMPTY, State.RAW,
+                           State.FILTERED]:
+            raise RuntimeError('No normalised data present')
+        if element not in self._elements:
+            raise RuntimeError('No such element: {}'.format(element))
+
+        return self._get_array('/normalised/' + element, want_stats)
 
     def get_raw(self, element, want_stats=False):
         if self._state in [State.INVALID, State.EMPTY]:
@@ -154,27 +196,13 @@ class QACDProject:
         if element not in self._elements:
             raise RuntimeError('No such element: {}'.format(element))
 
-        with self._h5file_ro() as h5file:
-            node = h5file.get_node('/raw', element)
-            raw = node.read()
-            if want_stats:
-                stats = {key:node.attrs[key] for key in node.attrs._f_list('user')}
-                return raw, stats
-            else:
-                return raw
+        return self._get_array('/raw/' + element, want_stats)
 
     def get_raw_total(self, want_stats=False):
         if self._state in [State.INVALID, State.EMPTY]:
             raise RuntimeError('No raw data present')
 
-        with self._h5file_ro() as h5file:
-            node = h5file.get_node('/raw/total')
-            raw_total = node.read()
-            if want_stats:
-                stats = {key:node.attrs[key] for key in node.attrs._f_list('user')}
-                return raw_total, stats
-            else:
-                return raw_total
+        return self._get_array('/raw/total', want_stats)
 
     def import_raw_csv_files(self, directory, csv_filenames=None):
         # If no csv_filenames are specified, loads all appropriate files from
@@ -197,7 +225,6 @@ class QACDProject:
 
         with self._h5file() as h5file:
             raw_group = h5file.create_group('/', 'raw', 'Raw element maps')
-            filters = tables.Filters(complevel=5, complib='blosc')
 
             # Load files one at a time and save in project file.
             shape = None
@@ -207,8 +234,8 @@ class QACDProject:
                 element = self.get_element_from_csv_filename(csv_filename)
                 elements.append(element)
                 full_filename = os.path.join(directory, csv_filename)
-                raw = np.genfromtxt(full_filename, delimiter=',', dtype=np.int32,
-                                    filling_values=-1)
+                raw = np.genfromtxt(full_filename, delimiter=',',
+                                    dtype=np.int32, filling_values=-1)
                 # If csv file lines contain trailing comma, ignore last column.
                 if np.all(raw[:, -1] == -1):
                     raw = raw[:, :-1]
@@ -225,7 +252,7 @@ class QACDProject:
 
                 # Add raw array to project file.
                 node = h5file.create_carray(raw_group, element, obj=raw,
-                                            filters=filters)
+                                            filters=self._compression_filters)
                 self._add_array_stats(raw, node)
 
                 if total is None:
@@ -233,8 +260,8 @@ class QACDProject:
                 else:
                     total += raw
 
-            raw_total_node = h5file.create_carray(raw_group, 'total', obj=total,
-                                                  filters=filters)
+            raw_total_node = h5file.create_carray(raw_group, \
+                'total', obj=total, filters=self._compression_filters)
             self._add_array_stats(total, raw_total_node)
 
             h5file.create_array('/', 'elements', obj=elements, title='Elements')
@@ -244,6 +271,26 @@ class QACDProject:
 
     def is_valid_csv_filename(self, csv_filename):
         return self._csv_file_re.match(csv_filename)
+
+    def normalise(self):
+        if self._state != State.FILTERED:
+            raise RuntimeError('Project does not contain filtered data')
+
+        with self._h5file() as h5file:
+            filtered_total = h5file.get_node('/filtered/total').read()
+
+            normalised_group = h5file.create_group('/', 'normalised',
+                                                   'Normalised element maps')
+
+            for element in self.elements:
+                normalised = h5file.get_node('/filtered', element).read()
+                normalised /= filtered_total
+
+                node = h5file.create_carray(normalised_group, \
+                    element, obj=normalised, filters=self._compression_filters)
+                self._add_array_stats(normalised, node)
+
+            self._state = State.NORMALISED
 
     def set_filename(self, filename):
         if self._state != State.INVALID:
@@ -264,3 +311,6 @@ class QACDProject:
             print('##########')
             print(h5file)
             print('##########')
+
+
+

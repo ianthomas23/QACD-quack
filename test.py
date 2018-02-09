@@ -4,6 +4,8 @@ import numpy as np
 from qacd_project import QACDProject
 
 
+want_normalised = True  # Rather than filtered.
+want_h_factor = True
 want_plot = True
 want_histograms = True;
 
@@ -13,8 +15,13 @@ project.set_filename('out.quack')
 if 0:
     project.import_raw_csv_files('test_data')
 else:
-    project.import_raw_csv_files('test_data', ['Ca K series.csv', 'O K series.csv'])
+    project.import_raw_csv_files('test_data', ['Al K series.csv',
+                                               'Ca K series.csv',
+                                               'Mg K series.csv',
+                                               'O K series.csv'])
 project.filter(pixel_totals=True, median=True)
+project.normalise()
+project.calculate_h_factor()
 project.write_debug()
 
 
@@ -28,10 +35,16 @@ if want_plot:
     plt.title('{} raw'.format(element))
 
     plt.subplot(222, sharex=ax, sharey=ax)
-    filtered, filtered_stats = project.get_filtered(element, want_stats=True)
-    plt.imshow(filtered)
-    plt.colorbar()
-    plt.title('{} filtered'.format(element))
+    if want_normalised:
+        filtered, filtered_stats = project.get_normalised(element, want_stats=True)
+        plt.imshow(filtered)
+        plt.colorbar()
+        plt.title('{} normalised'.format(element))
+    else:
+        filtered, filtered_stats = project.get_filtered(element, want_stats=True)
+        plt.imshow(filtered)
+        plt.colorbar()
+        plt.title('{} filtered'.format(element))
 
     if want_histograms:
         plt.subplot(223)
@@ -64,11 +77,18 @@ if want_plot:
         plt.title('Raw total')
 
         plt.subplot(222, sharex=ax, sharey=ax)
-        f_total, f_total_stats = project.get_filtered_total(want_stats=True)
-        print('filtered_total_stats', f_total_stats)
-        plt.imshow(f_total)
-        plt.colorbar()
-        plt.title('Filtered total')
+        if want_h_factor:
+            f_total, f_total_stats = project.get_h_factor(want_stats=True)
+            print('h_factor_total_stats', f_total_stats)
+            plt.imshow(f_total)
+            plt.colorbar()
+            plt.title('H factor')
+        else:
+            f_total, f_total_stats = project.get_filtered_total(want_stats=True)
+            print('filtered_total_stats', f_total_stats)
+            plt.imshow(f_total)
+            plt.colorbar()
+            plt.title('Filtered total')
 
         if want_histograms:
             plt.subplot(223)
