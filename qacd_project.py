@@ -82,16 +82,21 @@ class QACDProject:
         if self._state != State.NORMALISED:
             raise RuntimeError('Project does not contain normalised data')
 
-        h_factor = None
         with self._h5file() as h5file:
+            Z_mean = None
+            A_mean = None
             for element in self.elements:
-                Z, A = element_properties[element][
                 normalised = h5file.get_node('/normalised', element).read()
+                Z, A = element_properties[element][1:3]
 
-                if h_factor is None:
-                    h_factor = normalised.copy()
+                if Z_mean is None:
+                    Z_mean = normalised*Z
+                    A_mean = normalised*A
                 else:
-                    h_factor += normalised
+                    Z_mean += normalised*Z
+                    A_mean += normalised*A
+
+            h_factor = 1.2*A_mean / (Z_mean**2)
 
             node = h5file.create_carray('/', 'h_factor', obj=h_factor,
                 title='H factor (Philibert 1963)',
