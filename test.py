@@ -6,7 +6,7 @@ from qacd_project import QACDProject
 
 want_normalised = True  # Rather than filtered.
 want_h_factor = True
-want_plot = True
+want_plot = False
 want_histograms = True;
 
 
@@ -15,14 +15,18 @@ project.set_filename('out.quack')
 if 0:
     project.import_raw_csv_files('test_data')
 else:
-    project.import_raw_csv_files('test_data', ['Al K series.csv',
-                                               'Ca K series.csv',
-                                               'Mg K series.csv',
-                                               'O K series.csv'])
-project.filter(pixel_totals=True, median=True)
+    project.import_raw_csv_files('test_data', ['Ca K series.csv',
+                                               'Na K series.csv',
+                                               'Mg K series.csv'])
+project.filter(pixel_totals=True, median=False)
 project.normalise()
 project.calculate_h_factor()
-project.write_debug()
+#project.create_ratio_map(['Ca', 'Mg', 'O'])
+project.create_ratio_map('some ratio', ['Mg', 'Ca'], correction_model='pyroxene')
+#project.create_ratio_map('Anorthite')
+#print(project.get_valid_preset_ratios())
+print(project.ratios)
+#project.write_debug()
 
 
 if want_plot:

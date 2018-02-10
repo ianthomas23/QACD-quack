@@ -5,7 +5,9 @@ import os
 import re
 import tables
 
+from correction_models import correction_models
 from elements import element_properties
+from preset_ratios import preset_ratios
 import utils
 
 
@@ -23,7 +25,11 @@ class QACDProject:
     def __init__(self):
         self._state = State.INVALID
         self._filename = None
-        self._elements = None  # Cacheing this to avoid reading from file.
+
+        # Cached data to avoid recalculating/re-reading from file.
+        self._elements = None
+        self._valid_preset_ratios = None
+        self._ratios = {}
 
         # Regular expression to match input CSV filenames.
         self._csv_file_re = re.compile('^([A-Z][a-z]?) K series.csv$')
@@ -105,6 +111,96 @@ class QACDProject:
 
             self._state = State.H_FACTOR
 
+    def create_ratio_map(self, name, elements=None, correction_model=None):
+        # Create and store a ratio map of the same shape as the element maps.
+        # If elements is a list of element names, the ratio map is
+        #     elements[0] / sum(elements)
+        # where each item in elements is an element name, e.g. 'Mg'.
+        # If elements is None then look up the name in preset_ratios to obtain
+        # the elements.
+        # Return the node name.
+        if self._state in [State.INVALID, State.EMPTY, State.RAW,
+                           State.FILTERED, State.NORMALISED]:
+            raise RuntimeError('Cannot create ratio map, no h factor present')
+        if correction_model is not None and \
+           correction_model not in correction_models:
+            raise RuntimeError('No such correction model: {}'.format(correction_model))
+        if name in self._ratios.keys():
+            raise RuntimeError("Ratio name '{}' already used".format(name))
+
+        # Get preset ratio.
+        if elements is None:
+            if name not in self.get_valid_preset_ratios():
+                raise RuntimeError('No such preset ratio: {}'.format(name))
+            elements = preset_ratios[name]
+
+        if len(elements) < 2:
+            raise RuntimeError('Not implemented')
+
+        # Check elements are available.
+        missing_elements = [e for e in elements if e not in self.elements]
+        if len(missing_elements) > 0:
+            raise RuntimeError('Missing elements: ' +
+                               ', '.join(missing_elements))
+
+        # Get correction model from name.
+        if correction_model is not None:
+            model = correction_models[correction_model]
+
+            # Check elements are in correction model.
+            missing_elements = [e for e in elements if e not in model]
+            if len(missing_elements) > 0:
+                raise RuntimeError('Elements not in correction model: ' +
+                                   ', '.join(missing_elements))
+
+        if correction_model is None:
+            # If no correction model, do not need to multiply by h factor.
+            numerator = self.get_filtered(elements[0])
+            denominator = numerator.copy()
+            for element in elements[1:]:
+                denominator += self.get_filtered(element)
+        else:
+            h_factor = self.get_h_factor()
+
+            correction = model[elements[0]]
+            if correction[0] != 'poly':
+                raise RuntimeError('Unrecognised correction type: {}'.format(correction[0]))
+            poly = list(reversed(correction[1]))  # Decreasing power order.
+            poly = np.poly1d(poly)
+            numerator = poly(self.get_filtered(elements[0])*h_factor)
+
+            denominator = numerator.copy()
+            for element in elements[1:]:
+                correction = model[element]
+                if correction[0] != 'poly':
+                    raise RuntimeError('Unrecognised correction type: {}'.format(correction[0]))
+                poly = list(reversed(correction[1]))  # Decreasing power order.
+                poly = np.poly1d(poly)
+                denominator += poly(self.get_filtered(element)*h_factor)
+
+        # Avoid zero/zero by setting such pixels to nan beforehand.
+        denominator[denominator == 0.0] = np.nan
+        ratio = numerator / denominator
+
+        formula = '{}/({})'.format(elements[0], '+'.join(elements))
+
+        with self._h5file() as h5file:
+            if '/ratio' in h5file:
+                ratio_group = h5file.get_node('/ratio')
+            else:
+                ratio_group = h5file.create_group('/', 'ratio', 'Ratio maps')
+
+            node_name = 'ratio_{}'.format(ratio_group._v_nchildren)
+            node = h5file.create_carray(ratio_group, node_name, obj=ratio,
+                filters=self._compression_filters)
+            self._add_array_stats(ratio, node)
+            node.attrs.name = name
+            node.attrs.formula = formula
+            node.attrs.correction_model = correction_model
+
+        self._ratios[name] = (formula, node_name)
+        return node_name
+
     @property
     def elements(self):
         # Read-only property.
@@ -171,7 +267,7 @@ class QACDProject:
         if element not in self._elements:
             raise RuntimeError('No such element: {}'.format(element))
 
-        return self._get_array('/filtered/total', want_stats)
+        return self._get_array('/filtered/' + element, want_stats)
 
     def get_filtered_total(self, want_stats=False):
         if self._state in [State.INVALID, State.EMPTY, State.RAW]:
@@ -208,6 +304,22 @@ class QACDProject:
             raise RuntimeError('No raw data present')
 
         return self._get_array('/raw/total', want_stats)
+
+    def get_valid_preset_ratios(self):
+        if self._state in [State.INVALID, State.EMPTY]:
+            raise RuntimeError('No raw data present')
+
+        if self._valid_preset_ratios is None:
+            def is_valid(elements):
+                for element in elements:
+                    if element not in self._elements:
+                        return False
+                return True
+
+            self._valid_preset_ratios = [ \
+                k for k, v in preset_ratios.items() if is_valid(v)]
+
+        return self._valid_preset_ratios
 
     def import_raw_csv_files(self, directory, csv_filenames=None):
         # If no csv_filenames are specified, loads all appropriate files from
@@ -296,6 +408,11 @@ class QACDProject:
                 self._add_array_stats(normalised, node)
 
             self._state = State.NORMALISED
+
+    @property
+    def ratios(self):
+        # Read-only property.
+        return self._ratios
 
     def set_filename(self, filename):
         if self._state != State.INVALID:

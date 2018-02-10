@@ -67,11 +67,11 @@ def map_calc1(varProj, mapname, mapDic):
     tpd.attrs.sizeY = y
     tpd.attrs.sizeX = x
     pix = y*x
-    tpd.attrs.pixels = pix    
-    tpd.attrs.mean = mean    
-    tpd.attrs.median = median    
-    tpd.attrs.max = maxi    
-    tpd.attrs.min = mini    
+    tpd.attrs.pixels = pix
+    tpd.attrs.mean = mean
+    tpd.attrs.median = median
+    tpd.attrs.max = maxi
+    tpd.attrs.min = mini
     tpd.attrs.std = std
     print pix, mean, median, maxi, mini,  std
     #insert a new particle record
@@ -89,7 +89,6 @@ def map_calc2(varProj, mapname, mapDic):
     val = mapDic['function']
     val2 = mapDic['val2']
     corr = mapDic['correction']
-    chdic = qc.equations(corr)
     print va, vb, val
     mapname = mapname
     print mapname
@@ -103,8 +102,8 @@ def map_calc2(varProj, mapname, mapDic):
         da = h_correction(hfac,da)
         db = f.get_node(Filt, vb).read()
         db = h_correction(hfac,db)
-        da[np.isnan(da)]=0
-        db[np.isnan(db)]=0
+        #da[np.isnan(da)]=0
+        #db[np.isnan(db)]=0
         ds = da / (da + (db))
         tpd = f.create_array(Filt, mapname, ds)
         y, x = ds.shape[0], ds.shape[1]
@@ -114,6 +113,7 @@ def map_calc2(varProj, mapname, mapDic):
         mini = np.nanmin(ds)
         std = np.nanstd(ds)
     else:
+        chdic = qc.equations(corr)
         ds = f.get_node(Filt, va).read()
         ds = h_correction(hfac,ds)
         xdic = chdic[va]
@@ -124,8 +124,8 @@ def map_calc2(varProj, mapname, mapDic):
         xdic = chdic[vb]
         db = corr_proc(ds, xdic)
         del ds, xdic
-        da[np.isnan(da)]=0
-        db[np.isnan(db)]=0
+        #da[np.isnan(da)]=0
+        #db[np.isnan(db)]=0
         calc = da / (da + (db))
         del da,  db, hfac
         tmp = f.root
@@ -145,11 +145,11 @@ def map_calc2(varProj, mapname, mapDic):
     tpd.attrs.sizeY = y
     tpd.attrs.sizeX = x
     pix = y*x
-    tpd.attrs.pixels = pix    
-    tpd.attrs.mean = mean    
-    tpd.attrs.median = median    
-    tpd.attrs.max = maxi    
-    tpd.attrs.min = mini    
+    tpd.attrs.pixels = pix
+    tpd.attrs.mean = mean
+    tpd.attrs.median = median
+    tpd.attrs.max = maxi
+    tpd.attrs.min = mini
     tpd.attrs.std = std
     print pix, mean, median, maxi, mini,  std
     #insert a new particle record
@@ -267,11 +267,11 @@ def map_calc4(varProj, mapname, mapDic):
     tpd.attrs.sizeY = y
     tpd.attrs.sizeX = x
     pix = y*x
-    tpd.attrs.pixels = pix    
-    tpd.attrs.mean = mean    
-    tpd.attrs.median = median    
-    tpd.attrs.max = maxi    
-    tpd.attrs.min = mini    
+    tpd.attrs.pixels = pix
+    tpd.attrs.mean = mean
+    tpd.attrs.median = median
+    tpd.attrs.max = maxi
+    tpd.attrs.min = mini
     tpd.attrs.std = std
     print pix, mean, median, maxi, mini,  std
     #insert a new particle record
@@ -290,7 +290,6 @@ def map_calc5(varProj, mapname, mapDic):
     val = mapDic['function']
     val2 = mapDic['val2']
     corr = mapDic['correction']
-    chdic = qc.equations(corr)
     print va, vb, vc, val
     mapname = mapname
     print mapname
@@ -316,6 +315,7 @@ def map_calc5(varProj, mapname, mapDic):
         mini = np.nanmin(ds)
         std = np.nanstd(ds)
     else:
+        chdic = qc.equations(corr)
         ds = f.get_node(Filt, va).read()
         ds = h_correction(hfac,ds)
         xdic = chdic[va]
@@ -353,11 +353,11 @@ def map_calc5(varProj, mapname, mapDic):
     tpd.attrs.sizeY = y
     tpd.attrs.sizeX = x
     pix = y*x
-    tpd.attrs.pixels = pix    
-    tpd.attrs.mean = mean    
-    tpd.attrs.median = median    
-    tpd.attrs.max = maxi    
-    tpd.attrs.min = mini    
+    tpd.attrs.pixels = pix
+    tpd.attrs.mean = mean
+    tpd.attrs.median = median
+    tpd.attrs.max = maxi
+    tpd.attrs.min = mini
     tpd.attrs.std = std
     print pix, mean, median, maxi, mini,  std
     #insert a new particle record
@@ -427,11 +427,11 @@ def map_calc6(varProj, mapname, mapDic):
     tpd.attrs.sizeY = y
     tpd.attrs.sizeX = x
     pix = y*x
-    tpd.attrs.pixels = pix    
-    tpd.attrs.mean = mean    
-    tpd.attrs.median = median    
-    tpd.attrs.max = maxi    
-    tpd.attrs.min = mini    
+    tpd.attrs.pixels = pix
+    tpd.attrs.mean = mean
+    tpd.attrs.median = median
+    tpd.attrs.max = maxi
+    tpd.attrs.min = mini
     tpd.attrs.std = std
     print pix, mean, median, maxi, mini,  std
     #insert a new particle record
@@ -483,7 +483,7 @@ def expcor(ds,xdic):
 def polycor(ds,xdic):
     order = xdic["order"]
     intc = xdic["int"]
-    if order == 2:        
+    if order == 2:
         a = xdic["a"]
         b = xdic["b"]
         ds1 = intc+(a*ds)+(b*(ds**2))
