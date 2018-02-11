@@ -21,6 +21,7 @@ def map_calc1(varProj, mapname, mapDic):
     val = mapDic['function']
     val2 = mapDic['val2']
     corr = mapDic['correction']
+    print('==> map_calc1', va, vb, val, val2, corr, 'STRANGE')
     print va, vb, val
     mapname = mapname
     print mapname
@@ -89,6 +90,7 @@ def map_calc2(varProj, mapname, mapDic):
     val = mapDic['function']
     val2 = mapDic['val2']
     corr = mapDic['correction']
+    print('==> map_calc2', va, vb, val, val2, corr)
     print va, vb, val
     mapname = mapname
     print mapname
@@ -166,6 +168,7 @@ def map_calc3(varProj, mapname, mapDic):
     val = mapDic['function']
     val2 = mapDic['val2']
     corr = mapDic['correction']
+    print('==> map_calc3', va, val, val2, corr, 'A only')
     chdic = qc.equations(corr)
     print va, val
     mapname = mapname
@@ -218,6 +221,7 @@ def map_calc4(varProj, mapname, mapDic):
     val = mapDic['function']
     val2 = mapDic['val2']
     corr = mapDic['correction']
+    print('==> map_calc4', va, vb, vc, val, val2, corr, 'STRANGE')
     print va, vb, vc, val
     mapname = mapname
     print mapname
@@ -290,6 +294,7 @@ def map_calc5(varProj, mapname, mapDic):
     val = mapDic['function']
     val2 = mapDic['val2']
     corr = mapDic['correction']
+    print('==> map_calc5', va, vb, vc, val, val2, corr)
     print va, vb, vc, val
     mapname = mapname
     print mapname
@@ -377,6 +382,7 @@ def map_calc6(varProj, mapname, mapDic):
     val = mapDic['function']
     val2 = mapDic['val2']
     corr = mapDic['correction']
+    print('==> map_calc6', va, vb, vc, vd, val, val2, corr)
     print va, vb, vc, vd, val
     mapname = mapname
     print mapname
@@ -481,22 +487,26 @@ def expcor(ds,xdic):
     del ds
     return ds1
 def polycor(ds,xdic):
+    print('==> polycor', np.sum(~np.isfinite(ds)))
     order = xdic["order"]
     intc = xdic["int"]
     if order == 2:
         a = xdic["a"]
         b = xdic["b"]
+        print('==> polycor 2', intc, a, b)
         ds1 = intc+(a*ds)+(b*(ds**2))
     elif order == 3:
         a = xdic["a"]
         b = xdic["b"]
         c = xdic["c"]
+        print('==> polycor 3', intc, a, b, c)
         ds1 = intc+(a*ds)+(b*(ds**2))+(c*(ds**3))
     elif order == 4:
         a = xdic["a"]
         b = xdic["b"]
         c = xdic["c"]
         d = xdic["d"]
+        print('==> polycor 4', intc, a, b, c, d)
         ds1 = intc+(a*ds)+(b*(ds**2))+(c*(ds**3))+(d*(ds**4))
     elif order == 5:
         a = xdic["a"]
@@ -504,6 +514,7 @@ def polycor(ds,xdic):
         c = xdic["c"]
         d = xdic["d"]
         e = xdic["e"]
+        print('==> polycor 5', intc, a, b, c, d, e)
         ds1 = intc+(a*ds)+(b*(ds**2))+(c*(ds**3))+(d*(ds**4))+(e*(ds**5))
     elif order == 6:
         a = xdic["a"]
@@ -512,6 +523,7 @@ def polycor(ds,xdic):
         d = xdic["d"]
         e = xdic["e"]
         f = xdic["f"]
+        print('==> polycor 6', intc, a, b, c, d, e, f)
         ds1 = intc+(a*ds)+(b*(ds**2))+(c*(ds**3))+(d*(ds**4))+(e*(ds**5))+(f*(ds**6))
     print order
     del ds

@@ -113,9 +113,11 @@ class QACDProject:
 
     def create_ratio_map(self, name, elements=None, correction_model=None):
         # Create and store a ratio map of the same shape as the element maps.
-        # If elements is a list of element names, the ratio map is
+        # If elements is a list of element names of len > 1, the ratio map is
         #     elements[0] / sum(elements)
         # where each item in elements is an element name, e.g. 'Mg'.
+        # If elements is a list of a single element, the ration map is
+        #     elements[0]
         # If elements is None then look up the name in preset_ratios to obtain
         # the elements.
         # Return the node name.
@@ -130,6 +132,7 @@ class QACDProject:
 
         # Get preset ratio.
         if elements is None:
+            raise RuntimeError('Cannot deal with ratios of presets yet')
             if name not in self.get_valid_preset_ratios():
                 raise RuntimeError('No such preset ratio: {}'.format(name))
             elements = preset_ratios[name]
