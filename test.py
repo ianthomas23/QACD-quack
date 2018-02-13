@@ -21,13 +21,28 @@ else:
 project.filter(pixel_totals=True, median=False)
 project.normalise()
 project.calculate_h_factor()
-#project.create_ratio_map(['Ca', 'Mg', 'O'])
-#project.create_ratio_map('some ratio', ['Mg', 'Ca'], correction_model='pyroxene')
-project.create_ratio_map('some ratio', ['Mg'], correction_model='pyroxene')
+project.create_ratio_map('some ratio', ['Mg', 'Ca'], correction_model='pyroxene')
 #project.create_ratio_map('Anorthite')
 #print(project.get_valid_preset_ratios())
 print(project.ratios)
 #project.write_debug()
+project.k_means_clustering(5, 9)
+
+
+if 0:
+    ratio_name = 'some ratio'
+    ratio, stats = project.get_ratio_by_name(ratio_name, want_stats=True)
+    plt.figure()
+    plt.subplot(211)
+    plt.imshow(ratio)
+    plt.colorbar()
+    plt.title(ratio_name)
+
+    plt.subplot(212)
+    data = ratio.ravel()
+    plt.hist(data[np.isfinite(data)], bins=40)
+
+    plt.show()
 
 
 if want_plot:

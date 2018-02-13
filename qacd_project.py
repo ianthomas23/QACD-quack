@@ -294,6 +294,16 @@ class QACDProject:
 
         return self._get_array('/normalised/' + element, want_stats)
 
+    def get_ratio_by_name(self, ratio, want_stats=False):
+        if self._state in [State.INVALID, State.EMPTY, State.RAW,
+                           State.FILTERED, State.NORMALISED]:
+            raise RuntimeError('No normalised data present')
+        if ratio not in self._ratios:
+            raise RuntimeError('No such ratio: {}'.format(ratio))
+
+        node_name = self._ratios[ratio][1]
+        return self._get_array('/ratio/' + node_name, want_stats)
+
     def get_raw(self, element, want_stats=False):
         if self._state in [State.INVALID, State.EMPTY]:
             raise RuntimeError('No raw data present')
@@ -391,6 +401,25 @@ class QACDProject:
 
     def is_valid_csv_filename(self, csv_filename):
         return self._csv_file_re.match(csv_filename)
+
+    def k_means_clustering(self, k_min, k_max):
+        # k_min and k_max are min and max number of clusters.
+        if self._state in [State.INVALID, State.EMPTY, State.RAW]:
+            raise RuntimeError('No filtered data present')
+        if k_max <= k_min:
+            raise RuntimeError('k (number of clusters) must be increasing')
+
+        all_elements = None
+        for i, element in enumerate(self.elements):
+            filtered = self.get_filtered(element)
+
+            if all_elements is None:
+                ny, nx = filtered.shape
+                nelements = len(self.elements)
+                all_elements = np.empty((ny, nx, nelements))
+            all_elements[:, :, i] = filtered
+
+        utils.k_means_clustering(all_elements, k_min, k_max)
 
     def normalise(self):
         if self._state != State.FILTERED:

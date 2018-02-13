@@ -22,6 +22,7 @@ def monte_carlo(K): #Main function for carrying out Kmeans clustering
         fp, x, y = prepare_data2(varProj)
     else:
         fp, x, y = prepare_data(varProj)
+    print('==> k-means clustering data shape', fp.shape)
     batch_size=100
     f = tb.open_file(varProj, mode="a")
     Clust = f.get_node(f.root, clust)
@@ -60,7 +61,7 @@ def prepare_data2(varProj): #Retrieval of data if choose to use all loaded eleme
     el_sh = ds.shape
     fp = np.memmap(fname,dtype='float64',mode='w+',shape=(el_sh))
     fp[:] = ds[:]
-    del ds, fname, el_sh, 
+    del ds, fname, el_sh,
     f.close()
     gc.collect()
     return fp, x, y
@@ -75,7 +76,7 @@ def prepare_data(varProj): #Retrieval of data if choose to use 5 common elements
     el_sh = ds.shape
     fp = np.memmap(fname,dtype='float64',mode='w+',shape=(el_sh))
     fp[:] = ds[:]
-    del ds, fname, el_sh, 
+    del ds, fname, el_sh,
     f.close()
     gc.collect()
     return fp, x, y
