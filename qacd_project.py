@@ -3,6 +3,7 @@ from enum import Enum, unique
 import numpy as np
 import os
 import re
+from sklearn.cluster import MiniBatchKMeans
 import tables
 
 from correction_models import correction_models
@@ -19,6 +20,7 @@ class State(Enum):
     FILTERED = 3    # Filtered element maps, including total.
     NORMALISED = 4  # Normalised element maps.
     H_FACTOR = 5    # Calculation of h factor for each normalised pixel.
+    CLUSTERING = 6  # k-means clustering to help identify phases.
 
 
 class QACDProject:
@@ -49,10 +51,16 @@ class QACDProject:
         h5node.attrs.invalid = number_invalid
         h5node.attrs.valid = array.size - number_invalid
 
-    def _get_array(self, full_node_name, want_stats=False):
+    def _get_array(self, full_node_name, want_stats=False,
+                   masked_negative=False):
         with self._h5file_ro() as h5file:
+            if full_node_name not in h5file:
+                raise RuntimeError('No such node: {}'.format(full_node_name))
+
             node = h5file.get_node(full_node_name)
             array = node.read()
+            if masked_negative and np.min(array) < 0:
+                array = np.ma.masked_less(array, 0)
             if want_stats:
                 stats = {key:node.attrs[key] for key
                          in node.attrs._f_list('user')}
@@ -258,6 +266,15 @@ class QACDProject:
 
             self._state = State.FILTERED
 
+    def get_cluster(self, k, want_stats=False, masked=True):
+        # Return np.int8 array which are cluster of each pixel in range 0 to
+        # k-1, and -1 indicates masked out pixels.
+        if self._state != State.CLUSTERING:
+            raise RuntimeError('No k-means cluster data present')
+
+        return self._get_array('/cluster/k{}/labels'.format(k), want_stats,
+                               masked_negative=masked)
+
     def get_element_from_csv_filename(self, csv_filename):
         match = self.is_valid_csv_filename(csv_filename)
         if not match:
@@ -265,6 +282,7 @@ class QACDProject:
         return match.group(1)
 
     def get_filtered(self, element, want_stats=False):
+        # np.nan indicates masked out pixels.
         if self._state in [State.INVALID, State.EMPTY, State.RAW]:
             raise RuntimeError('No filtered data present')
         if element not in self._elements:
@@ -273,12 +291,14 @@ class QACDProject:
         return self._get_array('/filtered/' + element, want_stats)
 
     def get_filtered_total(self, want_stats=False):
+        # np.nan indicates masked out pixels.
         if self._state in [State.INVALID, State.EMPTY, State.RAW]:
             raise RuntimeError('No filtered data present')
 
         return self._get_array('/filtered/total', want_stats)
 
     def get_h_factor(self, want_stats=False):
+        # np.nan indicates masked out pixels.
         if self._state in [State.INVALID, State.EMPTY, State.RAW,
                            State.FILTERED, State.NORMALISED]:
             raise RuntimeError('No h factor present')
@@ -286,6 +306,7 @@ class QACDProject:
         return self._get_array('/h_factor', want_stats)
 
     def get_normalised(self, element, want_stats=False):
+        # np.nan indicates masked out pixels.
         if self._state in [State.INVALID, State.EMPTY, State.RAW,
                            State.FILTERED]:
             raise RuntimeError('No normalised data present')
@@ -295,6 +316,7 @@ class QACDProject:
         return self._get_array('/normalised/' + element, want_stats)
 
     def get_ratio_by_name(self, ratio, want_stats=False):
+        # np.nan indicates masked out pixels.
         if self._state in [State.INVALID, State.EMPTY, State.RAW,
                            State.FILTERED, State.NORMALISED]:
             raise RuntimeError('No normalised data present')
@@ -304,19 +326,23 @@ class QACDProject:
         node_name = self._ratios[ratio][1]
         return self._get_array('/ratio/' + node_name, want_stats)
 
-    def get_raw(self, element, want_stats=False):
+    def get_raw(self, element, want_stats=False, masked=True):
+        # -1 indicates masked out pixels.
         if self._state in [State.INVALID, State.EMPTY]:
             raise RuntimeError('No raw data present')
         if element not in self._elements:
             raise RuntimeError('No such element: {}'.format(element))
 
-        return self._get_array('/raw/' + element, want_stats)
+        return self._get_array('/raw/' + element, want_stats,
+                               masked_negative=masked)
 
-    def get_raw_total(self, want_stats=False):
+    def get_raw_total(self, want_stats=False, masked=True):
+        # -1 indicates masked out pixels.
         if self._state in [State.INVALID, State.EMPTY]:
             raise RuntimeError('No raw data present')
 
-        return self._get_array('/raw/total', want_stats)
+        return self._get_array('/raw/total', want_stats,
+                               masked_negative=masked)
 
     def get_valid_preset_ratios(self):
         if self._state in [State.INVALID, State.EMPTY]:
@@ -402,24 +428,83 @@ class QACDProject:
     def is_valid_csv_filename(self, csv_filename):
         return self._csv_file_re.match(csv_filename)
 
-    def k_means_clustering(self, k_min, k_max):
+    def k_means_clustering(self, k_min, k_max, reorder=True):
         # k_min and k_max are min and max number of clusters.
+        # If reorder is True, will reorder labels so that they are consistent
+        # across different k values rather than being randomly ordered.
+        if self._state == State.CLUSTERING:
+            raise RuntimeError('k-means clustering already performed')
         if self._state in [State.INVALID, State.EMPTY, State.RAW]:
             raise RuntimeError('No filtered data present')
         if k_max <= k_min:
             raise RuntimeError('k (number of clusters) must be increasing')
 
+        # Obtain array of all filtered element maps.
         all_elements = None
         for i, element in enumerate(self.elements):
             filtered = self.get_filtered(element)
 
             if all_elements is None:
                 ny, nx = filtered.shape
-                nelements = len(self.elements)
-                all_elements = np.empty((ny, nx, nelements))
-            all_elements[:, :, i] = filtered
 
-        utils.k_means_clustering(all_elements, k_min, k_max)
+                # Mask is 1D array of pixels to keep.
+                mask = np.isfinite(filtered).ravel()
+                if np.all(mask):
+                    mask = None
+                    npixels = nx*ny
+                else:
+                    npixels = np.sum(mask)
+
+                all_elements = np.empty((npixels, len(self.elements)))
+
+            if mask is None:
+                all_elements[:, i] = filtered.ravel()
+            else:
+                all_elements[:, i] = filtered.ravel()[mask]
+
+        with self._h5file() as h5file:
+            cluster_group = h5file.create_group('/', 'cluster',
+                                                'k-means clustering')
+            for k in range(k_min, k_max+1):
+                kmeans = MiniBatchKMeans(n_clusters=k, random_state=1234,
+                                         n_init=10)
+
+                # Labels gives cluster of each pixel in range 0 to k-1.
+                # Use -1 to indicate masked out pixels.
+                labels = kmeans.fit_predict(all_elements).astype(np.int8)
+                if mask is not None:
+                    masked_labels = labels
+                    labels = np.full((nx*ny), -1, dtype=np.int8)
+                    labels[mask] = masked_labels
+                    masked_labels = None
+
+                labels.shape = (ny, nx)
+                centroids = kmeans.cluster_centers_
+
+                if reorder:
+                    element_stds = np.std(all_elements, axis=0)
+                    sort_element_index = np.argmax(element_stds)
+                    sort_indices = np.argsort(centroids[:, sort_element_index])
+
+                    # Reorder centroids.
+                    centroids = centroids[sort_indices]
+
+                    # Reorder labels.
+                    unsorted = labels.copy()
+                    for to_index in range(k):
+                        from_index = sort_indices[to_index]
+                        labels[unsorted == from_index] = to_index
+                    unsorted = None
+
+                k_group = h5file.create_group(cluster_group, 'k{}'.format(k))
+                label_node = h5file.create_carray(k_group, 'labels',
+                    obj=labels, filters=self._compression_filters)
+                label_node.attrs.min = 0 if mask is None else -1
+                label_node.attrs.max = k
+                h5file.create_carray(k_group, 'centroids', obj=centroids,
+                                     filters=self._compression_filters)
+
+            self._state = State.CLUSTERING
 
     def normalise(self):
         if self._state != State.FILTERED:

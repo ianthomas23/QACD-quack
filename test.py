@@ -1,3 +1,5 @@
+from matplotlib import cm
+import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -14,11 +16,13 @@ project = QACDProject()
 project.set_filename('out.quack')
 if 0:
     project.import_raw_csv_files('test_data')
+    #project.import_raw_csv_files('/home/iant/Desktop/Johan_Lissenberg_Xmas2015',
+    #                             ['Ca K series.csv', 'Mg K series.csv'])
 else:
     project.import_raw_csv_files('test_data', ['Ca K series.csv',
                                                'Na K series.csv',
                                                'Mg K series.csv'])
-project.filter(pixel_totals=True, median=False)
+project.filter(pixel_totals=True, median=True)
 project.normalise()
 project.calculate_h_factor()
 project.create_ratio_map('some ratio', ['Mg', 'Ca'], correction_model='pyroxene')
@@ -26,7 +30,47 @@ project.create_ratio_map('some ratio', ['Mg', 'Ca'], correction_model='pyroxene'
 #print(project.get_valid_preset_ratios())
 print(project.ratios)
 #project.write_debug()
-project.k_means_clustering(5, 9)
+
+kmin = 5; kmax = 10
+project.k_means_clustering(kmin, kmax)
+
+
+
+if 1:
+    # Plot k-means clustering.
+    for k in range(kmin, kmax+1):
+        plt.subplot(2, 3, k+1-kmin)
+        labels, stats = project.get_cluster(k, want_stats=True)
+        #print(k, stats)
+        if 1:
+            cmap = cm.get_cmap('rainbow', k)  # k discrete levels
+        else:
+            # This does not work if k > 10.
+            colors = ['C{}'.format(i) for i in range(k)]
+            cmap = mcolors.ListedColormap(colors)
+        plt.imshow(labels, cmap=cmap, vmin=-0.5, vmax=k-0.5)
+        plt.colorbar(ticks=range(0, k))
+        plt.title('k={}'.format(k))
+
+    if 0:
+        k = kmin
+        plt.figure()
+        labels = project.get_cluster(k)
+        cmap = cm.get_cmap('rainbow', k)  # k discrete levels
+        element0 = project.get_filtered(project.elements[0])
+        element1 = project.get_filtered(project.elements[1])
+        plt.scatter(element0, element1, c=labels, s=2, cmap=cmap, alpha=0.5,
+                    vmin=-0.5, vmax=k-0.5)
+        plt.colorbar(ticks=range(0, k))
+        plt.xlabel(project.elements[0])
+        plt.ylabel(project.elements[1])
+    elif 0:
+        k = kmin
+        plt.figure()
+        labels = project.get_cluster(k)
+        plt.hist(labels.ravel(), k)
+
+    plt.show()
 
 
 if 0:
