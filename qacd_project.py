@@ -39,34 +39,62 @@ class QACDProject:
         # Compression filters for pytables chunked arrays.
         self._compression_filters = tables.Filters(complevel=5, complib='blosc')
 
-    def _add_array_stats(self, array, h5node):
-        # Add statistics of the specified array to the specified h5 file node.
-        number_invalid = np.isnan(array).sum()
+        # numpy array dtypes.
+        self._raw_dtype = np.int32
+        self._indices_dtype = np.int8
 
-        h5node.attrs.min = np.nanmin(array)
-        h5node.attrs.max = np.nanmax(array)
-        h5node.attrs.mean = np.nanmean(array)
-        h5node.attrs.median = np.nanmedian(array)
-        h5node.attrs.std = np.nanstd(array)
+    def _add_array_stats(self, array, h5node, mask=None):
+        # Add statistics of the specified array to the specified h5 file node.
+        # If a mask is specified it is used, otherwise a mask is calculated
+        # depending on the type of the array.
+        if mask is not None:
+            array = np.ma.array(array, mask=mask)
+        elif array.dtype in (self._raw_dtype, self._indices_dtype):
+            array = np.ma.masked_less(array, 0)
+        else:
+            array = np.ma.masked_invalid(array)
+
+        h5node.attrs.min = array.min()
+        h5node.attrs.max = array.max()
+
+        if array.dtype != self._indices_dtype:
+            h5node.attrs.mean = array.mean()
+            h5node.attrs.median = np.ma.median(array)
+            h5node.attrs.std = array.std()
+
+        number_invalid = np.ma.count_masked(array)
         h5node.attrs.invalid = number_invalid
         h5node.attrs.valid = array.size - number_invalid
 
-    def _get_array(self, full_node_name, want_stats=False,
-                   masked_negative=False):
-        with self._h5file_ro() as h5file:
-            if full_node_name not in h5file:
-                raise RuntimeError('No such node: {}'.format(full_node_name))
+    def _get_array(self, full_node_name, masked, want_stats=False, h5file=None):
+        # masked and want_stats are booleans.
+        if h5file:
+            return self._get_array_impl(h5file, full_node_name, masked,
+                                        want_stats)
+        else:
+            with self._h5file_ro() as h5file:
+                return self._get_array_impl(h5file, full_node_name, masked,
+                                            want_stats)
 
-            node = h5file.get_node(full_node_name)
-            array = node.read()
-            if masked_negative and np.min(array) < 0:
+    def _get_array_impl(self, h5file, full_node_name, masked, want_stats):
+        # masked and want_stats are booleans.
+        if full_node_name not in h5file:
+            raise RuntimeError('No such node: {}'.format(full_node_name))
+
+        node = h5file.get_node(full_node_name)
+        array = node.read()
+
+        if masked:
+            if array.dtype in (self._raw_dtype, self._indices_dtype):
                 array = np.ma.masked_less(array, 0)
-            if want_stats:
-                stats = {key:node.attrs[key] for key
-                         in node.attrs._f_list('user')}
-                return array, stats
             else:
-                return array
+                array = np.ma.masked_invalid(array)
+
+        if want_stats:
+            stats = {key:node.attrs[key] for key in node.attrs._f_list('user')}
+            return array, stats
+        else:
+            return array
 
     @contextmanager
     def _h5file(self):
@@ -238,7 +266,7 @@ class QACDProject:
 
             total = None
             for element in self.elements:
-                raw = h5file.get_node('/raw', element).read()
+                raw = self.get_raw(element, h5file=h5file)  # Masked.
 
                 # Convert raw array to floats.
                 filtered = np.asarray(raw, dtype=np.float64)
@@ -266,14 +294,15 @@ class QACDProject:
 
             self._state = State.FILTERED
 
-    def get_cluster(self, k, want_stats=False, masked=True):
-        # Return np.int8 array which are cluster of each pixel in range 0 to
-        # k-1, and -1 indicates masked out pixels.
+    def get_cluster_indices(self, k, masked=True, want_stats=False):
+        # Return array indicating which cluster each pixel is in, from 0 to k-1.
+        # If masked==True then invalid pixels are masked out, otherwise they
+        # are -1.
         if self._state != State.CLUSTERING:
             raise RuntimeError('No k-means cluster data present')
 
-        return self._get_array('/cluster/k{}/labels'.format(k), want_stats,
-                               masked_negative=masked)
+        return self._get_array('/cluster/k{}/indices'.format(k), masked,
+                               want_stats)
 
     def get_element_from_csv_filename(self, csv_filename):
         match = self.is_valid_csv_filename(csv_filename)
@@ -281,42 +310,47 @@ class QACDProject:
             raise RuntimeError('Invalid CSV file name: {}'.format(csv_file))
         return match.group(1)
 
-    def get_filtered(self, element, want_stats=False):
-        # np.nan indicates masked out pixels.
+    def get_filtered(self, element, masked=True, want_stats=False):
+        # Return filtered element map.  If masked==True then invalid pixels are
+        # masked out, otherwise they are np.nan.
         if self._state in [State.INVALID, State.EMPTY, State.RAW]:
             raise RuntimeError('No filtered data present')
         if element not in self._elements:
             raise RuntimeError('No such element: {}'.format(element))
 
-        return self._get_array('/filtered/' + element, want_stats)
+        return self._get_array('/filtered/' + element, masked, want_stats)
 
-    def get_filtered_total(self, want_stats=False):
-        # np.nan indicates masked out pixels.
+    def get_filtered_total(self, masked=True, want_stats=False):
+        # Return total of all filtered element maps.  If masked==True then
+        # invalid pixels are masked out, otherwise they are np.nan.
         if self._state in [State.INVALID, State.EMPTY, State.RAW]:
             raise RuntimeError('No filtered data present')
 
-        return self._get_array('/filtered/total', want_stats)
+        return self._get_array('/filtered/total', masked, want_stats)
 
-    def get_h_factor(self, want_stats=False):
-        # np.nan indicates masked out pixels.
+    def get_h_factor(self, masked=True, want_stats=False):
+        # Return h factor array.  If masked==True then invalid pixels are
+        # masked out, otherwise they are np.nan.
         if self._state in [State.INVALID, State.EMPTY, State.RAW,
                            State.FILTERED, State.NORMALISED]:
             raise RuntimeError('No h factor present')
 
-        return self._get_array('/h_factor', want_stats)
+        return self._get_array('/h_factor', masked, want_stats)
 
-    def get_normalised(self, element, want_stats=False):
-        # np.nan indicates masked out pixels.
+    def get_normalised(self, element, masked=True, want_stats=False):
+        # Return normalised element map.  If masked==True then invalid pixels
+        # are masked out, otherwise they are np.nan.
         if self._state in [State.INVALID, State.EMPTY, State.RAW,
                            State.FILTERED]:
             raise RuntimeError('No normalised data present')
         if element not in self._elements:
             raise RuntimeError('No such element: {}'.format(element))
 
-        return self._get_array('/normalised/' + element, want_stats)
+        return self._get_array('/normalised/' + element, masked, want_stats)
 
-    def get_ratio_by_name(self, ratio, want_stats=False):
-        # np.nan indicates masked out pixels.
+    def get_ratio_by_name(self, ratio, masked=True, want_stats=False):
+        # Return ratio map.  If masked==True then invalid pixels are masked
+        # out, otherwise they are np.nan.
         if self._state in [State.INVALID, State.EMPTY, State.RAW,
                            State.FILTERED, State.NORMALISED]:
             raise RuntimeError('No normalised data present')
@@ -324,25 +358,25 @@ class QACDProject:
             raise RuntimeError('No such ratio: {}'.format(ratio))
 
         node_name = self._ratios[ratio][1]
-        return self._get_array('/ratio/' + node_name, want_stats)
+        return self._get_array('/ratio/' + node_name, masked, want_stats)
 
-    def get_raw(self, element, want_stats=False, masked=True):
-        # -1 indicates masked out pixels.
+    def get_raw(self, element, masked=True, want_stats=False, h5file=None):
+        # Return raw element map.  If masked==True then invalid pixels are
+        # masked out, otherwise they are -1.
         if self._state in [State.INVALID, State.EMPTY]:
             raise RuntimeError('No raw data present')
         if element not in self._elements:
             raise RuntimeError('No such element: {}'.format(element))
 
-        return self._get_array('/raw/' + element, want_stats,
-                               masked_negative=masked)
+        return self._get_array('/raw/' + element, masked, want_stats, h5file)
 
-    def get_raw_total(self, want_stats=False, masked=True):
-        # -1 indicates masked out pixels.
+    def get_raw_total(self, masked=True, want_stats=False):
+        # Return total of all raw element maps.  If masked==True then invalid
+        # pixels are masked out, otherwise they are -1.
         if self._state in [State.INVALID, State.EMPTY]:
             raise RuntimeError('No raw data present')
 
-        return self._get_array('/raw/total', want_stats,
-                               masked_negative=masked)
+        return self._get_array('/raw/total', masked, want_stats)
 
     def get_valid_preset_ratios(self):
         if self._state in [State.INVALID, State.EMPTY]:
@@ -391,7 +425,7 @@ class QACDProject:
                 elements.append(element)
                 full_filename = os.path.join(directory, csv_filename)
                 raw = np.genfromtxt(full_filename, delimiter=',',
-                                    dtype=np.int32, filling_values=-1)
+                                    dtype=self._raw_dtype, filling_values=-1)
                 # If csv file lines contain trailing comma, ignore last column.
                 if np.all(raw[:, -1] == -1):
                     raw = raw[:, :-1]
@@ -406,22 +440,37 @@ class QACDProject:
                     raise RuntimeError('Different sized csv files: {} and {}'.format( \
                                        shape, raw.shape))
 
-                # Add raw array to project file.
+                # Add raw array to project file.  Correcting for mask later.
                 node = h5file.create_carray(raw_group, element, obj=raw,
                                             filters=self._compression_filters)
-                self._add_array_stats(raw, node)
 
                 if total is None:
-                    total = raw.astype(np.float64)
+                    total = raw.copy()
                 else:
                     total += raw
 
-            raw_total_node = h5file.create_carray(raw_group, \
-                'total', obj=total, filters=self._compression_filters)
-            self._add_array_stats(total, raw_total_node)
-
+            # Set cached list of elements.
             h5file.create_array('/', 'elements', obj=elements, title='Elements')
             self._elements = elements
+
+            # Mask out pixels for which total is zero.
+            mask = total == 0
+            has_mask = np.any(mask)
+            if has_mask:
+                total[mask] = -1
+
+            # Write raw total to project file.
+            raw_total_node = h5file.create_carray(raw_group, \
+                'total', obj=total, filters=self._compression_filters)
+            self._add_array_stats(total, raw_total_node, mask=mask)
+
+            # Update all raw element maps with mask, and set stats.
+            for element in self.elements:
+                node = h5file.get_node('/raw', element)
+                if has_mask:
+                    node[mask] = -1
+                raw = node.read()
+                self._add_array_stats(raw, node, mask=mask)
 
             self._state = State.RAW
 
@@ -439,28 +488,29 @@ class QACDProject:
         if k_max <= k_min:
             raise RuntimeError('k (number of clusters) must be increasing')
 
-        # Obtain array of all filtered element maps.
+        # Obtain array of all filtered element maps.  k-means clustering cannot
+        # deal with masked arrays (or np.nan or np.inf) so need to remove
+        # masked out pixels beforehand.
         all_elements = None
         for i, element in enumerate(self.elements):
-            filtered = self.get_filtered(element)
+            filtered = self.get_filtered(element)  # Masked.
 
             if all_elements is None:
                 ny, nx = filtered.shape
 
-                # Mask is 1D array of pixels to keep.
-                mask = np.isfinite(filtered).ravel()
-                if np.all(mask):
-                    mask = None
+                # mask_valid is 1D array of pixels to keep.  It is the same for
+                # all filtered element maps.
+                filtered_mask = filtered.mask
+                mask_valid = ~filtered_mask.ravel()
+                if np.all(mask_valid):
+                    mask_valid = None
                     npixels = nx*ny
                 else:
-                    npixels = np.sum(mask)
+                    npixels = np.sum(mask_valid)
 
                 all_elements = np.empty((npixels, len(self.elements)))
 
-            if mask is None:
-                all_elements[:, i] = filtered.ravel()
-            else:
-                all_elements[:, i] = filtered.ravel()[mask]
+            all_elements[:, i] = filtered.compressed()
 
         with self._h5file() as h5file:
             cluster_group = h5file.create_group('/', 'cluster',
@@ -469,16 +519,17 @@ class QACDProject:
                 kmeans = MiniBatchKMeans(n_clusters=k, random_state=1234,
                                          n_init=10)
 
-                # Labels gives cluster of each pixel in range 0 to k-1.
+                # Indices are cluster of each pixel in range 0 to k-1.
                 # Use -1 to indicate masked out pixels.
-                labels = kmeans.fit_predict(all_elements).astype(np.int8)
-                if mask is not None:
-                    masked_labels = labels
-                    labels = np.full((nx*ny), -1, dtype=np.int8)
-                    labels[mask] = masked_labels
+                indices = kmeans.fit_predict(all_elements).astype(
+                    self._indices_dtype)
+                if mask_valid is not None:
+                    masked_labels = indices
+                    indices = np.full((nx*ny), -1, dtype=self._indices_dtype)
+                    indices[mask_valid] = masked_labels
                     masked_labels = None
 
-                labels.shape = (ny, nx)
+                indices.shape = (ny, nx)
                 centroids = kmeans.cluster_centers_
 
                 if reorder:
@@ -489,18 +540,18 @@ class QACDProject:
                     # Reorder centroids.
                     centroids = centroids[sort_indices]
 
-                    # Reorder labels.
-                    unsorted = labels.copy()
+                    # Reorder indices.
+                    unsorted = indices.copy()
                     for to_index in range(k):
                         from_index = sort_indices[to_index]
-                        labels[unsorted == from_index] = to_index
+                        indices[unsorted == from_index] = to_index
                     unsorted = None
 
+                # Write to h5 file.
                 k_group = h5file.create_group(cluster_group, 'k{}'.format(k))
-                label_node = h5file.create_carray(k_group, 'labels',
-                    obj=labels, filters=self._compression_filters)
-                label_node.attrs.min = 0 if mask is None else -1
-                label_node.attrs.max = k
+                indices_node = h5file.create_carray(k_group, 'indices',
+                    obj=indices, filters=self._compression_filters)
+                self._add_array_stats(indices, indices_node, mask=filtered_mask)
                 h5file.create_carray(k_group, 'centroids', obj=centroids,
                                      filters=self._compression_filters)
 

@@ -22,6 +22,7 @@ else:
     project.import_raw_csv_files('test_data', ['Ca K series.csv',
                                                'Na K series.csv',
                                                'Mg K series.csv'])
+
 project.filter(pixel_totals=True, median=True)
 project.normalise()
 project.calculate_h_factor()
@@ -40,8 +41,8 @@ if 1:
     # Plot k-means clustering.
     for k in range(kmin, kmax+1):
         plt.subplot(2, 3, k+1-kmin)
-        labels, stats = project.get_cluster(k, want_stats=True)
-        #print(k, stats)
+        labels, stats = project.get_cluster_indices(k, want_stats=True)
+        print(k, stats)
         if 1:
             cmap = cm.get_cmap('rainbow', k)  # k discrete levels
         else:
@@ -52,10 +53,10 @@ if 1:
         plt.colorbar(ticks=range(0, k))
         plt.title('k={}'.format(k))
 
-    if 0:
+    if 1:
         k = kmin
         plt.figure()
-        labels = project.get_cluster(k)
+        labels = project.get_cluster_indices(k)
         cmap = cm.get_cmap('rainbow', k)  # k discrete levels
         element0 = project.get_filtered(project.elements[0])
         element1 = project.get_filtered(project.elements[1])
@@ -67,7 +68,7 @@ if 1:
     elif 0:
         k = kmin
         plt.figure()
-        labels = project.get_cluster(k)
+        labels = project.get_cluster_indices(k)
         plt.hist(labels.ravel(), k)
 
     plt.show()
@@ -112,8 +113,7 @@ if want_plot:
 
     if want_histograms:
         plt.subplot(223)
-        data = raw.ravel()
-        plt.hist(data[np.isfinite(data)], bins=20)
+        plt.hist(raw.ravel(), bins=20)
         plt.axvspan(raw_stats['median']-2*raw_stats['std'],
                     raw_stats['median']+  raw_stats['std'], facecolor='y', alpha=0.5)
         plt.axvline(raw_stats['mean'], c='r')
@@ -122,8 +122,7 @@ if want_plot:
         plt.axvline(raw_stats['median'], c='y')
 
         plt.subplot(224)
-        data = filtered.ravel()
-        plt.hist(data[np.isfinite(data)], bins=20)
+        plt.hist(filtered.ravel(), bins=20)
         plt.axvspan(filtered_stats['median']-2*filtered_stats['std'],
                     filtered_stats['median']+  filtered_stats['std'], facecolor='y', alpha=0.5)
         plt.axvline(filtered_stats['mean'], c='r')
