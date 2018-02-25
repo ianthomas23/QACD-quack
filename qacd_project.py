@@ -87,8 +87,10 @@ class QACDProject:
         if masked:
             if array.dtype in (self._raw_dtype, self._indices_dtype):
                 array = np.ma.masked_less(array, 0)
+                array.set_fill_value(-1)
             else:
                 array = np.ma.masked_invalid(array)
+                array.set_fill_value(np.nan)
 
         if want_stats:
             stats = {key:node.attrs[key] for key in node.attrs._f_list('user')}
@@ -108,17 +110,21 @@ class QACDProject:
         else:
             h5file = tables.open_file(self._filename, mode='r+')
             assert(State[h5file.root._v_attrs.state] == self._state)
-        yield h5file
-        h5file.root._v_attrs.state = self._state.name
-        h5file.close()
+        try:
+            yield h5file
+            h5file.root._v_attrs.state = self._state.name
+        finally:
+            h5file.close()
 
     @contextmanager
     def _h5file_ro(self):
         # Read only access to h5 file.
         h5file = tables.open_file(self._filename, mode='r')
         assert(State[h5file.root._v_attrs.state] == self._state)
-        yield h5file
-        h5file.close()
+        try:
+            yield h5file
+        finally:
+            h5file.close()
 
     def calculate_h_factor(self):
         if self._state != State.NORMALISED:
@@ -157,6 +163,8 @@ class QACDProject:
         # If elements is None then look up the name in preset_ratios to obtain
         # the elements.
         # Return the node name.
+        # Note: Uses unmasked numpy arrays, using np.nan to denote masked out
+        # pixels.
         if self._state in [State.INVALID, State.EMPTY, State.RAW,
                            State.FILTERED, State.NORMALISED]:
             raise RuntimeError('Cannot create ratio map, no h factor present')
@@ -194,19 +202,20 @@ class QACDProject:
 
         if correction_model is None:
             # If no correction model, do not need to multiply by h factor.
-            numerator = self.get_filtered(elements[0])
+            numerator = self.get_filtered(elements[0], masked=False)
             denominator = numerator.copy()
             for element in elements[1:]:
-                denominator += self.get_filtered(element)
+                denominator += self.get_filtered(element, masked=False)
         else:
-            h_factor = self.get_h_factor()
+            h_factor = self.get_h_factor(masked=False)
 
             correction = model[elements[0]]
             if correction[0] != 'poly':
                 raise RuntimeError('Unrecognised correction type: {}'.format(correction[0]))
             poly = list(reversed(correction[1]))  # Decreasing power order.
             poly = np.poly1d(poly)
-            numerator = poly(self.get_filtered(elements[0])*h_factor)
+            numerator = poly(self.get_filtered( \
+                elements[0], masked=False)*h_factor)
 
             denominator = numerator.copy()
             for element in elements[1:]:
@@ -215,9 +224,10 @@ class QACDProject:
                     raise RuntimeError('Unrecognised correction type: {}'.format(correction[0]))
                 poly = list(reversed(correction[1]))  # Decreasing power order.
                 poly = np.poly1d(poly)
-                denominator += poly(self.get_filtered(element)*h_factor)
+                denominator += poly(self.get_filtered( \
+                    element, masked=False)*h_factor)
 
-        # Avoid zero/zero by setting such pixels to nan beforehand.
+        # Avoid zero/zero by masking such pixels beforehand.
         denominator[denominator == 0.0] = np.nan
         ratio = numerator / denominator
 
@@ -259,6 +269,7 @@ class QACDProject:
                                  raw_total > raw_total_median + raw_total_std)
 
         with self._h5file() as h5file:
+            # Keep arrays unmasked here, using np.nan as masked value.
             filtered_group = h5file.create_group('/', 'filtered',
                                                  'Filtered element maps')
             filtered_group._v_attrs.pixel_totals_filter = pixel_totals
@@ -266,10 +277,11 @@ class QACDProject:
 
             total = None
             for element in self.elements:
-                raw = self.get_raw(element, h5file=h5file)  # Masked.
+                raw = self.get_raw(element, h5file=h5file, masked=False)
 
                 # Convert raw array to floats.
                 filtered = np.asarray(raw, dtype=np.float64)
+                filtered[raw == -1] = np.nan
 
                 if pixel_totals:
                     # Same pixel mask applied to each element map.
@@ -483,8 +495,8 @@ class QACDProject:
         # across different k values rather than being randomly ordered.
         if self._state == State.CLUSTERING:
             raise RuntimeError('k-means clustering already performed')
-        if self._state in [State.INVALID, State.EMPTY, State.RAW]:
-            raise RuntimeError('No filtered data present')
+        if self._state != State.H_FACTOR:
+            raise RuntimeError('No h-factor map present')
         if k_max <= k_min:
             raise RuntimeError('k (number of clusters) must be increasing')
 

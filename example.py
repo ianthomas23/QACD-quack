@@ -6,14 +6,14 @@ import numpy as np
 from qacd_project import QACDProject
 
 
-want_normalised = True  # Rather than filtered.
+want_normalised = False  # Rather than filtered.
 want_h_factor = True
-want_plot = False
+want_plot = 1
 want_histograms = True;
 
 
 project = QACDProject()
-project.set_filename('out.quack')
+project.set_filename('example.quack')
 if 0:
     project.import_raw_csv_files('test_data')
     #project.import_raw_csv_files('/home/iant/Desktop/Johan_Lissenberg_Xmas2015',
@@ -37,7 +37,7 @@ project.k_means_clustering(kmin, kmax)
 
 
 
-if 1:
+if 0:
     # Plot k-means clustering.
     for k in range(kmin, kmax+1):
         plt.subplot(2, 3, k+1-kmin)
@@ -74,7 +74,7 @@ if 1:
     plt.show()
 
 
-if 0:
+if 1:
     ratio_name = 'some ratio'
     ratio, stats = project.get_ratio_by_name(ratio_name, want_stats=True)
     plt.figure()
@@ -107,6 +107,7 @@ if want_plot:
         plt.title('{} normalised'.format(element))
     else:
         filtered, filtered_stats = project.get_filtered(element, want_stats=True)
+        print('filtered_stats', filtered_stats)
         plt.imshow(filtered)
         plt.colorbar()
         plt.title('{} filtered'.format(element))
