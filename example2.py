@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from qacd_project import QACDProject
+from src.model.qacd_project import QACDProject
 
 element = 'Ca'
 

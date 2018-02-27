@@ -3,7 +3,7 @@ import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 
-from qacd_project import QACDProject
+from src.model.qacd_project import QACDProject
 
 
 want_normalised = False  # Rather than filtered.

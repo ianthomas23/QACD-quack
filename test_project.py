@@ -3,7 +3,7 @@ import os
 import numpy as np
 import pytest
 
-from qacd_project import QACDProject, State
+from src.model.qacd_project import QACDProject, State
 
 
 test_dir = 'test_data'

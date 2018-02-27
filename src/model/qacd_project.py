@@ -6,10 +6,10 @@ import re
 from sklearn.cluster import MiniBatchKMeans
 import tables
 
-from correction_models import correction_models
-from elements import element_properties
-from preset_ratios import preset_ratios
-import utils
+from .correction_models import correction_models
+from .elements import element_properties
+from .preset_ratios import preset_ratios
+from .utils import median_filter_with_nans
 
 
 @unique
@@ -289,7 +289,7 @@ class QACDProject:
 
                 if median:
                     # Median filter applied separately to each element map.
-                    filtered = utils.median_filter_with_nans(filtered)
+                    filtered = median_filter_with_nans(filtered)
 
                 node = h5file.create_carray(filtered_group, \
                     element, obj=filtered, filters=self._compression_filters)
