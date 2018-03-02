@@ -255,6 +255,11 @@ class QACDProject:
         # Read-only property.
         return self._elements
 
+    @property
+    def filename(self):
+        # Read-only property.
+        return self._filename
+
     def filter(self, pixel_totals, median):
         # pixel_totals and median are booleans.
         if self._state != State.RAW:

@@ -3,7 +3,7 @@
 from PyQt5 import QtWidgets
 import sys
 
-from src.ui.main_window import MainWindow
+from src.gui.main_window import MainWindow
 
 
 if __name__ == '__main__':

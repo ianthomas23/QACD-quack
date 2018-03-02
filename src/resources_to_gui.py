@@ -18,7 +18,7 @@ if len(sys.argv) > 1:
 
 for ui_file in glob.glob('resources/*.ui'):
     basename = os.path.basename(ui_file)
-    target_file = os.path.join('ui', os.path.splitext(basename)[0] + '.py')
+    target_file = os.path.join('gui', os.path.splitext(basename)[0] + '.py')
 
     recreate = (force_all or not os.path.exists(target_file) or
                 os.path.getmtime(ui_file) > os.path.getmtime(target_file))
