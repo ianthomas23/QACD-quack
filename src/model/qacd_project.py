@@ -437,8 +437,10 @@ class QACDProject:
             shape = None
             total = None
             elements = []
+            n = len(csv_filenames)
             for index, csv_filename in enumerate(csv_filenames):
                 element = self.get_element_from_csv_filename(csv_filename)
+                print(f'Loading {element} from CSV file ({index+1} of {n})')
                 elements.append(element)
                 full_filename = os.path.join(directory, csv_filename)
                 raw = np.genfromtxt(full_filename, delimiter=',',

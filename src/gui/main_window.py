@@ -1,3 +1,4 @@
+import os
 from PyQt5 import QtCore, QtWidgets, QtGui
 import string
 
@@ -13,13 +14,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.setupUi(self)
 
-        self.actionProjectNew.triggered.connect(self.on_project_new)
-        self.actionProjectOpen.triggered.connect(self.on_project_open)
-        self.actionProjectClose.triggered.connect(self.on_project_close)
+        self.actionProjectNew.triggered.connect(self.new_project)
+        self.actionProjectOpen.triggered.connect(self.open_project)
+        self.actionProjectClose.triggered.connect(self.close_project)
 
-        self.plotTypeComboBox.currentIndexChanged.connect(self.on_change_plot_type)
+        self.plotTypeComboBox.currentIndexChanged.connect(self.change_plot_type)
         self.rawElementList.itemSelectionChanged.connect( \
-            lambda: self.on_change_list_item('raw'))
+            lambda: self.change_list_item('raw'))
 
         # Set initial width of tabWidget.  Needs improvement.
         self.splitter.setSizes([50, 100])
@@ -34,10 +35,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.update_title()
 
-    def on_change_list_item(self, type_):
+    def change_list_item(self, type_):
         if self._project is not None:
             self._type = type_
-            self._element = self.rawElementList.currentItem().text()
+            self._element = self.rawElementList.currentItem().text().split()[0]
             if self._type == 'raw':
                 if self._element == 'Total':
                     self._array, self._array_stats = \
@@ -50,10 +51,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.update_matplotlib_widget()
 
-    def on_change_plot_type(self):
+    def change_plot_type(self):
         self.update_matplotlib_widget()
 
-    def on_project_close(self):
+    def close_project(self):
         if self._project is not None:
             self._project = None
             self._array = None
@@ -66,8 +67,65 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.update_matplotlib_widget()
             self.update_title()
 
-    def on_project_new(self):
-        print('Project | New')
+    def fill_raw_tab(self):
+        # Enable tab if not already present.
+
+        type_ = 'raw'
+        element_list = self.rawElementList
+        want_total = True
+
+        # Delete contents of list.
+        element_list.clear()
+
+        # Fill element list in tab.
+        for i, element in enumerate(self._project.elements):
+            name = element_properties[element][0]
+            element_list.addItem(f'{element} - {name}')
+        if want_total:
+            element_list.addItem('Total')
+            element_list.item(i+1).setToolTip(f'Sum of all {type_} element maps')
+
+        # Bring tab to front.
+        self.tabWidget.setCurrentIndex(0)
+
+    def new_project(self):
+        # Select file to save new project to.
+        options = QtWidgets.QFileDialog.Options()
+        options |= QtWidgets.QFileDialog.DontUseNativeDialog
+        filename, _ = QtWidgets.QFileDialog.getSaveFileName( \
+            self, 'Save new project as...', '',
+            'Quack project files (*.quack)', options=options)
+        if not filename:
+            return
+
+        if os.path.splitext(filename)[1] != '.quack':
+            filename = os.path.splitext(filename)[0] + '.quack'
+        # Danger of overwriting without prompting here?
+
+        # Select CSV files to import.
+        csv_files, _ = QtWidgets.QFileDialog.getOpenFileNames( \
+            self, 'Select CSV files containing raw element maps to import',
+            os.path.dirname(filename), 'CSV files (*.csv)', options=options)
+        if len(csv_files) < 1:
+            return
+
+        self.close_project()
+        try:
+            self._project = QACDProject()
+            self._project.set_filename(filename)
+
+            csv_directory = os.path.dirname(csv_files[0])
+            csv_files = [os.path.basename(f) for f in csv_files]
+            self._project.import_raw_csv_files(csv_directory, csv_files)
+            # Progress bar?
+        except:
+            print('Need to display message box')
+
+        self.fill_raw_tab()
+        self.update_title()
+
+    def open_project(self):
+        # If OK, close old project.
 
         # Need to wrap project functions (except read-only ones) in try..except
         # block.
@@ -79,31 +137,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self._project.import_raw_csv_files('test_data')  # Need progress bar...
         print(self._project.elements)
 
-        # Enable tab if not already present.
-
-        type_ = 'raw'
-        element_list = self.rawElementList
-        want_total = True
-
-        # Delete contents of list.
-        element_list.clear()
-
-        # Fill element list in tab.  And set tooltips.
-        for i, element in enumerate(self._project.elements):
-            element_list.addItem(element)
-            name = element_properties[element][0]
-            element_list.item(i).setToolTip(name)
-        if want_total:
-            element_list.addItem('Total')
-            element_list.item(i+1).setToolTip(f'Sum of all {type_} element maps')
-
-        # Bring tab to front.
-        self.tabWidget.setCurrentIndex(0)
-
+        self.fill_raw_tab()
         self.update_title()
-
-    def on_project_open(self):
-        print('Project | Open')
 
     def update_matplotlib_widget(self):
         if self._type is None:

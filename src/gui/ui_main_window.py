@@ -173,7 +173,7 @@ class Ui_MainWindow(object):
         self.regionLabel.setText(_translate("MainWindow", "Region"))
         self.plotTypeComboBox.setItemText(0, _translate("MainWindow", "Map"))
         self.plotTypeComboBox.setItemText(1, _translate("MainWindow", "Histogram"))
-        self.plotTypeComboBox.setItemText(2, _translate("MainWindow", "Both"))
+        self.plotTypeComboBox.setItemText(2, _translate("MainWindow", "Map and histogram"))
         self.dummyLabel.setText(_translate("MainWindow", "Dummy"))
         self.menuProject.setTitle(_translate("MainWindow", "Project"))
         self.actionProjectNew.setText(_translate("MainWindow", "New"))
