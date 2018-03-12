@@ -1,3 +1,4 @@
+import numpy as np
 import os
 from PyQt5 import QtCore, QtWidgets, QtGui
 import string
@@ -17,6 +18,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.actionProjectNew.triggered.connect(self.new_project)
         self.actionProjectOpen.triggered.connect(self.open_project)
         self.actionProjectClose.triggered.connect(self.close_project)
+
+        self.statusbar.messageChanged.connect(self.status_bar_change)
 
         self.plotTypeComboBox.currentIndexChanged.connect(self.change_plot_type)
         self.rawElementList.itemSelectionChanged.connect( \
@@ -49,6 +52,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             else:
                 raise RuntimeError('Not implemented ' + type_)
 
+        self.update_status_bar()
         self.update_matplotlib_widget()
 
     def change_plot_type(self):
@@ -122,6 +126,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             print('Need to display message box')
 
         self.fill_raw_tab()
+        self.update_status_bar()
         self.update_title()
 
     def open_project(self):
@@ -140,6 +145,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.fill_raw_tab()
         self.update_title()
 
+    def status_bar_change(self):
+        if (self.statusbar.currentMessage() == '' and \
+            self._array is not None):
+            self.update_status_bar()
+
     def update_matplotlib_widget(self):
         if self._type is None:
             self.matplotlibWidget.clear()
@@ -152,6 +162,35 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             title = f'{string.capwords(self._type)} {name}'
             self.matplotlibWidget.update(plot_type, self._array,
                                          self._array_stats, title)
+
+    def update_status_bar(self):
+        def stat_to_string(name, label=None):
+            label = label or name
+            value = self._array_stats.get(name)
+            if value is None:
+                return ''
+            elif isinstance(value, np.float):
+                if int(value) == value:
+                    value = int(value)
+                else:
+                    value = float('{:.5g}'.format(value))
+                return ', {}={}'.format(label, value)
+            else:
+                return ', {}={}'.format(label, value)
+
+        if self._array is not None:
+            ny, nx = self._array.shape
+            msg = 'pixels={}x{}'.format(nx, ny)
+            msg += stat_to_string('valid')
+            msg += stat_to_string('invalid')
+            msg += stat_to_string('min')
+            msg += stat_to_string('max')
+            msg += stat_to_string('mean')
+            msg += stat_to_string('median')
+            msg += stat_to_string('std')
+            self.statusbar.showMessage(msg)
+        else:
+            self.statusbar.clearMessage()
 
     def update_title(self):
         title = 'QACD quack'
