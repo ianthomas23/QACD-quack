@@ -19,3 +19,36 @@ def median_filter_with_nans(input_array):
             ip = i+2 if i < nx-1 else i+1
             output_array[j, i] = np.nanmedian(input_array[jm:jp, im:ip])
     return output_array
+
+
+# Read csv file as 2D array.  np.genfromtxt is quite slow.  Would like to use
+# faster np.loadtxt but it does not like empty final column.
+# shape is optional, if specified it speeds up the reading.
+def read_csv(full_filename, dtype, shape):
+    with open(full_filename, 'r') as f:
+        if shape:
+            x = np.empty(shape, dtype=dtype)
+        else:
+            x = []
+
+        for row, line in enumerate(f):
+            fields = line.split(',')[:-1]
+
+            if shape:
+                if row >= shape[0]:
+                    raise RuntimeError('CSV file has {} rows, expected {}'.format( \
+                        row, shape[0]))
+                if len(fields) != shape[1]:
+                    raise RuntimeError('CSV file has {} columns, expected {}'.format( \
+                        len(fields), shape[1]))
+
+            fields = [dtype(field) for field in fields]
+            if shape:
+                x[row] = fields
+            else:
+                x.append(fields)
+
+    if shape:
+        return x
+    else:
+        return np.array(x, dtype=dtype)

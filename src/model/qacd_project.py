@@ -9,7 +9,7 @@ import tables
 from .correction_models import correction_models
 from .elements import element_properties
 from .preset_ratios import preset_ratios
-from .utils import median_filter_with_nans
+from .utils import median_filter_with_nans, read_csv
 
 
 @unique
@@ -440,24 +440,13 @@ class QACDProject:
             n = len(csv_filenames)
             for index, csv_filename in enumerate(csv_filenames):
                 element = self.get_element_from_csv_filename(csv_filename)
-                print(f'Loading {element} from CSV file ({index+1} of {n})')
+                print('Loading {} from CSV file ({} of {})'.format( \
+                    element, index+1, n))
                 elements.append(element)
                 full_filename = os.path.join(directory, csv_filename)
-                raw = np.genfromtxt(full_filename, delimiter=',',
-                                    dtype=self._raw_dtype, filling_values=-1)
-                # If csv file lines contain trailing comma, ignore last column.
-                if np.all(raw[:, -1] == -1):
-                    raw = raw[:, :-1]
-
-                # Check shape is OK.
+                raw = read_csv(full_filename, self._raw_dtype, shape)
                 if index == 0:
                     shape = raw.shape
-                    if len(shape) != 2:
-                        raise RuntimeError('Expected 2D array from CSV file: {}'.format( \
-                                           csv_file))
-                elif raw.shape != shape:
-                    raise RuntimeError('Different sized csv files: {} and {}'.format( \
-                                       shape, raw.shape))
 
                 # Add raw array to project file.  Correcting for mask later.
                 node = h5file.create_carray(raw_group, element, obj=raw,
@@ -483,11 +472,17 @@ class QACDProject:
                 'total', obj=total, filters=self._compression_filters)
             self._add_array_stats(total, raw_total_node, mask=mask)
 
-            # Update all raw element maps with mask, and set stats.
+            if has_mask:
+                # Update all raw element maps with mask.
+                for element in self.elements:
+                    node = h5file.get_node('/raw', element)
+                    raw = node.read()
+                    raw[mask] = -1
+                    node[:] = raw
+
+            # Set element stats.
             for element in self.elements:
                 node = h5file.get_node('/raw', element)
-                if has_mask:
-                    node[mask] = -1
                 raw = node.read()
                 self._add_array_stats(raw, node, mask=mask)
 
