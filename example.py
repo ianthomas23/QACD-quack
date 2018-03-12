@@ -37,7 +37,7 @@ project.k_means_clustering(kmin, kmax)
 
 
 
-if 0:
+if 1:
     # Plot k-means clustering.
     for k in range(kmin, kmax+1):
         plt.subplot(2, 3, k+1-kmin)
