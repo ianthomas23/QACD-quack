@@ -84,6 +84,30 @@
         <attribute name="title">
          <string>Filtered</string>
         </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout">
+         <property name="leftMargin">
+          <number>9</number>
+         </property>
+         <property name="topMargin">
+          <number>9</number>
+         </property>
+         <property name="rightMargin">
+          <number>9</number>
+         </property>
+         <property name="bottomMargin">
+          <number>9</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="label">
+           <property name="text">
+            <string>Elements</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QListWidget" name="filteredElementList"/>
+         </item>
+        </layout>
        </widget>
       </widget>
       <widget class="QWidget" name="layoutWidget">
@@ -229,12 +253,19 @@
     <addaction name="actionProjectOpen"/>
     <addaction name="actionProjectClose"/>
    </widget>
+   <widget class="QMenu" name="menuAction">
+    <property name="title">
+     <string>Action</string>
+    </property>
+    <addaction name="actionFilter"/>
+   </widget>
    <addaction name="menuProject"/>
+   <addaction name="menuAction"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionProjectNew">
    <property name="text">
-    <string>New</string>
+    <string>New...</string>
    </property>
   </action>
   <action name="actionProjectOpen">
@@ -245,6 +276,11 @@
   <action name="actionProjectClose">
    <property name="text">
     <string>Close</string>
+   </property>
+  </action>
+  <action name="actionFilter">
+   <property name="text">
+    <string>Filter...</string>
    </property>
   </action>
  </widget>

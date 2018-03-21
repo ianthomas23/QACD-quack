@@ -57,7 +57,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
             map_axes.set_title(title + ' element map')
 
         if histogram_axes is not None:
-            hist, bin_edges = np.histogram(array, bins='sqrt')
+            hist, bin_edges = np.histogram(np.ma.compressed(array), bins='sqrt')
             width = bin_edges[1] - bin_edges[0]
             bin_centres = bin_edges[:-1] + 0.5*width
             colors = cmap(norm(bin_centres))
