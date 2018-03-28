@@ -24,13 +24,22 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.statusbar.messageChanged.connect(self.status_bar_change)
 
         self.plotTypeComboBox.currentIndexChanged.connect(self.change_plot_type)
-        self.rawElementList.itemSelectionChanged.connect(
-            lambda: self.change_list_item('raw'))
-        self.filteredElementList.itemSelectionChanged.connect(
-            lambda: self.change_list_item('filtered'))
+        self.rawElementList.itemSelectionChanged.connect(self.change_tab_list_item)
+        self.filteredElementList.itemSelectionChanged.connect(self.change_tab_list_item)
+        self.normalisedElementList.itemSelectionChanged.connect(self.change_tab_list_item)
 
         # Set initial width of tabWidget.  Needs improvement.
         self.splitter.setSizes([50, 100])
+
+        # Hide all but the first tab.
+        for i in range(self.tabWidget.count()-1, 0, -1):
+            self.tabWidget.removeTab(i)
+
+        self._tabs_and_lists = (
+            ('raw', self.rawTab, self.rawElementList),
+            ('filtered', self.filteredTab, self.filteredElementList),
+            ('normalised', self.normalisedTab, self.normalisedElementList),
+        )
 
         self._project = None
 
@@ -42,38 +51,46 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self._ignore_selection_change = False
 
-        self.tabWidget.setCurrentIndex(0)  # Bring tab to front.
         self.update_menu()
         self.update_title()
 
-    def change_list_item(self, type_):
+    def change_tab_list_item(self):
         if self._ignore_selection_change:
             return
 
         if self._project is not None:
+            # Determine which list widget and which element selected.
+            tab_index = self.tabWidget.currentIndex()
+            self._type, _, list_widget = self._tabs_and_lists[tab_index]
+            self._element = list_widget.currentItem().text().split()[0]
+
+            # Clear other list widgets.
             self._ignore_selection_change = True
-            self._type = type_
+            for index, tuple_ in enumerate(self._tabs_and_lists):
+                if index != tab_index:
+                    tuple_[2].clearSelection()
+            self._ignore_selection_change = False
+
+            # Retrieve array and array stats from project.
             if self._type == 'raw':
-                self.filteredElementList.clearSelection()
-                self._element = self.rawElementList.currentItem().text().split()[0]
                 if self._element == 'Total':
-                    self._array, self._array_stats = \
-                        self._project.get_raw_total(want_stats=True)
+                    ret = self._project.get_raw_total(want_stats=True)
                 else:
-                    self._array, self._array_stats = \
-                        self._project.get_raw(self._element, want_stats=True)
+                    ret = self._project.get_raw(self._element, want_stats=True)
             elif self._type == 'filtered':
-                self.rawElementList.clearSelection()
-                self._element = self.filteredElementList.currentItem().text().split()[0]
                 if self._element == 'Total':
-                    self._array, self._array_stats = \
-                        self._project.get_filtered_total(want_stats=True)
+                    ret = self._project.get_filtered_total(want_stats=True)
                 else:
-                    self._array, self._array_stats = \
-                        self._project.get_filtered(self._element, want_stats=True)
+                    ret = self._project.get_filtered(self._element, want_stats=True)
+            elif self._type == 'normalised':
+                if self._element in ('h', 'h-factor'):
+                    ret = self._project.get_h_factor(want_stats=True)
+                else:
+                    ret = self._project.get_normalised(self._element, want_stats=True)
             else:
                 raise RuntimeError('Not implemented ' + type_)
-            self._ignore_selection_change = False
+
+            self._array, self._array_stats = ret
 
         self.update_status_bar()
         self.update_matplotlib_widget()
@@ -89,14 +106,23 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self._type = None
             self._element = None
 
-            self.rawElementList.clear()
-            self.filteredElementList.clear()
+            # Clear list widgets.
+            for _, _, list_widget in self._tabs_and_lists:
+                list_widget.clear()
+
+            # Hide all but the first tab.
+            for i in range(self.tabWidget.count()-1, 0, -1):
+                self.tabWidget.removeTab(i)
 
             self.update_matplotlib_widget()
             self.update_menu()
             self.update_title()
 
-    def fill_list_widget(self, list_widget, type_string, want_total):
+    def fill_list_widget(self, index):
+        type_string, tab_widget, list_widget = self._tabs_and_lists[index]
+        want_total = list_widget in (self.rawElementList, self.filteredElementList)
+        want_h_factor = list_widget == self.normalisedElementList
+
         list_widget.clear()
 
         for i, element in enumerate(self._project.elements):
@@ -106,6 +132,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             list_widget.addItem('Total')
             list_widget.item(i+1).setToolTip( \
                 'Sum of all {} element maps'.format(type_string))
+        if want_h_factor:
+            list_widget.addItem('h-factor')
+
+        # Show tab.
+        if self.tabWidget.widget(index) != tab_widget:
+            title = type_string[0].upper() + type_string[1:]
+            self.tabWidget.insertTab(index, tab_widget, title)
 
     def filter(self):
         dialog = FilterDialog(parent=self)
@@ -113,8 +146,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             pixel_totals = dialog.pixelTotalsCheckBox.isChecked()
             median_filter = dialog.medianFilterCheckBox.isChecked()
             self._project.filter(pixel_totals, median_filter)
+            self._project.normalise()
+            self._project.calculate_h_factor()
 
-            self.fill_list_widget(self.filteredElementList, 'filtered', True)
+            self.fill_list_widget(1)
+            self.fill_list_widget(2)
+
             self.tabWidget.setCurrentIndex(1)  # Bring tab to front.
 
             self.update_menu()
@@ -152,7 +189,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         except:
             print('Need to display message box')
 
-        self.fill_list_widget(self.rawElementList, 'raw', True)
+        self.fill_list_widget(0)
         self.tabWidget.setCurrentIndex(0)  # Bring tab to front.
 
         self.update_menu()
@@ -160,19 +197,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.update_title()
 
     def open_project(self):
-        # If OK, close old project.
-
         # Need to wrap project functions (except read-only ones) in try..except
         # block.
 
-        # Delete previous project first????
-        self._project = QACDProject()  # Check can create project.
-        #print(self.project)
-        self._project.set_filename('example.quack')
-        self._project.import_raw_csv_files('test_data')  # Need progress bar...
-        print(self._project.elements)
+        project = QACDProject()  # Check can create project.
+        project.set_filename('example.quack')
+        project.import_raw_csv_files('test_data')  # Need progress bar...
+        print(project.elements)
 
-        self.fill_list_widget(self.rawElementList, 'raw', True)
+        self.close_project()
+        self._project = project
+
+        self.fill_list_widget(0)
         self.tabWidget.setCurrentIndex(0)  # Bring tab to front.
 
         self.update_menu()
@@ -188,11 +224,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.matplotlibWidget.clear()
         else:
             plot_type = PlotType(self.plotTypeComboBox.currentIndex())
-            if self._element == 'Total':
-                name = 'total'
+            if self._element in ('h', 'h-factor'):
+                title = 'h-factor'
             else:
-                name = element_properties[self._element][0]
-            title = '{} {}'.format(string.capwords(self._type), name)
+                if self._element == 'Total':
+                    name = 'total'
+                else:
+                    name = element_properties[self._element][0]
+                title = '{} {}'.format(string.capwords(self._type), name)
             self.matplotlibWidget.update(plot_type, self._array,
                                          self._array_stats, title)
 
