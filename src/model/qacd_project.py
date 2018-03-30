@@ -129,9 +129,12 @@ class QACDProject:
         finally:
             h5file.close()
 
-    def calculate_h_factor(self):
+    def calculate_h_factor(self, progress_callback=None):
         if self._state != State.NORMALISED:
             raise RuntimeError('Project does not contain normalised data')
+
+        if progress_callback:
+            progress_callback(0.0, 'Calculating h-factor')
 
         with self._h5file() as h5file:
             Z_mean = None
@@ -160,6 +163,9 @@ class QACDProject:
             self._add_array_stats(h_factor_group, h_factor, mask=mask)
 
             self._state = State.H_FACTOR
+
+        if progress_callback:
+            progress_callback(1.0, 'Finished')
 
     def create_ratio_map(self, name, elements=None, correction_model=None):
         # Create and store a ratio map of the same shape as the element maps.
@@ -272,7 +278,7 @@ class QACDProject:
         # Read-only property.
         return self._filename
 
-    def filter(self, pixel_totals, median):
+    def filter(self, pixel_totals, median, progress_callback=None):
         # pixel_totals and median are booleans.
         if self._state != State.RAW:
             raise RuntimeError('Project does not contain raw data')
@@ -296,7 +302,13 @@ class QACDProject:
             total = None
             raw_mask = None
             filtered_mask = None
-            for element in self.elements:
+            n = len(self.elements)
+            for index, element in enumerate(self.elements):
+                if progress_callback:
+                    text = 'Filtering element {} ({} of {})'.format( \
+                        element, index+1, n)
+                    progress_callback(index*1.0/n, text)
+
                 raw = self.get_raw(element, h5file=h5file, masked=False)
                 if raw_mask is None:
                     # All raw masks are identical, so calculate only once.
@@ -337,6 +349,31 @@ class QACDProject:
             self._add_array_stats(total_group, total, mask=filtered_mask)
 
             self._state = State.FILTERED
+
+            if progress_callback:
+                progress_callback(1.0, 'Finished')
+
+    def filter_normalise_and_h_factor(self, pixel_totals, median,
+                                      progress_callback=None):
+        if progress_callback:
+            n = len(self.elements)
+            time_ratios = np.asarray([2.0*n, n, 1.0])
+            time_ratios /= time_ratios.sum()
+            cum = np.hstack(([0.0], time_ratios.cumsum()))
+            def local_callback(fraction, text):
+                fraction = cum[stage] + fraction*(cum[stage+1] - cum[stage])
+                progress_callback(fraction, text)
+        else:
+            local_callback = None
+
+        stage = 0
+        self.filter(pixel_totals, median, progress_callback=local_callback)
+
+        stage = 1
+        self.normalise(progress_callback=local_callback)
+
+        stage = 2
+        self.calculate_h_factor(progress_callback=local_callback)
 
     def get_cluster_indices(self, k, masked=True, want_stats=False):
         # Return array indicating which cluster each pixel is in, from 0 to k-1.
@@ -441,7 +478,8 @@ class QACDProject:
 
         return self._valid_preset_ratios
 
-    def import_raw_csv_files(self, directory, csv_filenames=None):
+    def import_raw_csv_files(self, directory, csv_filenames=None,
+                             progress_callback=None):
         # If no csv_filenames are specified, loads all appropriate files from
         # the directory.
         if self._state != State.EMPTY:
@@ -470,8 +508,13 @@ class QACDProject:
             n = len(csv_filenames)
             for index, csv_filename in enumerate(csv_filenames):
                 element = self.get_element_from_csv_filename(csv_filename)
-                print('Loading {} from CSV file ({} of {})'.format( \
-                    element, index+1, n))
+
+                text = 'Loading element {} from CSV file ({} of {} files)'.format( \
+                    element, index+1, n)
+                print(text)
+                if progress_callback:
+                    progress_callback(index*1.0/(n+1), text)
+
                 elements.append(element)
                 full_filename = os.path.join(directory, csv_filename)
                 raw = read_csv(full_filename, self._raw_dtype, shape)
@@ -493,6 +536,9 @@ class QACDProject:
             # Set cached list of elements.
             h5file.create_array('/', 'elements', obj=elements, title='Elements')
             self._elements = elements
+
+            if progress_callback:
+                progress_callback(n/(n+1.0), 'Calculating and writing pixel totals')
 
             # Mask out pixels for which total is zero.
             mask = total == 0
@@ -518,6 +564,9 @@ class QACDProject:
                     raw[mask] = -1
                     data_node[:] = raw
 
+            if progress_callback:
+                progress_callback((n+0.5)/(n+1.0), 'Calculating and writing statistics')
+
             # Set element stats.
             for element in self.elements:
                 data_node = h5file.get_node('/raw/' + element + '/data')
@@ -525,6 +574,9 @@ class QACDProject:
                 self._add_array_stats(data_node._v_parent, raw, mask=mask)
 
             self._state = State.RAW
+
+            if progress_callback:
+                progress_callback(1.0, 'Finished')
 
     def is_valid_csv_filename(self, csv_filename):
         return self._csv_file_re.match(csv_filename)
@@ -613,7 +665,7 @@ class QACDProject:
 
             self._state = State.CLUSTERING
 
-    def normalise(self):
+    def normalise(self, progress_callback=None):
         if self._state != State.FILTERED:
             raise RuntimeError('Project does not contain filtered data')
 
@@ -624,7 +676,13 @@ class QACDProject:
             normalised_group = h5file.create_group('/', 'normalised',
                                                    'Normalised element maps')
 
-            for element in self.elements:
+            n = len(self.elements)
+            for index, element in enumerate(self.elements):
+                if progress_callback:
+                    text = 'Normalising element {} ({} of {})'.format( \
+                        element, index+1, n)
+                    progress_callback(index*1.0/n, text)
+
                 normalised = self.get_filtered(element, masked=False,
                                                h5file=h5file)
                 normalised /= filtered_total.data  # nan / nan -> nan.
@@ -636,6 +694,9 @@ class QACDProject:
                 self._add_array_stats(element_group, normalised, mask=mask)
 
             self._state = State.NORMALISED
+
+        if progress_callback:
+            progress_callback(1.0, 'Finished')
 
     @property
     def ratios(self):

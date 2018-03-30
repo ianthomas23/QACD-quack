@@ -215,7 +215,7 @@ class Ui_MainWindow(object):
         self.actionProjectNew.setText(_translate("MainWindow", "New..."))
         self.actionProjectOpen.setText(_translate("MainWindow", "Open"))
         self.actionProjectClose.setText(_translate("MainWindow", "Close"))
-        self.actionFilter.setText(_translate("MainWindow", "Filter..."))
+        self.actionFilter.setText(_translate("MainWindow", "Filter and Normalise ..."))
 
 from .matplotlib_widget import MatplotlibWidget
 

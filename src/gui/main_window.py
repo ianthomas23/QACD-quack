@@ -2,11 +2,13 @@ import numpy as np
 import os
 from PyQt5 import QtCore, QtWidgets, QtGui
 import string
+import time
 
 from src.model.elements import element_properties
 from src.model.qacd_project import QACDProject, State
 from .filter_dialog import FilterDialog
 from .matplotlib_widget import MatplotlibWidget, PlotType
+from .progress_dialog import ProgressDialog
 from .ui_main_window import Ui_MainWindow
 
 
@@ -54,9 +56,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.update_menu()
         self.update_title()
 
+    def change_plot_type(self):
+        self.update_matplotlib_widget()
+
     def change_tab_list_item(self):
         if self._ignore_selection_change:
             return
+
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
 
         if self._project is not None:
             # Determine which list widget and which element selected.
@@ -94,9 +101,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.update_status_bar()
         self.update_matplotlib_widget()
-
-    def change_plot_type(self):
-        self.update_matplotlib_widget()
+        QtWidgets.QApplication.restoreOverrideCursor()
 
     def close_project(self):
         if self._project is not None:
@@ -143,11 +148,19 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def filter(self):
         dialog = FilterDialog(parent=self)
         if dialog.exec_():
+            QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
+
             pixel_totals = dialog.pixelTotalsCheckBox.isChecked()
             median_filter = dialog.medianFilterCheckBox.isChecked()
-            self._project.filter(pixel_totals, median_filter)
-            self._project.normalise()
-            self._project.calculate_h_factor()
+
+            def thread_func(project, pixel_totals, median_filter, progress_callback):
+                self.short_wait()
+                project.filter_normalise_and_h_factor( \
+                    pixel_totals, median_filter, progress_callback=progress_callback)
+
+            ProgressDialog.worker_thread( \
+                self, 'Filter and Normalise', thread_func,
+                args=[self._project, pixel_totals, median_filter])
 
             self.fill_list_widget(1)
             self.fill_list_widget(2)
@@ -155,6 +168,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.tabWidget.setCurrentIndex(1)  # Bring tab to front.
 
             self.update_menu()
+            QtWidgets.QApplication.restoreOverrideCursor()
 
     def new_project(self):
         # Select file to save new project to.
@@ -177,6 +191,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if len(csv_files) < 1:
             return
 
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
+
         self.close_project()
         try:
             self._project = QACDProject()
@@ -184,10 +200,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             csv_directory = os.path.dirname(csv_files[0])
             csv_files = [os.path.basename(f) for f in csv_files]
-            self._project.import_raw_csv_files(csv_directory, csv_files)
-            # Progress bar?
         except:
             print('Need to display message box')
+
+        def thread_func(project, csv_directory, csv_files, progress_callback):
+            self.short_wait()
+            project.import_raw_csv_files(csv_directory, csv_files,
+                                         progress_callback=progress_callback)
+
+        ProgressDialog.worker_thread( \
+            self, 'New project ' + os.path.basename(filename), thread_func,
+            args=[self._project, csv_directory, csv_files])
 
         self.fill_list_widget(0)
         self.tabWidget.setCurrentIndex(0)  # Bring tab to front.
@@ -195,14 +218,25 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.update_menu()
         self.update_status_bar()
         self.update_title()
+        QtWidgets.QApplication.restoreOverrideCursor()
 
     def open_project(self):
         # Need to wrap project functions (except read-only ones) in try..except
         # block.
 
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
+
         project = QACDProject()  # Check can create project.
         project.set_filename('example.quack')
-        project.import_raw_csv_files('test_data')  # Need progress bar...
+
+        def thread_func(project, directory, progress_callback):
+            self.short_wait()
+            project.import_raw_csv_files(directory,
+                                         progress_callback=progress_callback)
+
+        ProgressDialog.worker_thread(self, 'Opening project', thread_func,
+                                     args=[project, 'test_data'])
+ #                                    args=[project, '../1309D-41R2'])
         print(project.elements)
 
         self.close_project()
@@ -213,6 +247,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.update_menu()
         self.update_title()
+        QtWidgets.QApplication.restoreOverrideCursor()
+
+    def short_wait(self):
+        time.sleep(0.1)
 
     def status_bar_change(self):
         if (self.statusbar.currentMessage() == '' and \
