@@ -255,6 +255,15 @@ def test_consistent():
     consistency_impl(test_dir, False, False)
 
 
+def test_load_from_file():
+    directory = 'test_data'
+    files = ['out{}'.format(index) for index in range(5)]
+    for filename in files:
+        full_filename = os.path.join(directory, filename)
+        p = QACDProject()
+        p.load_file(full_filename)
+
+
 def test_accuracy():
     # Different filter options.
     pass

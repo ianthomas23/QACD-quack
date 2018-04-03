@@ -126,8 +126,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def fill_list_widget(self, index):
         type_string, tab_widget, list_widget = self._tabs_and_lists[index]
         want_total = list_widget in (self.rawElementList, self.filteredElementList)
-        want_h_factor = list_widget == self.normalisedElementList
-
+        want_h_factor = (list_widget == self.normalisedElementList and
+                         self._project.state >= State.H_FACTOR)
         list_widget.clear()
 
         for i, element in enumerate(self._project.elements):
@@ -164,8 +164,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             self.fill_list_widget(1)
             self.fill_list_widget(2)
-
-            self.tabWidget.setCurrentIndex(1)  # Bring tab to front.
+            self.tabWidget.setCurrentIndex(2)  # Bring tab to front.
 
             self.update_menu()
             QtWidgets.QApplication.restoreOverrideCursor()
@@ -218,35 +217,48 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.update_menu()
         self.update_status_bar()
         self.update_title()
+        self.update_matplotlib_widget()
         QtWidgets.QApplication.restoreOverrideCursor()
 
     def open_project(self):
-        # Need to wrap project functions (except read-only ones) in try..except
-        # block.
+        # Select file to save new project to.
+        options = QtWidgets.QFileDialog.Options()
+        options |= QtWidgets.QFileDialog.DontUseNativeDialog
+        filename, _ = QtWidgets.QFileDialog.getOpenFileName( \
+            self, 'Select project file to open', '',
+            'Quack project files (*.quack)', options=options)
+        if not filename:
+            return
 
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
 
-        project = QACDProject()  # Check can create project.
-        project.set_filename('example.quack')
+        project = None
+        try:
+            project = QACDProject()
+            project.load_file(filename)
+        except:
+            print('Need to display message box')
 
-        def thread_func(project, directory, progress_callback):
-            self.short_wait()
-            project.import_raw_csv_files(directory,
-                                         progress_callback=progress_callback)
-
-        ProgressDialog.worker_thread(self, 'Opening project', thread_func,
-                                     args=[project, 'test_data'])
- #                                    args=[project, '../1309D-41R2'])
-        print(project.elements)
-
+        # Opened project is OK, so can close previous project.
         self.close_project()
         self._project = project
 
-        self.fill_list_widget(0)
-        self.tabWidget.setCurrentIndex(0)  # Bring tab to front.
+        if self._project.state >= State.RAW:
+            self.fill_list_widget(0)
+            self.tabWidget.setCurrentIndex(0)  # Bring tab to front.
+
+        if self._project.state >= State.FILTERED:
+            self.fill_list_widget(1)
+            self.tabWidget.setCurrentIndex(1)  # Bring tab to front.
+
+        if self._project.state >= State.NORMALISED:
+            self.fill_list_widget(2)
+            self.tabWidget.setCurrentIndex(2)  # Bring tab to front.
 
         self.update_menu()
+        self.update_status_bar()
         self.update_title()
+        self.update_matplotlib_widget()
         QtWidgets.QApplication.restoreOverrideCursor()
 
     def short_wait(self):

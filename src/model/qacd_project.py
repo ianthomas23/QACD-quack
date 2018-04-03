@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from enum import Enum, unique
+from enum import IntEnum, unique
 import numpy as np
 import os
 import re
@@ -13,7 +13,7 @@ from .utils import median_filter_with_nans, read_csv
 
 
 @unique
-class State(Enum):
+class State(IntEnum):
     INVALID = -1    # Filename not set.
     EMPTY = 1       # Filename set.
     RAW = 2         # Added raw element maps, including total.
@@ -120,10 +120,11 @@ class QACDProject:
             h5file.close()
 
     @contextmanager
-    def _h5file_ro(self):
+    def _h5file_ro(self, ignore_state=False):
         # Read only access to h5 file.
         h5file = tables.open_file(self._filename, mode='r')
-        assert(State[h5file.root._v_attrs.state] == self._state)
+        if not ignore_state:
+            assert(State[h5file.root._v_attrs.state] == self._state)
         try:
             yield h5file
         finally:
@@ -179,8 +180,7 @@ class QACDProject:
         # Return the node name.
         # Note: Uses unmasked numpy arrays, using np.nan to denote masked out
         # pixels.
-        if self._state in [State.INVALID, State.EMPTY, State.RAW,
-                           State.FILTERED, State.NORMALISED]:
+        if self._state <= State.NORMALISED:
             raise RuntimeError('Cannot create ratio map, no h factor present')
         if correction_model is not None and \
            correction_model not in correction_models:
@@ -393,7 +393,7 @@ class QACDProject:
     def get_filtered(self, element, masked=True, want_stats=False, h5file=None):
         # Return filtered element map.  If masked==True, invalid pixels are
         # masked out otherwise they are np.nan.
-        if self._state in [State.INVALID, State.EMPTY, State.RAW]:
+        if self._state <= State.RAW:
             raise RuntimeError('No filtered data present')
         if element not in self._elements:
             raise RuntimeError('No such element: {}'.format(element))
@@ -404,7 +404,7 @@ class QACDProject:
     def get_filtered_total(self, masked=True, want_stats=False, h5file=None):
         # Return total of all filtered element maps.  If masked==True, invalid
         # pixels are masked out otherwise they are np.nan.
-        if self._state in [State.INVALID, State.EMPTY, State.RAW]:
+        if self._state <= State.RAW:
             raise RuntimeError('No filtered data present')
 
         return self._get_array('/filtered/total', masked, want_stats,
@@ -413,8 +413,7 @@ class QACDProject:
     def get_h_factor(self, masked=True, want_stats=False):
         # Return h factor array.  If masked==True, invalid pixels are masked
         # out otherwise they are np.nan.
-        if self._state in [State.INVALID, State.EMPTY, State.RAW,
-                           State.FILTERED, State.NORMALISED]:
+        if self._state <= State.NORMALISED:
             raise RuntimeError('No h factor present')
 
         return self._get_array('/h_factor', masked, want_stats)
@@ -423,8 +422,7 @@ class QACDProject:
                        h5file=None):
         # Return normalised element ma.  If masked==True, invalid pixels are
         # masked out otherwise they are np.nan.
-        if self._state in [State.INVALID, State.EMPTY, State.RAW,
-                           State.FILTERED]:
+        if self._state <= State.FILTERED:
             raise RuntimeError('No normalised data present')
         if element not in self._elements:
             raise RuntimeError('No such element: {}'.format(element))
@@ -435,8 +433,7 @@ class QACDProject:
     def get_ratio_by_name(self, ratio, masked=True, want_stats=False):
         # Return ratio map.  If masked==True, invalid pixels are masked out
         # otherwise they are np.nan.
-        if self._state in [State.INVALID, State.EMPTY, State.RAW,
-                           State.FILTERED, State.NORMALISED]:
+        if self._state <= State.NORMALISED:
             raise RuntimeError('No normalised data present')
         if ratio not in self._ratios:
             raise RuntimeError('No such ratio: {}'.format(ratio))
@@ -447,7 +444,7 @@ class QACDProject:
     def get_raw(self, element, masked=True, want_stats=False, h5file=None):
         # Return raw element map.  If masked==True, invalid pixels are masked
         # out otherwise they are -1.
-        if self._state in [State.INVALID, State.EMPTY]:
+        if self._state <= State.EMPTY:
             raise RuntimeError('No raw data present')
         if element not in self._elements:
             raise RuntimeError('No such element: {}'.format(element))
@@ -457,13 +454,13 @@ class QACDProject:
     def get_raw_total(self, masked=True, want_stats=False):
         # Return total of all raw element maps.  If masked==True, invalid
         # pixels are masked out otherwise they are -1.
-        if self._state in [State.INVALID, State.EMPTY]:
+        if self._state <= State.EMPTY:
             raise RuntimeError('No raw data present')
 
         return self._get_array('/raw/total', masked, want_stats)
 
     def get_valid_preset_ratios(self):
-        if self._state in [State.INVALID, State.EMPTY]:
+        if self._state <= State.EMPTY:
             raise RuntimeError('No raw data present')
 
         if self._valid_preset_ratios is None:
@@ -511,7 +508,6 @@ class QACDProject:
 
                 text = 'Loading element {} from CSV file ({} of {} files)'.format( \
                     element, index+1, n)
-                print(text)
                 if progress_callback:
                     progress_callback(index*1.0/(n+1), text)
 
@@ -664,6 +660,148 @@ class QACDProject:
                 h5file.create_carray(k_group, 'centroids', obj=centroids)
 
             self._state = State.CLUSTERING
+
+    def load_file(self, filename):
+        if self._state != State.INVALID:
+            raise RuntimeError('Cannot load into existing project')
+
+        self._filename = filename
+        with self._h5file_ro(ignore_state=True) as h5file:
+            # Check file version number.
+            version = h5file.root._v_attrs.file_version
+            if version != 1:
+                raise RuntimeError('Unrecognised file version: ' + version)
+
+            # Read state.
+            self._state = State[h5file.root._v_attrs.state]
+
+            shape = None
+            indices_stats = ['min', 'max', 'invalid', 'valid']
+            all_stats = indices_stats + ['mean', 'median', 'std']
+
+            if self._state < State.RAW:
+                if '/raw' in h5file:
+                    raise RuntimeError('Unexpected node /raw')
+            else:
+                # Get list of all elements.
+                elements = sorted(h5file.get_node('/raw')._v_children.keys())
+                if len(elements) == 0 or elements[-1] != 'total':
+                    raise RuntimeError('No raw total')
+                elements = elements[:-1]
+                self._elements = elements
+
+                elements_and_total = self._elements + ['total']
+
+                # Check raw.
+                raw_chunkshape = None
+                for element in elements_and_total:
+                    node = h5file.get_node('/raw/{}'.format(element))
+                    attrs = node._v_attrs._v_attrnames
+                    if not all([name in attrs for name in all_stats]):
+                        raise RuntimeError('Missing stats in raw {}'.format(element))
+
+                    for type_, dtype in zip(['data', 'mask'], [self._raw_dtype, np.bool]):
+                        node = h5file.get_node('/raw/{}/{}'.format(element, type_))
+                        if isinstance(node, tables.link.SoftLink):
+                            node = node.dereference()
+
+                        if type_ == 'mask' and node.shape == ():
+                            if node.read() != False:
+                                raise RuntimeError('Incorrect empty mask for raw {}'.format(element))
+                        elif shape is None:
+                            shape = node.shape
+                            raw_chunkshape = node.chunkshape
+                        else:
+                            if node.shape != shape:
+                                raise RuntimeError('Incorrect raw shape for {} {}'.format(element, type_))
+                            if node.chunkshape != raw_chunkshape:
+                                raise RuntimeError('Incorrect raw chunkshape for {} {}'.format(element, type_))
+
+            if self._state < State.FILTERED:
+                if '/filtered' in h5file:
+                    raise RuntimeError('Unexpected node /filtered')
+            else:
+                # Check filtered.
+                filtered_chunkshape = None
+                for element in elements_and_total:
+                    node = h5file.get_node('/filtered/{}'.format(element))
+                    attrs = node._v_attrs._v_attrnames
+                    if not all([name in attrs for name in all_stats]):
+                        raise RuntimeError('Missing stats in filtered {}'.format(element))
+
+                    for type_, dtype in zip(['data', 'mask'], [np.float64, np.bool]):
+                        node = h5file.get_node('/filtered/{}/{}'.format(element, type_))
+                        if isinstance(node, tables.link.SoftLink):
+                            node = node.dereference()
+
+                        if type_ == 'mask' and node.shape == ():
+                            if node.read() != False:
+                                raise RuntimeError('Incorrect empty mask for filtered {}'.format(element))
+                        else:
+                            if node.shape != shape:
+                                raise RuntimeError('Incorrect filtered shape for {} {}'.format(element, type_))
+                            if filtered_chunkshape is None:
+                                filtered_chunkshape = node.chunkshape
+                            else:
+                                if node.chunkshape != filtered_chunkshape:
+                                    raise RuntimeError('Incorrect filtered chunkshape for {} {}'.format(element, type_))
+
+            if self._state < State.NORMALISED:
+                if '/normalised' in h5file:
+                    raise RuntimeError('Unexpected node /normalised')
+            else:
+                # Check normalised.
+                normalised_chunkshape = None
+                for element in elements:   # Not including 'total'!
+                    node = h5file.get_node('/normalised/{}'.format(element))
+                    attrs = node._v_attrs._v_attrnames
+                    if not all([name in attrs for name in all_stats]):
+                        raise RuntimeError('Missing stats in normalised {}'.format(element))
+
+                    for type_, dtype in zip(['data', 'mask'], [np.float64, np.bool]):
+                        node = h5file.get_node('/normalised/{}/{}'.format(element, type_))
+                        if isinstance(node, tables.link.SoftLink):
+                            node = node.dereference()
+
+                        if type_ == 'mask' and node.shape == ():
+                            if node.read() != False:
+                                raise RuntimeError('Incorrect empty mask for normalised {}'.format(element))
+                        else:
+                            if node.shape != shape:
+                                raise RuntimeError('Incorrect normalised shape for {} {}'.format(element, type_))
+                            if normalised_chunkshape is None:
+                                normalised_chunkshape = node.chunkshape
+                            else:
+                                if node.chunkshape != normalised_chunkshape:
+                                    raise RuntimeError('Incorrect normalised chunkshape for {} {}'.format(element, type_))
+
+            if self._state < State.H_FACTOR:
+                if '/h_factor' in h5file:
+                    raise RuntimeError('Unexpected node /h_factor')
+            else:
+                # Check h-factor.
+                h_factor_chunkshape = None
+                node = h5file.get_node('/h_factor')
+                attrs = node._v_attrs._v_attrnames
+                if not all([name in attrs for name in all_stats]):
+                    raise RuntimeError('Missing stats in h_factor')
+
+                for type_, dtype in zip(['data', 'mask'], [np.float64, np.bool]):
+                    node = h5file.get_node('/h_factor/{}'.format(type_))
+                    if isinstance(node, tables.link.SoftLink):
+                        node = node.dereference()
+
+                    if type_ == 'mask' and node.shape == ():
+                        if node.read() != False:
+                            raise RuntimeError('Incorrect empty mask for h_factor')
+                    else:
+                        if node.shape != shape:
+                            raise RuntimeError('Incorrect h_factor shape for {}'.format(type_))
+                        if h_factor_chunkshape is None:
+                            h_factor_chunkshape = node.chunkshape
+                        else:
+                            if node.chunkshape != h_factor_chunkshape:
+                                raise RuntimeError('Incorrect normalised chunkshape for {}'.format(type_))
 
     def normalise(self, progress_callback=None):
         if self._state != State.FILTERED:

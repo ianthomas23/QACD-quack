@@ -17,7 +17,7 @@ element_properties = {
     'Al': ('aluminium',    13,  26.9815385,   2.6989),
     'Si': ('silicon',      14,  28.085,       2.33),
     'P' : ('phosphorus',   15,  30.973761998, 1.82),
-    'S' : ('sulfur',       16,  32.06,        2.07),
+    'S' : ('sulphur',      16,  32.06,        2.07),
     'Cl': ('chlorine',     17,  35.45,        None),
     'Ar': ('argon',        18,  39.948,       None),
     'K' : ('potassium',    19,  39.0983,      0.856),
