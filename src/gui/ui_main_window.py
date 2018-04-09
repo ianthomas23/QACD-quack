@@ -170,6 +170,8 @@ class Ui_MainWindow(object):
         self.menuProject.setObjectName("menuProject")
         self.menuAction = QtWidgets.QMenu(self.menubar)
         self.menuAction.setObjectName("menuAction")
+        self.menuOptions = QtWidgets.QMenu(self.menubar)
+        self.menuOptions.setObjectName("menuOptions")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
@@ -182,12 +184,16 @@ class Ui_MainWindow(object):
         self.actionProjectClose.setObjectName("actionProjectClose")
         self.actionFilter = QtWidgets.QAction(MainWindow)
         self.actionFilter.setObjectName("actionFilter")
+        self.actionDisplayOptions = QtWidgets.QAction(MainWindow)
+        self.actionDisplayOptions.setObjectName("actionDisplayOptions")
         self.menuProject.addAction(self.actionProjectNew)
         self.menuProject.addAction(self.actionProjectOpen)
         self.menuProject.addAction(self.actionProjectClose)
         self.menuAction.addAction(self.actionFilter)
+        self.menuOptions.addAction(self.actionDisplayOptions)
         self.menubar.addAction(self.menuProject.menuAction())
         self.menubar.addAction(self.menuAction.menuAction())
+        self.menubar.addAction(self.menuOptions.menuAction())
 
         self.retranslateUi(MainWindow)
         self.tabWidget.setCurrentIndex(0)
@@ -212,10 +218,12 @@ class Ui_MainWindow(object):
         self.dummyLabel.setText(_translate("MainWindow", "Dummy"))
         self.menuProject.setTitle(_translate("MainWindow", "Project"))
         self.menuAction.setTitle(_translate("MainWindow", "Action"))
+        self.menuOptions.setTitle(_translate("MainWindow", "Options"))
         self.actionProjectNew.setText(_translate("MainWindow", "New..."))
         self.actionProjectOpen.setText(_translate("MainWindow", "Open"))
         self.actionProjectClose.setText(_translate("MainWindow", "Close"))
         self.actionFilter.setText(_translate("MainWindow", "Filter and Normalise ..."))
+        self.actionDisplayOptions.setText(_translate("MainWindow", "Display..."))
 
 from .matplotlib_widget import MatplotlibWidget
 

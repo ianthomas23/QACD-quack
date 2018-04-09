@@ -6,6 +6,7 @@ import time
 
 from src.model.elements import element_properties
 from src.model.qacd_project import QACDProject, State
+from .display_options_dialog import DisplayOptionsDialog
 from .filter_dialog import FilterDialog
 from .matplotlib_widget import MatplotlibWidget, PlotType
 from .progress_dialog import ProgressDialog
@@ -22,6 +23,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.actionProjectOpen.triggered.connect(self.open_project)
         self.actionProjectClose.triggered.connect(self.close_project)
         self.actionFilter.triggered.connect(self.filter)
+        self.actionDisplayOptions.triggered.connect(self.display_options)
 
         self.statusbar.messageChanged.connect(self.status_bar_change)
 
@@ -52,6 +54,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self._element = None
 
         self._ignore_selection_change = False
+        self._display_options_shown = False
 
         self.update_menu()
         self.update_title()
@@ -122,6 +125,22 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.update_matplotlib_widget()
             self.update_menu()
             self.update_title()
+
+    def display_options(self):
+        def finished():
+            self._display_options_shown = False
+            self.update_menu()
+
+        colormap_name = self.matplotlibWidget.get_colormap_name()
+        valid_colormap_names = self.matplotlibWidget.get_valid_colormap_names()
+
+        dialog = DisplayOptionsDialog(colormap_name, valid_colormap_names,
+                                      parent=self)
+        dialog.finished.connect(finished)
+        dialog.show()
+
+        self._display_options_shown = True
+        self.update_menu()
 
     def fill_list_widget(self, index):
         type_string, tab_widget, list_widget = self._tabs_and_lists[index]
@@ -261,6 +280,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.update_matplotlib_widget()
         QtWidgets.QApplication.restoreOverrideCursor()
 
+    def set_colormap(self, colormap):
+        if self.matplotlibWidget is not None:
+            self.matplotlibWidget.set_colormap(colormap)
+
     def short_wait(self):
         time.sleep(0.1)
 
@@ -290,6 +313,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.actionProjectClose.setEnabled(valid_project)
         self.actionFilter.setEnabled(valid_project and
                                      self._project.state == State.RAW)
+        self.actionDisplayOptions.setEnabled(not self._display_options_shown)
 
     def update_status_bar(self):
         def stat_to_string(name, label=None):

@@ -294,8 +294,15 @@
     </property>
     <addaction name="actionFilter"/>
    </widget>
+   <widget class="QMenu" name="menuOptions">
+    <property name="title">
+     <string>Options</string>
+    </property>
+    <addaction name="actionDisplayOptions"/>
+   </widget>
    <addaction name="menuProject"/>
    <addaction name="menuAction"/>
+   <addaction name="menuOptions"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionProjectNew">
@@ -316,6 +323,11 @@
   <action name="actionFilter">
    <property name="text">
     <string>Filter and Normalise ...</string>
+   </property>
+  </action>
+  <action name="actionDisplayOptions">
+   <property name="text">
+    <string>Display...</string>
    </property>
   </action>
  </widget>
