@@ -229,6 +229,7 @@ def consistency_impl(directory, pixel_totals, median):
         ratio_stats.pop('name')
         ratio_stats.pop('formula')
         ratio_stats.pop('correction_model')
+        ratio_stats.pop('is_preset')
 
         check_masked_array(ratio, (ny, nx), np.float64, ratio.mask, np.nan)
         check_stats(ratio, ratio_stats, 'min max mean median std invalid valid')

@@ -173,7 +173,7 @@ class QACDProject:
         # If elements is a list of element names of len > 1, the ratio map is
         #     elements[0] / sum(elements)
         # where each item in elements is an element name, e.g. 'Mg'.
-        # If elements is a list of a single element, the ration map is
+        # If elements is a list of a single element, the ratio map is
         #     elements[0]
         # If elements is None then look up the name in preset_ratios to obtain
         # the elements.
@@ -189,11 +189,12 @@ class QACDProject:
             raise RuntimeError("Ratio name '{}' already used".format(name))
 
         # Get preset ratio.
+        is_preset_ratio = False
         if elements is None:
-            raise RuntimeError('Cannot deal with ratios of presets yet')
             if name not in self.get_valid_preset_ratios():
                 raise RuntimeError('No such preset ratio: {}'.format(name))
             elements = preset_ratios[name]
+            is_preset_ratio = True
 
         if len(elements) < 2:
             raise RuntimeError('Not implemented')
@@ -221,6 +222,9 @@ class QACDProject:
             for element in elements[1:]:
                 denominator += self.get_filtered(element, masked=False)
         else:
+            if is_preset_ratio:
+                raise RuntimeError('Correction models for presets not implemented yet')
+
             h_factor = self.get_h_factor(masked=False)
 
             correction = model[elements[0]]
@@ -264,6 +268,7 @@ class QACDProject:
             ratio_group._v_attrs.name = name
             ratio_group._v_attrs.formula = formula
             ratio_group._v_attrs.correction_model = correction_model
+            ratio_group._v_attrs.is_preset = is_preset_ratio
 
         self._ratios[name] = (formula, node_name)
         return node_name
@@ -678,6 +683,8 @@ class QACDProject:
             shape = None
             indices_stats = ['min', 'max', 'invalid', 'valid']
             all_stats = indices_stats + ['mean', 'median', 'std']
+            ratio_stats = all_stats + ['name', 'formula', 'correction_model',
+                                       'is_preset']
 
             if self._state < State.RAW:
                 if '/raw' in h5file:
@@ -802,6 +809,52 @@ class QACDProject:
                         else:
                             if node.chunkshape != h_factor_chunkshape:
                                 raise RuntimeError('Incorrect normalised chunkshape for {}'.format(type_))
+
+            if '/ratio' in h5file:
+                if self._state < State.H_FACTOR:
+                    raise RuntimeError('Unexpected node /ratio')
+
+                # Load and check ratios.
+                ratio_chunkshape = None
+                for group_node in h5file.get_node('/ratio')._f_list_nodes():
+                    node_name = group_node._v_name
+
+                    attrs = group_node._v_attrs._v_attrnames
+                    if not all([name in attrs for name in ratio_stats]):
+                        raise RuntimeError('Missing stats in ratio {}'.format(node_name))
+
+                    # Non-stat attributes of the group node.
+                    name = group_node._v_attrs.name
+                    formula = group_node._v_attrs.formula
+                    correction_model = group_node._v_attrs.correction_model
+                    is_preset = group_node._v_attrs.is_preset
+
+                    if name in self._ratios:
+                        raise RuntimeError('Ratio name {} used more than once'.format(name))
+                    if correction_model is not None and \
+                        correction_model not in correction_models:
+                        raise RuntimeError('Ratio {} has invalid correction model {}'.format(name, correction_model))
+                    if is_preset and name not in self.get_valid_preset_ratios():
+                        raise RuntimeError('Invalid preset ratio {}'.format(name))
+
+                    self._ratios[name] = (formula, node_name)
+
+                    for type_, dtype in zip(['data', 'mask'], [np.float64, np.bool]):
+                        node = h5file.get_node('/ratio/{}/{}'.format(node_name, type_))
+                        if isinstance(node, tables.link.SoftLink):
+                            node = node.dereference()
+
+                        if type_ == 'mask' and node.shape == ():
+                            if node.read() != False:
+                                raise RuntimeError('Incorrect empty mask for ratio {}'.format(node_name))
+                        else:
+                            if node.shape != shape:
+                                raise RuntimeError('Incorrect shape for ratio {} {}'.format(node_name, type_))
+                            if ratio_chunkshape is None:
+                                ratio_chunkshape = node.chunkshape
+                            else:
+                                if node.chunkshape != ratio_chunkshape:
+                                    raise RuntimeError('Incorrect chunkshape for ratio {}'.format(node_namne, type_))
 
     def normalise(self, progress_callback=None):
         if self._state != State.FILTERED:
