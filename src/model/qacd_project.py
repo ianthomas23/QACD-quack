@@ -249,7 +249,7 @@ class QACDProject:
         denominator[denominator == 0.0] = np.nan
         ratio = numerator / denominator
 
-        formula = '{}/({})'.format(elements[0], '+'.join(elements))
+        formula = self.get_formula_from_elements(elements)
 
         mask = np.isnan(ratio)
 
@@ -270,8 +270,15 @@ class QACDProject:
             ratio_group._v_attrs.correction_model = correction_model
             ratio_group._v_attrs.is_preset = is_preset_ratio
 
-        self._ratios[name] = (formula, node_name)
+        self._ratios[name] = (formula, correction_model, node_name)
         return node_name
+
+    def delete_ratio_map(self, name):
+        ratio = self._ratios.pop(name)
+        node_name = ratio[-1]
+        with self._h5file() as h5file:
+            node = h5file.get_node('/ratio', node_name)
+            node._f_remove(recursive=True)
 
     @property
     def elements(self):
@@ -389,6 +396,12 @@ class QACDProject:
         return self._get_array('/cluster/k{}/indices'.format(k), masked,
                                want_stats)
 
+    def get_correction_model_elements(self, correction_model):
+        return correction_models[correction_model].keys()
+
+    def get_correction_model_names(self):
+        return sorted(correction_models.keys())
+
     def get_element_from_csv_filename(self, csv_filename):
         match = self.is_valid_csv_filename(csv_filename)
         if not match:
@@ -415,6 +428,9 @@ class QACDProject:
         return self._get_array('/filtered/total', masked, want_stats,
                                h5file=h5file)
 
+    def get_formula_from_elements(self, elements):
+        return '{} / ({})'.format(elements[0], '+'.join(elements))
+
     def get_h_factor(self, masked=True, want_stats=False):
         # Return h factor array.  If masked==True, invalid pixels are masked
         # out otherwise they are np.nan.
@@ -435,6 +451,12 @@ class QACDProject:
         return self._get_array('/normalised/' + element, masked, want_stats,
                                h5file)
 
+    def get_preset_elements(self, preset_name):
+        return preset_ratios[preset_name]
+
+    def get_preset_formula(self, preset_name):
+        return self.get_formula_from_elements(self.get_preset_elements(preset_name))
+
     def get_ratio_by_name(self, ratio, masked=True, want_stats=False):
         # Return ratio map.  If masked==True, invalid pixels are masked out
         # otherwise they are np.nan.
@@ -443,7 +465,7 @@ class QACDProject:
         if ratio not in self._ratios:
             raise RuntimeError('No such ratio: {}'.format(ratio))
 
-        node_name = self._ratios[ratio][1]
+        node_name = self._ratios[ratio][-1]
         return self._get_array('/ratio/' + node_name, masked, want_stats)
 
     def get_raw(self, element, masked=True, want_stats=False, h5file=None):
@@ -837,7 +859,7 @@ class QACDProject:
                     if is_preset and name not in self.get_valid_preset_ratios():
                         raise RuntimeError('Invalid preset ratio {}'.format(name))
 
-                    self._ratios[name] = (formula, node_name)
+                    self._ratios[name] = (formula, correction_model, node_name)
 
                     for type_, dtype in zip(['data', 'mask'], [np.float64, np.bool]):
                         node = h5file.get_node('/ratio/{}/{}'.format(node_name, type_))

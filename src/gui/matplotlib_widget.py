@@ -94,7 +94,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
             colorbar = figure.colorbar(self._image, ax=map_axes)
             #map_axes.set_xlabel('x')
             #map_axes.set_ylabel('y')
-            map_axes.set_title(title + ' element map')
+            map_axes.set_title(title + ' map')
 
         if histogram_axes is None:
             self._bar = None
