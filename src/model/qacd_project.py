@@ -33,6 +33,7 @@ class QACDProject:
         self._valid_preset_ratios = None
         self._ratios = {}  # dict of name -> tuple of
                            #   (formula, correction_model, preset, node_name)
+        self._cluster_k = None  # If performed clustering, is (k_min, k_max).
 
         # Regular expression to match input CSV filenames.
         self._csv_file_re = re.compile('^([A-Z][a-z]?) K series.csv$')
@@ -168,6 +169,11 @@ class QACDProject:
 
         if progress_callback:
             progress_callback(1.0, 'Finished')
+
+    @property
+    def cluster_k(self):
+        # Read-only property.
+        return self._cluster_k
 
     def create_ratio_map(self, name, preset=None, elements=None,
                          correction_model=None):
@@ -693,6 +699,7 @@ class QACDProject:
                                       mask=filtered_mask)
                 h5file.create_carray(k_group, 'centroids', obj=centroids)
 
+            self._cluster_k = (k_min, k_max)
             self._state = State.CLUSTERING
 
     def load_file(self, filename):

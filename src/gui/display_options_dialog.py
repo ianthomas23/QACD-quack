@@ -47,7 +47,7 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
     def apply(self):
         selected_name = self.get_selected_colormap_name()
         if selected_name is not None:
-            self.parent().set_colormap(selected_name)
+            self.parent().set_colormap_name(selected_name)
             self.current_colormap_name = selected_name
             self.update_buttons()
 

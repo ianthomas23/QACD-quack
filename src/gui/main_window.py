@@ -6,6 +6,7 @@ import time
 
 from src.model.elements import element_properties
 from src.model.qacd_project import QACDProject, State
+from .clustering_dialog import ClusteringDialog
 from .display_options_dialog import DisplayOptionsDialog
 from .filter_dialog import FilterDialog
 from .matplotlib_widget import MatplotlibWidget, PlotType
@@ -24,6 +25,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.actionProjectOpen.triggered.connect(self.choose_open_project)
         self.actionProjectClose.triggered.connect(self.close_project)
         self.actionFilter.triggered.connect(self.filter)
+        self.actionClustering.triggered.connect(self.clustering)
         self.actionDisplayOptions.triggered.connect(self.display_options)
 
         self.statusbar.messageChanged.connect(self.status_bar_change)
@@ -33,6 +35,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.filteredElementList.itemSelectionChanged.connect(self.change_tab_list_item)
         self.normalisedElementList.itemSelectionChanged.connect(self.change_tab_list_item)
         self.ratioTable.itemSelectionChanged.connect(self.change_tab_list_item)
+        self.clusterTable.itemSelectionChanged.connect(self.change_tab_list_item)
 
         self.newRatioButton.clicked.connect(self.new_ratio)
         self.deleteRatioButton.clicked.connect(self.delete_ratio)
@@ -45,19 +48,21 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.tabWidget.removeTab(i)
 
         self._tabs_and_lists = (
-            ('raw', self.rawTab, self.rawElementList),
-            ('filtered', self.filteredTab, self.filteredElementList),
-            ('normalised', self.normalisedTab, self.normalisedElementList),
-            ('ratio', self.ratioTab, self.ratioTable),
+            ('raw', self.rawTab, self.rawElementList, ''),
+            ('filtered', self.filteredTab, self.filteredElementList, ''),
+            ('normalised', self.normalisedTab, self.normalisedElementList, ''),
+            ('ratio', self.ratioTab, self.ratioTable, 'Ratios'),
+            ('cluster', self.clusterTab, self.clusterTable, 'Clusters'),
         )
 
         # Correct table widget properties.
-        horiz = self.ratioTable.horizontalHeader()
-        horiz.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
-        horiz.setDefaultAlignment(QtCore.Qt.AlignLeft)
+        for table in (self.ratioTable, self.clusterTable):
+            horiz = table.horizontalHeader()
+            horiz.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+            horiz.setDefaultAlignment(QtCore.Qt.AlignLeft)
 
-        vert = self.ratioTable.verticalHeader()
-        vert.setDefaultSectionSize(vert.minimumSectionSize())
+            vert = table.verticalHeader()
+            vert.setDefaultSectionSize(vert.minimumSectionSize())
 
         # Member variables.
         self._project = None
@@ -86,8 +91,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if self._project is not None:
             # Determine which list widget and which element selected.
             tab_index = self.tabWidget.currentIndex()
-            self._type, _, list_widget = self._tabs_and_lists[tab_index]
-            if tab_index == 3:
+            self._type, _, list_widget, _ = self._tabs_and_lists[tab_index]
+            if tab_index >= 3:
                 row = list_widget.currentRow()
                 item = list_widget.item(row, 0)
                 self._element = item.text()
@@ -119,6 +124,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     ret = self._project.get_normalised(self._element, want_stats=True)
             elif self._type == 'ratio':
                 ret = self._project.get_ratio_by_name(self._element, want_stats=True)
+            elif self._type == 'cluster':
+                self._element = int(self._element)
+                ret = self._project.get_cluster_indices(self._element, want_stats=True)
             else:
                 raise RuntimeError('Not implemented ' + type_)
 
@@ -158,6 +166,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.update_menu()
             self.update_title()
 
+    def clustering(self):
+        dialog = ClusteringDialog(parent=self)
+        if dialog.exec_():
+            k_min, k_max, want_all_elements = dialog.get_values()
+
+            self._project.k_means_clustering(k_min, k_max)
+            print('### clustering finished', self._project.cluster_k)
+
+            self.fill_table_widget(4)
+            self.update_menu()
+
     def delete_ratio(self):
         table_widget = self.ratioTable
 
@@ -194,7 +213,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.update_menu()
 
     def fill_list_widget(self, index):
-        type_string, tab_widget, list_widget = self._tabs_and_lists[index]
+        type_string, tab_widget, list_widget , _= self._tabs_and_lists[index]
         want_total = list_widget in (self.rawElementList, self.filteredElementList)
         want_h_factor = (list_widget == self.normalisedElementList and
                          self._project.state >= State.H_FACTOR)
@@ -216,26 +235,33 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.tabWidget.insertTab(index, tab_widget, title)
 
     def fill_table_widget(self, index):
-        table_widget = self.ratioTable
+        type_string, tab_widget, table_widget, tab_title = \
+            self._tabs_and_lists[index]
 
         # Disable sorting whilst changing content.
         sorting = table_widget.isSortingEnabled()
         table_widget.setSortingEnabled(False)
 
-        tab_widget = self.ratioTab
         if self.tabWidget.widget(index) != tab_widget:
-            self.tabWidget.insertTab(index, tab_widget, 'Ratios')
+            self.tabWidget.insertTab(index, tab_widget, tab_title)
 
-        table_widget.setRowCount(len(self._project.ratios))
+        rows = []
+        if type_string == 'ratio':
+            for name, tuple_ in self._project.ratios.items():
+                rows.append((name, tuple_[0], tuple_[1]))
+        elif type_string == 'cluster':
+            if self._project.cluster_k is not None:
+                k_min, k_max = self._project.cluster_k
+                for k in range(k_min, k_max+1):
+                    rows.append((str(k),))
 
-        row = 0
-        for name, v in self._project.ratios.items():
-            text = (name, v[0], v[1])
-            for i in range(3):
-                item = QtWidgets.QTableWidgetItem(text[i])
+        nrows = len(rows)
+        table_widget.setRowCount(nrows)
+        for i, row in enumerate(rows):
+            for j, text in enumerate(row):
+                item = QtWidgets.QTableWidgetItem(text)
                 item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
-                table_widget.setItem(row, i, item)
-            row += 1
+                table_widget.setItem(i, j, item)
         table_widget.setSortingEnabled(sorting)
 
     def filter(self):
@@ -258,6 +284,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.fill_list_widget(1)
             self.fill_list_widget(2)
             self.fill_table_widget(3)
+            self.fill_table_widget(4)
             self.tabWidget.setCurrentIndex(2)  # Bring tab to front.
 
             self.update_menu()
@@ -345,20 +372,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self._project = project
 
         if self._project.state >= State.RAW:
-            self.fill_list_widget(0)
+            self.fill_list_widget(0)  # Raw.
             self.tabWidget.setCurrentIndex(0)  # Bring tab to front.
 
         if self._project.state >= State.FILTERED:
-            self.fill_list_widget(1)
+            self.fill_list_widget(1)  # Filtered.
             self.tabWidget.setCurrentIndex(1)  # Bring tab to front.
 
         if self._project.state >= State.NORMALISED:
-            self.fill_list_widget(2)
+            self.fill_list_widget(2)  # Normalised (and h-factor if present).
             self.tabWidget.setCurrentIndex(2)  # Bring tab to front.
 
         if self._project.state >= State.H_FACTOR:
-            self.fill_table_widget(3)
-            #self.tabWidget.setCurrentIndex(3)  # Bring tab to front.
+            self.fill_table_widget(3)  # Ratios.
+            self.fill_table_widget(4)  # Clustering.
 
         self.update_menu()
         self.update_status_bar()
@@ -366,9 +393,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.update_matplotlib_widget()
         QtWidgets.QApplication.restoreOverrideCursor()
 
-    def set_colormap(self, colormap):
+    def set_colormap_name(self, colormap_name):
         if self.matplotlibWidget is not None:
-            self.matplotlibWidget.set_colormap(colormap)
+            self.matplotlibWidget.set_colormap_name(colormap_name)
 
     def short_wait(self):
         time.sleep(0.1)
@@ -383,24 +410,32 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.matplotlibWidget.clear()
         else:
             plot_type = PlotType(self.plotTypeComboBox.currentIndex())
+            cmap_int_limits = None
             if self._element in ('h', 'h-factor'):
                 title = 'h-factor'
             elif self._type == 'ratio':
                 title = self._element + ' ratio'
+            elif self._type == 'cluster':
+                title = 'k={} cluster'.format(self._element)
+                cmap_int_limits = (0, self._element)
             else:
                 if self._element == 'Total':
                     name = 'total'
                 else:
                     name = element_properties[self._element][0]
                 title = '{} {} element'.format(string.capwords(self._type), name)
-            self.matplotlibWidget.update(plot_type, self._array,
-                                         self._array_stats, title)
+
+            self.matplotlibWidget.update( \
+                plot_type, self._array, self._array_stats, title,
+                cmap_int_limits=cmap_int_limits)
 
     def update_menu(self):
         valid_project = self._project is not None
         self.actionProjectClose.setEnabled(valid_project)
         self.actionFilter.setEnabled(valid_project and
                                      self._project.state == State.RAW)
+        self.actionClustering.setEnabled(valid_project and
+                                         self._project.state == State.H_FACTOR)
         self.actionDisplayOptions.setEnabled(not self._display_options_shown)
         self.deleteRatioButton.setEnabled(self.ratioTable.currentItem() is not None)
 
