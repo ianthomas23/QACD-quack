@@ -28,6 +28,7 @@ class NewRatioDialog(QtWidgets.QDialog, Ui_NewRatioDialog):
         self.presetList.itemSelectionChanged.connect(self.change_preset)
 
         # Custom tab.
+        self.element_labels = (self.labelA, self.labelB, self.labelC, self.labelD)
         self.element_combos = (self.elementACombo, self.elementBCombo,
                                self.elementCCombo, self.elementDCombo)
         elements = self.project.elements
@@ -62,14 +63,16 @@ class NewRatioDialog(QtWidgets.QDialog, Ui_NewRatioDialog):
             if name in self.project.ratios:
                 raise RuntimeError("The ratio name '{}' has already been used".format(name))
 
-            if not is_preset:
+            if is_preset:
+                preset = self.presetList.currentItem().text()
+            else:
                 counter = Counter(self.ratio_elements)
                 if len(counter) != len(self.ratio_elements):
                     repeats = [elem for elem in sorted(counter) if counter[elem] > 1]
                     raise RuntimeError('The following elements are repeated in the formula: ' + \
                         ', '.join(repeats))
 
-            correction_model = self.correctionModelCombo.currentText()
+            correction_model = self.correctionModelCombo.currentText() or None
             if correction_model:
                 model_elements = self.project.get_correction_model_elements(correction_model)
                 if is_preset:
@@ -83,14 +86,25 @@ class NewRatioDialog(QtWidgets.QDialog, Ui_NewRatioDialog):
                         raise RuntimeError("Correction model '{}' does not include the following elements: {}".format( \
                             correction_model, ', '.join(missing)))
 
+            # Create new ratio map.
+            if is_preset:
+                self.project.create_ratio_map(name, preset=preset,
+                                              correction_model=correction_model)
+            else:
+                self.project.create_ratio_map(name, elements=self.ratio_elements,
+                                              correction_model=correction_model)
+
+            # Close dialog.
             super().accept()
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, 'Error', str(e))
 
     def change_custom_type(self):
         nelements = self.customTypeCombo.currentIndex() + 2
-        for index, combo in enumerate(self.element_combos):
-            combo.setEnabled(index < nelements)
+        for index, (label, combo) in enumerate(zip(self.element_labels, self.element_combos)):
+            enabled = index < nelements
+            label.setEnabled(enabled)
+            combo.setEnabled(enabled)
         self.change_element()  # Update formula label.
 
     def change_element(self):
@@ -116,6 +130,9 @@ class NewRatioDialog(QtWidgets.QDialog, Ui_NewRatioDialog):
         else:  # tab_index == 1
             self.change_custom_type()
             self.nameEdit.setText(None)
+
+    def get_name(self):
+        return self.nameEdit.text().strip()
 
     def update_buttons(self):
         self.okButton.setEnabled(len(self.nameEdit.text()) > 0 and

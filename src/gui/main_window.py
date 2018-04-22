@@ -168,8 +168,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if button == QtWidgets.QMessageBox.Yes:
             table_widget.clearSelection()
             table_widget.removeRow(row)
-            self.update_menu()
             self._project.delete_ratio_map(name)
+            self.update_menu()
+            if len(self._project.ratios) == 0:
+                # If other ratios remain, one is automatically selected and so
+                # mpl widget is automatically updated.  Need to clear selection
+                # and update mpl widget manually if no other ratios remain.
+                self._type = None
+                self.update_matplotlib_widget()
 
     def display_options(self):
         def finished():
@@ -311,10 +317,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def new_ratio(self):
         dialog = NewRatioDialog(self._project, parent=self)
         if dialog.exec_():
-            name = dialog.nameEdit.text()
-            elements = dialog.ratio_elements
-            correction_model = dialog.correctionModelCombo.currentText() or None
-            self._project.create_ratio_map(name, elements, correction_model)
+            name = dialog.get_name()
 
             self.fill_table_widget(3)  # Update user interface.
 
@@ -334,8 +337,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         try:
             project = QACDProject()
             project.load_file(filename)
-        except:
-            print('Need to display message box')
+        except Exception as e:
+            print('Need to display message box: {}'.format(e))
 
         # Opened project is OK, so can close previous project.
         self.close_project()
@@ -355,7 +358,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         if self._project.state >= State.H_FACTOR:
             self.fill_table_widget(3)
-            self.tabWidget.setCurrentIndex(3)  # Bring tab to front.
+            #self.tabWidget.setCurrentIndex(3)  # Bring tab to front.
 
         self.update_menu()
         self.update_status_bar()

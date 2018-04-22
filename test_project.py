@@ -88,25 +88,30 @@ def test_sequence():
     with pytest.raises(RuntimeError):
         p.get_cluster_indices(k_max+1)
 
-    # Ratio maps.
-    p.create_ratio_map('some_ratio', ['Mg', 'Ca'])
+    # Ratio maps - custom.
+    p.create_ratio_map('some_ratio', elements=['Mg', 'Ca'])
     p.get_ratio_by_name('some_ratio')
-    ratios = p.ratios
-    assert len(ratios) == 1
-    assert 'some_ratio' in ratios
-    assert ratios['some_ratio'][0] == 'Mg/(Mg+Ca)'
+    assert len(p.ratios) == 1
+    assert 'some_ratio' in p.ratios
+    assert p.ratios['some_ratio'][0] == 'Mg / (Mg+Ca)'
     with pytest.raises(RuntimeError):
-        p.create_ratio_map('some_ratio', ['Mg', 'Ca'])  # Already exists.
+        p.create_ratio_map('some_ratio', elements=['Mg', 'Ca'])  # Already exists.
     with pytest.raises(RuntimeError):
-        p.create_ratio_map('ratio_no_such_element', ['Mg', 'Aa'])
-    p.create_ratio_map('corrected_ratio', ['Mg', 'Na'],
+        p.create_ratio_map('ratio_no_such_element', elements=['Mg', 'Aa'])
+    p.create_ratio_map('corrected_ratio', elements=['Ca', 'Na'],
                        correction_model='feldspar')
-    assert len(ratios) == 2
-    assert 'corrected_ratio' in ratios
-    assert ratios['corrected_ratio'][0] == 'Mg/(Mg+Na)'
+    assert len(p.ratios) == 2
+    assert 'corrected_ratio' in p.ratios
+    assert p.ratios['corrected_ratio'][0] == 'Ca / (Ca+Na)'
     with pytest.raises(RuntimeError):
-        p.create_ratio_map('invalid_correction', ['Mg', 'Ca'],
+        p.create_ratio_map('invalid_correction', elements=['Mg', 'Ca'],
                            correction_model='no_such_correction_name')
+
+    # Ratio maps - presets.
+    p.create_ratio_map('anorthite blah', preset='anorthite')
+    p.get_ratio_by_name('some_ratio')
+    assert len(p.ratios) == 3
+    assert p.ratios['anorthite blah'][0] == 'Ca / (Ca+Na)'
 
     # Cleanup.
     if os.path.isfile(temp_filename):
@@ -222,14 +227,14 @@ def consistency_impl(directory, pixel_totals, median):
     ratio_elements = ['Ca', 'Mg']
     formula = '{0}/({0}+{1})'.format(ratio_elements[0], ratio_elements[1])
     for name, correction_model in zip(['ratioA', 'ratioB'], [None, 'garnet']):
-        p.create_ratio_map(name, ratio_elements, correction_model=correction_model)
+        p.create_ratio_map(name, elements=ratio_elements, correction_model=correction_model)
         ratio_entry = p.ratios[name]
         assert formula, name == ratio_entry
         ratio, ratio_stats = p.get_ratio_by_name(name, want_stats=True)
         ratio_stats.pop('name')
         ratio_stats.pop('formula')
         ratio_stats.pop('correction_model')
-        ratio_stats.pop('is_preset')
+        ratio_stats.pop('preset')
 
         check_masked_array(ratio, (ny, nx), np.float64, ratio.mask, np.nan)
         check_stats(ratio, ratio_stats, 'min max mean median std invalid valid')

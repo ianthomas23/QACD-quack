@@ -31,7 +31,8 @@ class QACDProject:
         # Cached data to avoid recalculating/re-reading from file.
         self._elements = None
         self._valid_preset_ratios = None
-        self._ratios = {}
+        self._ratios = {}  # dict of name -> tuple of
+                           #   (formula, correction_model, preset, node_name)
 
         # Regular expression to match input CSV filenames.
         self._csv_file_re = re.compile('^([A-Z][a-z]?) K series.csv$')
@@ -168,15 +169,20 @@ class QACDProject:
         if progress_callback:
             progress_callback(1.0, 'Finished')
 
-    def create_ratio_map(self, name, elements=None, correction_model=None):
+    def create_ratio_map(self, name, preset=None, elements=None,
+                         correction_model=None):
         # Create and store a ratio map of the same shape as the element maps.
-        # If elements is a list of element names of len > 1, the ratio map is
+        # Either preset should be specified, or elements; the former gives a
+        # preset ratio, the latter a custom ratio.
+        # For a custom ratio map, if elements is a list of element names of
+        # len > 1, the ratio map is
         #     elements[0] / sum(elements)
-        # where each item in elements is an element name, e.g. 'Mg'.
-        # If elements is a list of a single element, the ratio map is
+        # whereas ff elements is a list of a single element, the ratio map is
         #     elements[0]
-        # If elements is None then look up the name in preset_ratios to obtain
-        # the elements.
+        # If a preset then it is looked up in the valid presets to determine
+        # the corresponding element list.
+        # Correction model may be either the name of a correction model, or
+        # None if no correction is to be used.
         # Return the node name.
         # Note: Uses unmasked numpy arrays, using np.nan to denote masked out
         # pixels.
@@ -187,14 +193,15 @@ class QACDProject:
             raise RuntimeError('No such correction model: {}'.format(correction_model))
         if name in self._ratios.keys():
             raise RuntimeError("Ratio name '{}' already used".format(name))
+        if preset is not None and elements is not None:
+            raise RuntimeError('Only specify one of preset and elements when creating a ratio map')
 
         # Get preset ratio.
-        is_preset_ratio = False
-        if elements is None:
-            if name not in self.get_valid_preset_ratios():
-                raise RuntimeError('No such preset ratio: {}'.format(name))
-            elements = preset_ratios[name]
-            is_preset_ratio = True
+        is_preset_ratio = preset is not None
+        if is_preset_ratio:
+            if preset not in self.get_valid_preset_ratios():
+                raise RuntimeError('No such preset ratio: {}'.format(preset))
+            elements = preset_ratios[preset]
 
         if len(elements) < 2:
             raise RuntimeError('Not implemented')
@@ -268,9 +275,9 @@ class QACDProject:
             ratio_group._v_attrs.name = name
             ratio_group._v_attrs.formula = formula
             ratio_group._v_attrs.correction_model = correction_model
-            ratio_group._v_attrs.is_preset = is_preset_ratio
+            ratio_group._v_attrs.preset = preset
 
-        self._ratios[name] = (formula, correction_model, node_name)
+        self._ratios[name] = (formula, correction_model, preset, node_name)
         return node_name
 
     def delete_ratio_map(self, name):
@@ -706,7 +713,7 @@ class QACDProject:
             indices_stats = ['min', 'max', 'invalid', 'valid']
             all_stats = indices_stats + ['mean', 'median', 'std']
             ratio_stats = all_stats + ['name', 'formula', 'correction_model',
-                                       'is_preset']
+                                       'preset']
 
             if self._state < State.RAW:
                 if '/raw' in h5file:
@@ -849,17 +856,19 @@ class QACDProject:
                     name = group_node._v_attrs.name
                     formula = group_node._v_attrs.formula
                     correction_model = group_node._v_attrs.correction_model
-                    is_preset = group_node._v_attrs.is_preset
+                    preset = group_node._v_attrs.preset
+                    is_preset = preset is not None
 
                     if name in self._ratios:
                         raise RuntimeError('Ratio name {} used more than once'.format(name))
                     if correction_model is not None and \
                         correction_model not in correction_models:
                         raise RuntimeError('Ratio {} has invalid correction model {}'.format(name, correction_model))
-                    if is_preset and name not in self.get_valid_preset_ratios():
-                        raise RuntimeError('Invalid preset ratio {}'.format(name))
+                    if is_preset and preset not in self.get_valid_preset_ratios():
+                        raise RuntimeError('Invalid preset ratio {}'.format(preset))
 
-                    self._ratios[name] = (formula, correction_model, node_name)
+                    self._ratios[name] = (formula, correction_model, preset,
+                                          node_name)
 
                     for type_, dtype in zip(['data', 'mask'], [np.float64, np.bool]):
                         node = h5file.get_node('/ratio/{}/{}'.format(node_name, type_))
