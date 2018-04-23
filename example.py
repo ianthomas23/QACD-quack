@@ -33,7 +33,7 @@ print(project.ratios)
 #project.write_debug()
 
 kmin = 5; kmax = 10
-project.k_means_clustering(kmin, kmax)
+project.k_means_clustering(kmin, kmax, want_all_elements=True)
 
 
 

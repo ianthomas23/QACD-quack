@@ -32,14 +32,13 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
         self._valid_colormap_names = self._determine_valid_colormap_names()
         self._colormap_name = 'rainbow'
-        self._cmap_int_limits = None
+        self._cmap_int_max = None  # One beyond end, as in numpy slicing.
 
     def _create_colormap(self):
-        if self._cmap_int_limits is None:
+        if self._cmap_int_max is None:
             return cm.get_cmap(self.get_colormap_name())
         else:
-            nlevels = self._cmap_int_limits[1] - self._cmap_int_limits[0]
-            return cm.get_cmap(self.get_colormap_name(), nlevels)
+            return cm.get_cmap(self.get_colormap_name(), self._cmap_int_max)
 
     def _determine_valid_colormap_names(self):
         # Exclude reversed cmaps which have names ending with '_r'.
@@ -78,8 +77,8 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._canvas.draw()
 
     def update(self, plot_type, array, array_stats, title,
-               cmap_int_limits=None):
-        self._cmap_int_limits = cmap_int_limits
+               cmap_int_max=None):
+        self._cmap_int_max = cmap_int_max
 
         figure = self._canvas.figure
         figure.clear()
@@ -95,41 +94,45 @@ class MatplotlibWidget(QtWidgets.QWidget):
         else:
             raise RuntimeError('Invalid plot type')
 
-        norm = Normalize(array_stats['min'], array_stats['max'])
-        show_stats = cmap_int_limits is None
         cmap = self._create_colormap()
+
+        if cmap_int_max is None:
+            show_stats = True
+            norm = Normalize(array_stats['min'], array_stats['max'])
+            cmap_ticks = None
+        else:
+            show_stats = False
+            norm = Normalize(-0.5, cmap_int_max-0.5)
+            cmap_ticks = np.arange(0, cmap_int_max)
+            if cmap_int_max >= 15:
+                cmap_ticks = cmap_ticks[::2]
 
         if map_axes is None:
             self._image = None
         else:
-            if cmap_int_limits is None:
-                self._image = map_axes.imshow(array, cmap=cmap, norm=norm)
-                colorbar = figure.colorbar(self._image, ax=map_axes)
-            else:
-                min_, max_ = cmap_int_limits
-                self._image = map_axes.imshow(array, cmap=cmap, norm=norm,
-                                              vmin=min_-0.5, vmax=max_-0.5)
-                step = 1
-                diff = max_ - min_
-                if diff > 10:
-                    step = 2
-                ticks = np.arange(min_, max_, step)
-                colorbar = figure.colorbar(self._image, ax=map_axes, ticks=ticks)
+            self._image = map_axes.imshow(array, cmap=cmap, norm=norm)
+            colorbar = figure.colorbar(self._image, ax=map_axes,
+                                       ticks=cmap_ticks)
             map_axes.set_title(title + ' map')
 
         if histogram_axes is None:
             self._bar = None
             self._bar_norm_x = None
         else:
-            bins = 'sqrt'
-            if cmap_int_limits is not None:
-                bins = np.arange(cmap_int_limits[0], cmap_int_limits[1]+1)-0.5
+            if cmap_int_max is None:
+                bins = 'sqrt'
+            else:
+                bins = np.arange(0, cmap_int_max+1)-0.5
             hist, bin_edges = np.histogram(np.ma.compressed(array), bins=bins)
             width = bin_edges[1] - bin_edges[0]
             bin_centres = bin_edges[:-1] + 0.5*width
             self._bar_norm_x = norm(bin_centres)
             colors = cmap(self._bar_norm_x)
-            self._bar = histogram_axes.bar(bin_centres, hist, width, color=colors)
+            self._bar = histogram_axes.bar(bin_centres, hist, width,
+                                           color=colors)
+            if cmap_ticks is not None:
+                histogram_axes.set_xticks(cmap_ticks)
+
             if show_stats:
                 mean = array_stats.get('mean')
                 median = array_stats.get('median')

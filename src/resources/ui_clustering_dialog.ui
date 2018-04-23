@@ -38,6 +38,9 @@
        <property name="minimum">
         <number>1</number>
        </property>
+       <property name="maximum">
+        <number>30</number>
+       </property>
        <property name="value">
         <number>5</number>
        </property>
@@ -54,6 +57,9 @@
       <widget class="QSpinBox" name="kMaximumSpin">
        <property name="minimum">
         <number>1</number>
+       </property>
+       <property name="maximum">
+        <number>30</number>
        </property>
        <property name="value">
         <number>10</number>

@@ -167,15 +167,26 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.update_title()
 
     def clustering(self):
-        dialog = ClusteringDialog(parent=self)
+        dialog = ClusteringDialog(self._project, parent=self)
         if dialog.exec_():
+            QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
+
             k_min, k_max, want_all_elements = dialog.get_values()
 
-            self._project.k_means_clustering(k_min, k_max)
-            print('### clustering finished', self._project.cluster_k)
+            def thread_func(project, k_min, k_max, progress_callback):
+                self.short_wait()
+                project.k_means_clustering(k_min, k_max, want_all_elements,
+                    progress_callback=progress_callback)
+
+            ProgressDialog.worker_thread( \
+                self, 'k-means Clustering', thread_func,
+                args=[self._project, k_min, k_max])
 
             self.fill_table_widget(4)
+            self.tabWidget.setCurrentIndex(4)  # Bring tab to front.
+
             self.update_menu()
+            QtWidgets.QApplication.restoreOverrideCursor()
 
     def delete_ratio(self):
         table_widget = self.ratioTable
@@ -250,8 +261,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             for name, tuple_ in self._project.ratios.items():
                 rows.append((name, tuple_[0], tuple_[1]))
         elif type_string == 'cluster':
-            if self._project.cluster_k is not None:
-                k_min, k_max = self._project.cluster_k
+            cluster_k = self._project.get_cluster_k()
+            if cluster_k is not None:
+                k_min, k_max = cluster_k
                 for k in range(k_min, k_max+1):
                     rows.append((str(k),))
 
@@ -263,6 +275,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
                 table_widget.setItem(i, j, item)
         table_widget.setSortingEnabled(sorting)
+
+        if index == 4:
+            cluster_elements = self._project.get_cluster_elements()
+            self.includedElementsLabel.setText( \
+                'Included elements: {}'.format(cluster_elements))
 
     def filter(self):
         dialog = FilterDialog(parent=self)
@@ -410,14 +427,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.matplotlibWidget.clear()
         else:
             plot_type = PlotType(self.plotTypeComboBox.currentIndex())
-            cmap_int_limits = None
+            cmap_int_max = None
             if self._element in ('h', 'h-factor'):
                 title = 'h-factor'
             elif self._type == 'ratio':
                 title = self._element + ' ratio'
             elif self._type == 'cluster':
                 title = 'k={} cluster'.format(self._element)
-                cmap_int_limits = (0, self._element)
+                cmap_int_max = self._element
             else:
                 if self._element == 'Total':
                     name = 'total'
@@ -427,7 +444,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             self.matplotlibWidget.update( \
                 plot_type, self._array, self._array_stats, title,
-                cmap_int_limits=cmap_int_limits)
+                cmap_int_max=cmap_int_max)
 
     def update_menu(self):
         valid_project = self._project is not None

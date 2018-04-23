@@ -33,7 +33,6 @@ class QACDProject:
         self._valid_preset_ratios = None
         self._ratios = {}  # dict of name -> tuple of
                            #   (formula, correction_model, preset, node_name)
-        self._cluster_k = None  # If performed clustering, is (k_min, k_max).
 
         # Regular expression to match input CSV filenames.
         self._csv_file_re = re.compile('^([A-Z][a-z]?) K series.csv$')
@@ -44,6 +43,9 @@ class QACDProject:
         # numpy array dtypes.
         self._raw_dtype = np.int32
         self._indices_dtype = np.int8
+
+        # Common elements for simpler analysis.
+        self.common_elements = ('Al', 'Ca', 'Fe', 'Mg', 'Si')
 
     def _add_array_stats(self, h5node, array, mask=None):
         # Add statistics of the specified array to the specified h5 file node.
@@ -169,11 +171,6 @@ class QACDProject:
 
         if progress_callback:
             progress_callback(1.0, 'Finished')
-
-    @property
-    def cluster_k(self):
-        # Read-only property.
-        return self._cluster_k
 
     def create_ratio_map(self, name, preset=None, elements=None,
                          correction_model=None):
@@ -400,6 +397,14 @@ class QACDProject:
         stage = 2
         self.calculate_h_factor(progress_callback=local_callback)
 
+    def get_cluster_elements(self):
+        with self._h5file_ro() as h5file:
+            if '/cluster' in h5file:
+                group = h5file.get_node('/cluster')
+                return group._v_attrs.elements
+            else:
+                return None
+
     def get_cluster_indices(self, k, masked=True, want_stats=False):
         # Return array indicating which cluster each pixel is in, from 0 to k-1.
         # If masked==True, invalid pixels are masked out otherwise they are -1.
@@ -408,6 +413,14 @@ class QACDProject:
 
         return self._get_array('/cluster/k{}/indices'.format(k), masked,
                                want_stats)
+
+    def get_cluster_k(self):
+        with self._h5file_ro() as h5file:
+            if '/cluster' in h5file:
+                group = h5file.get_node('/cluster')
+                return (group._v_attrs.k_min, group._v_attrs.k_max)
+            else:
+                return None
 
     def get_correction_model_elements(self, correction_model):
         return correction_models[correction_model].keys()
@@ -617,7 +630,8 @@ class QACDProject:
     def is_valid_csv_filename(self, csv_filename):
         return self._csv_file_re.match(csv_filename)
 
-    def k_means_clustering(self, k_min, k_max, reorder=True):
+    def k_means_clustering(self, k_min, k_max, want_all_elements, reorder=True,
+                           progress_callback=None):
         # k_min and k_max are min and max number of clusters.
         # If reorder is True, will reorder labels so that they are consistent
         # across different k values rather than being randomly ordered.
@@ -631,8 +645,15 @@ class QACDProject:
         # Obtain array of all filtered element maps.  k-means clustering cannot
         # deal with masked arrays (or np.nan or np.inf) so need to remove
         # masked out pixels beforehand.
+        if progress_callback:
+            progress_callback(0.0, 'Preparing array of all filtered element maps')
+
+        elements = self._elements
+        if not want_all_elements:
+            elements = sorted(set(self.common_elements).intersection(elements))
+
         all_elements = None
-        for i, element in enumerate(self.elements):
+        for i, element in enumerate(elements):
             filtered = self.get_filtered(element)  # Masked.
 
             if i == 0:
@@ -648,14 +669,23 @@ class QACDProject:
                 else:
                     npixels = np.sum(mask_valid)
 
-                all_elements = np.empty((npixels, len(self.elements)))
+                all_elements = np.empty((npixels, len(elements)))
 
             all_elements[:, i] = filtered.compressed()
 
         with self._h5file() as h5file:
             cluster_group = h5file.create_group('/', 'cluster',
                                                 'k-means clustering')
+            cluster_group._v_attrs.k_min = k_min
+            cluster_group._v_attrs.k_max = k_max
+            cluster_group._v_attrs.elements = \
+                'all' if want_all_elements else ', '.join(elements)
+
             for k in range(k_min, k_max+1):
+                if progress_callback:
+                    text = 'Calculating clusters for k={}'.format(k)
+                    progress_callback((k-k_min+1) / (k_max-k_min+2), text)
+
                 kmeans = MiniBatchKMeans(n_clusters=k, random_state=1234,
                                          n_init=10)
 
@@ -699,8 +729,10 @@ class QACDProject:
                                       mask=filtered_mask)
                 h5file.create_carray(k_group, 'centroids', obj=centroids)
 
-            self._cluster_k = (k_min, k_max)
             self._state = State.CLUSTERING
+
+            if progress_callback:
+                progress_callback(1.0, 'Finished')
 
     def load_file(self, filename):
         if self._state != State.INVALID:
@@ -892,7 +924,55 @@ class QACDProject:
                                 ratio_chunkshape = node.chunkshape
                             else:
                                 if node.chunkshape != ratio_chunkshape:
-                                    raise RuntimeError('Incorrect chunkshape for ratio {}'.format(node_namne, type_))
+                                    raise RuntimeError('Incorrect chunkshape for ratio {}'.format(node_name, type_))
+
+            if '/cluster' in h5file:
+                if self._state < State.H_FACTOR:
+                    raise RuntimeError('Unexpected node /cluster')
+
+                group_node = h5file.get_node('/cluster')
+                k_min = group_node._v_attrs.k_min
+                k_max = group_node._v_attrs.k_max
+                cluster_elements = group_node._v_attrs.elements
+                if k_min > k_max:
+                    raise RuntimeError('Cluster k_min is greater than k_max')
+
+                n_cluster_elements = len(self.elements) \
+                    if cluster_elements == 'all' else len(cluster_elements)
+
+                cluster_chunkshape = None
+                for k in range(k_min, k_max+1):
+                    k_node = h5file.get_node('/cluster/k{}'.format(k))
+
+                    # Cluster k indices is masked array.
+                    indices = h5file.get_node(k_node, 'indices')
+                    attrs = indices._v_attrs._v_attrnames
+                    if not all([name in attrs for name in indices_stats]):
+                        raise RuntimeError('Missing stats in cluster indices {}'.format(k))
+
+                    for type_, dtype in zip(['data', 'mask'], [self._indices_dtype, np.bool]):
+                        node = h5file.get_node(indices, type_)
+                        if isinstance(node, tables.link.SoftLink):
+                            node = node.dereference()
+
+                        if type_ == 'mask' and node.shape == ():
+                            if node.read() != False:
+                                raise RuntimeError('Incorrect empty mask for cluster indices {}'.format(k))
+                        else:
+                            if node.shape != shape:
+                                raise RuntimeError('Incorrect shape for cluster indices {} {}'.format(k, type_))
+                            if cluster_chunkshape is None:
+                                cluster_chunkshape = node.chunkshape
+                            else:
+                                if node.chunkshape != cluster_chunkshape:
+                                    raise RuntimeError('Incorrect chunkshape for cluster indices {} {}'.format(k, type_))
+
+                    # Cluster k centroids.
+                    centroids = h5file.get_node(k_node, 'centroids')
+                    if centroids.shape != (k, n_cluster_elements):
+                        raise RuntimeError('Incorrect shape for cluster centroids {}'.format(k))
+                    if centroids.dtype != np.float64:
+                        raise RuntimeError('Incorrect dtype for cluster centroids {}'.format(k))
 
     def normalise(self, progress_callback=None):
         if self._state != State.FILTERED:

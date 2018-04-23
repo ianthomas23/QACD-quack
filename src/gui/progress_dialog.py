@@ -15,6 +15,7 @@ class ProgressDialog(QtWidgets.QDialog, Ui_ProgressDialog):
         self.callback(0, '')
 
     def callback(self, percent, text):
+        #print(percent, text)
         self.label.setText(text)
         self.progress.setValue(percent)
         self.update()  # Schedule repaint.

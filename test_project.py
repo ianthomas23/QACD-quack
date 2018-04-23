@@ -65,7 +65,7 @@ def test_sequence():
     k_min = 5
     k_max = 8
     with pytest.raises(RuntimeError):
-        p.k_means_clustering(k_min, k_max)
+        p.k_means_clustering(k_min, k_max, want_all_elements=True)
     with pytest.raises(RuntimeError):
         p.create_ratio_map('some_ratio', ['Mg', 'Ca'])
 
@@ -77,7 +77,7 @@ def test_sequence():
     p.get_h_factor()
 
     # H_FACTOR -> CLUSTERING.
-    p.k_means_clustering(k_min, k_max)
+    p.k_means_clustering(k_min, k_max, want_all_elements=True)
     assert p.state == State.CLUSTERING
     with pytest.raises(RuntimeError):
         p.calculate_h_factor()
@@ -242,7 +242,7 @@ def consistency_impl(directory, pixel_totals, median):
     # k-means clustering
     k_min = 5
     k_max = 10
-    p.k_means_clustering(k_min, k_max)
+    p.k_means_clustering(k_min, k_max, want_all_elements=True)
     for k in range(k_min, k_max+1):
         cluster, cluster_stats = p.get_cluster_indices(k, want_stats=True)
         np.testing.assert_array_equal(cluster.mask, filtered.mask)
