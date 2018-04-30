@@ -13,6 +13,7 @@ from .matplotlib_widget import MatplotlibWidget, PlotType
 from .new_ratio_dialog import NewRatioDialog
 from .progress_dialog import ProgressDialog
 from .ui_main_window import Ui_MainWindow
+from .zoom_history import ZoomHistory
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
@@ -21,12 +22,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.setupUi(self)
 
+        self.matplotlibWidget.set_main_window(self)
+
         self.actionProjectNew.triggered.connect(self.new_project)
         self.actionProjectOpen.triggered.connect(self.choose_open_project)
         self.actionProjectClose.triggered.connect(self.close_project)
         self.actionFilter.triggered.connect(self.filter)
         self.actionClustering.triggered.connect(self.clustering)
         self.actionDisplayOptions.triggered.connect(self.display_options)
+        self.undoButton.clicked.connect(self.zoom_undo)
+        self.redoButton.clicked.connect(self.zoom_redo)
 
         self.statusbar.messageChanged.connect(self.status_bar_change)
 
@@ -76,7 +81,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self._ignore_selection_change = False
         self._display_options_shown = False
 
-        self.update_menu()
+        self._zoom_history = ZoomHistory()
+
+        self.update_controls()
         self.update_title()
 
     def change_plot_type(self):
@@ -138,7 +145,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             self._array, self._array_stats = ret
 
-        self.update_menu()
+        self.update_controls()
         self.update_status_bar()
         self.update_matplotlib_widget()
         QtWidgets.QApplication.restoreOverrideCursor()
@@ -172,7 +179,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.tabWidget.removeTab(i)
 
             self.update_matplotlib_widget()
-            self.update_menu()
+            self.matplotlibWidget.clear_all()
+            self.update_controls()
             self.update_title()
 
     def clustering(self):
@@ -204,7 +212,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.fill_table_widget(4)
             self.tabWidget.setCurrentIndex(4)  # Bring tab to front.
 
-            self.update_menu()
+            self.update_controls()
             QtWidgets.QApplication.restoreOverrideCursor()
 
     def delete_ratio(self):
@@ -218,7 +226,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             table_widget.clearSelection()
             table_widget.removeRow(row)
             self._project.delete_ratio_map(name)
-            self.update_menu()
+            self.update_controls()
             if len(self._project.ratios) == 0:
                 # If other ratios remain, one is automatically selected and so
                 # mpl widget is automatically updated.  Need to clear selection
@@ -229,7 +237,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def display_options(self):
         def finished():
             self._display_options_shown = False
-            self.update_menu()
+            self.update_controls()
 
         colormap_name = self.matplotlibWidget.get_colormap_name()
         valid_colormap_names = self.matplotlibWidget.get_valid_colormap_names()
@@ -240,7 +248,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         dialog.show()
 
         self._display_options_shown = True
-        self.update_menu()
+        self.update_controls()
 
     def fill_list_widget(self, index):
         type_string, tab_widget, list_widget , _= self._tabs_and_lists[index]
@@ -323,7 +331,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.fill_table_widget(4)
             self.tabWidget.setCurrentIndex(2)  # Bring tab to front.
 
-            self.update_menu()
+            self.update_controls()
             QtWidgets.QApplication.restoreOverrideCursor()
 
     def new_project(self):
@@ -371,7 +379,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.fill_list_widget(0)
         self.tabWidget.setCurrentIndex(0)  # Bring tab to front.
 
-        self.update_menu()
+        self.update_controls()
         self.update_status_bar()
         self.update_title()
         self.update_matplotlib_widget()
@@ -391,7 +399,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             row = names.index(name)
             table_widget.selectRow(row)
 
-            self.update_menu()
+            self.update_controls()
 
     def open_project(self, filename):
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
@@ -423,7 +431,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.fill_table_widget(3)  # Ratios.
             self.fill_table_widget(4)  # Clustering.
 
-        self.update_menu()
+        self.update_controls()
         self.update_status_bar()
         self.update_title()
         self.update_matplotlib_widget()
@@ -440,6 +448,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if (self.statusbar.currentMessage() == '' and \
             self._array is not None):
             self.update_status_bar()
+
+    def update_controls(self):
+        valid_project = self._project is not None
+        self.actionProjectClose.setEnabled(valid_project)
+        self.actionFilter.setEnabled(valid_project and
+                                     self._project.state == State.RAW)
+        self.actionClustering.setEnabled(valid_project and
+                                         self._project.state == State.H_FACTOR)
+        self.actionDisplayOptions.setEnabled(not self._display_options_shown)
+        self.deleteRatioButton.setEnabled(self.ratioTable.currentItem() is not None)
+        self.undoButton.setEnabled(self._zoom_history.has_undo())
+        self.redoButton.setEnabled(self._zoom_history.has_redo())
 
     def update_matplotlib_widget(self):
         if self._type is None:
@@ -464,16 +484,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.matplotlibWidget.update( \
                 plot_type, self._array, self._array_stats, title,
                 cmap_int_max=cmap_int_max)
-
-    def update_menu(self):
-        valid_project = self._project is not None
-        self.actionProjectClose.setEnabled(valid_project)
-        self.actionFilter.setEnabled(valid_project and
-                                     self._project.state == State.RAW)
-        self.actionClustering.setEnabled(valid_project and
-                                         self._project.state == State.H_FACTOR)
-        self.actionDisplayOptions.setEnabled(not self._display_options_shown)
-        self.deleteRatioButton.setEnabled(self.ratioTable.currentItem() is not None)
 
     def update_status_bar(self):
         def stat_to_string(name, label=None):
@@ -509,3 +519,19 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if self._project is not None:
             title += ' - ' + self._project.filename
         self.setWindowTitle(title)
+
+    def zoom_append(self, from_, to):
+        # Append zoom rectangle to zoom history, and apply it.
+        self._zoom_history.append(from_, to)
+        self.matplotlibWidget.set_map_zoom(to[0], to[1])
+        self.update_controls()
+
+    def zoom_redo(self):
+        zoom = self._zoom_history.redo()
+        self.matplotlibWidget.set_map_zoom(zoom[1][0], zoom[1][1])
+        self.update_controls()
+
+    def zoom_undo(self):
+        zoom = self._zoom_history.undo()
+        self.matplotlibWidget.set_map_zoom(zoom[0][0], zoom[0][1])
+        self.update_controls()
