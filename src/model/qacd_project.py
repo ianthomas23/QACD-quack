@@ -20,7 +20,6 @@ class State(IntEnum):
     FILTERED = 3    # Filtered element maps, including total.
     NORMALISED = 4  # Normalised element maps.
     H_FACTOR = 5    # Calculation of h factor for each normalised pixel.
-    CLUSTERING = 6  # k-means clustering to help identify phases.
 
 
 class QACDProject:
@@ -283,6 +282,12 @@ class QACDProject:
         self._ratios[name] = (formula, correction_model, preset, node_name)
         return node_name
 
+    def delete_all_clusters(self):
+        with self._h5file() as h5file:
+            if '/cluster' in h5file:
+                node = h5file.get_node('/cluster')
+                node._f_remove(recursive=True)
+
     def delete_ratio_map(self, name):
         ratio = self._ratios.pop(name)
         node_name = ratio[-1]
@@ -408,7 +413,7 @@ class QACDProject:
     def get_cluster_indices(self, k, masked=True, want_stats=False):
         # Return array indicating which cluster each pixel is in, from 0 to k-1.
         # If masked==True, invalid pixels are masked out otherwise they are -1.
-        if self._state != State.CLUSTERING:
+        if not self.has_cluster():
             raise RuntimeError('No k-means cluster data present')
 
         return self._get_array('/cluster/k{}/indices'.format(k), masked,
@@ -528,6 +533,10 @@ class QACDProject:
 
         return self._valid_preset_ratios
 
+    def has_cluster(self):
+        with self._h5file_ro() as h5file:
+            return '/cluster' in h5file
+
     def import_raw_csv_files(self, directory, csv_filenames=None,
                              progress_callback=None):
         # If no csv_filenames are specified, loads all appropriate files from
@@ -635,7 +644,7 @@ class QACDProject:
         # k_min and k_max are min and max number of clusters.
         # If reorder is True, will reorder labels so that they are consistent
         # across different k values rather than being randomly ordered.
-        if self._state == State.CLUSTERING:
+        if self.has_cluster():
             raise RuntimeError('k-means clustering already performed')
         if self._state != State.H_FACTOR:
             raise RuntimeError('No h-factor map present')
@@ -728,8 +737,6 @@ class QACDProject:
                 self._add_array_stats(indices_group, indices,
                                       mask=filtered_mask)
                 h5file.create_carray(k_group, 'centroids', obj=centroids)
-
-            self._state = State.CLUSTERING
 
             if progress_callback:
                 progress_callback(1.0, 'Finished')

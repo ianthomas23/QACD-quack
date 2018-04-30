@@ -95,7 +95,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             if tab_index >= 3:
                 row = list_widget.currentRow()
                 item = list_widget.item(row, 0)
-                self._element = item.text()
+                if item is not None:
+                    self._element = item.text()
+                else:
+                    self._element = None
             else:
                 self._element = list_widget.currentItem().text().split()[0]
 
@@ -107,7 +110,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self._ignore_selection_change = False
 
             # Retrieve array and array stats from project.
-            if self._type == 'raw':
+            if self._element is None:
+                self._type = None
+                ret = (None, None)
+            elif self._type == 'raw':
                 if self._element == 'Total':
                     ret = self._project.get_raw_total(want_stats=True)
                 else:
@@ -154,9 +160,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self._type = None
             self._element = None
 
-            # Clear list widgets.
-            for _, _, list_widget in self._tabs_and_lists:
-                list_widget.clear()
+            # Clear list/table widgets.
+            for i, (_, _, widget, _) in enumerate(self._tabs_and_lists):
+                if i >= 3:  # Is a table widget.
+                    widget.setRowCount(0)
+                else:  # Is a list widget.
+                    widget.clear()
 
             # Hide all but the first tab.
             for i in range(self.tabWidget.count()-1, 0, -1):
@@ -169,6 +178,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def clustering(self):
         dialog = ClusteringDialog(self._project, parent=self)
         if dialog.exec_():
+            if self._project.has_cluster():
+                button = QtWidgets.QMessageBox.question(self,
+                    'k-means cluster maps already exist',
+                    'Proceeding will delete the previous k-means cluster maps.<br>Do you want to continue?')
+                if button == QtWidgets.QMessageBox.Yes:
+                    self._project.delete_all_clusters()
+                    self.fill_table_widget(4)
+                else:
+                    return
+
             QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
 
             k_min, k_max, want_all_elements = dialog.get_values()

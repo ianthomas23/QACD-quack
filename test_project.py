@@ -77,8 +77,10 @@ def test_sequence():
     p.get_h_factor()
 
     # H_FACTOR -> CLUSTERING.
+    assert not p.has_cluster()
     p.k_means_clustering(k_min, k_max, want_all_elements=True)
-    assert p.state == State.CLUSTERING
+    assert p.state == State.H_FACTOR
+    assert p.has_cluster()
     with pytest.raises(RuntimeError):
         p.calculate_h_factor()
     p.get_cluster_indices(k_min)

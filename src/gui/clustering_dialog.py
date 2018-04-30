@@ -7,6 +7,10 @@ class ClusteringDialog(QtWidgets.QDialog, Ui_ClusteringDialog):
     def __init__(self, project, parent=None):
         QtWidgets.QDialog.__init__(self, parent)
         self.setupUi(self)
+
+        # Make dialog fit contents.
+        self.setFixedSize(self.layout().sizeHint())
+
         self.project = project
 
     def accept(self):
