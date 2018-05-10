@@ -39,10 +39,12 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._map_axes = None
 
         # Matplotlib canvas events.
-        self._canvas.mpl_connect('resize_event', self.on_resize)
+        self._canvas.mpl_connect('axes_enter_event', self.on_axes_enter)
+        self._canvas.mpl_connect('axes_leave_event', self.on_axes_leave)
         self._canvas.mpl_connect('button_press_event', self.on_mouse_down)
         self._canvas.mpl_connect('button_release_event', self.on_mouse_up)
         self._canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
+        self._canvas.mpl_connect('resize_event', self.on_resize)
 
         self._image = None       # Image used for element map.
         self._bar = None         # Bar used for histogram.
@@ -98,21 +100,26 @@ class MatplotlibWidget(QtWidgets.QWidget):
     def get_valid_colormap_names(self):
         return self._valid_colormap_names
 
+    def on_axes_enter(self, event):
+        if event.inaxes is not None and event.inaxes == self._map_axes:
+            QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CrossCursor)
+
+    def on_axes_leave(self, event):
+        if event.inaxes is not None and event.inaxes == self._map_axes:
+            QtWidgets.QApplication.restoreOverrideCursor()
+
     def on_mouse_down(self, event):
         if (self._zoom_rectangle is None and self._map_axes is not None and
             event.button == 1 and event.dblclick == False and
             event.inaxes == self._map_axes):
 
-            zoom_start = (event.xdata, event.ydata)
-            QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CrossCursor)
-
-            rectangle = Rectangle(zoom_start, width=0, height=0,
+            rectangle = Rectangle((event.xdata, event.ydata), width=0, height=0,
                                   fc='none', ec='k', ls='--')
             self._zoom_rectangle = self._map_axes.add_patch(rectangle)
             self._canvas.draw_idle()
 
     def on_mouse_move(self, event):
-        if self._zoom_rectangle is not None:
+        if self._zoom_rectangle is not None and event.inaxes == self._map_axes:
             x = event.xdata
             y = event.ydata
             self._zoom_rectangle.set_width(x - self._zoom_rectangle.get_x())
@@ -122,15 +129,21 @@ class MatplotlibWidget(QtWidgets.QWidget):
     def on_mouse_up(self, event):
         if (self._zoom_rectangle is not None and event.button == 1 and
             event.dblclick == False):
-            zoom_xs = sorted([self._zoom_rectangle.get_x(), event.xdata])
-            zoom_ys = sorted([self._zoom_rectangle.get_y(), event.ydata])
+
+            width = self._zoom_rectangle.get_width()
+            height = self._zoom_rectangle.get_height()
+            if abs(width) > 1e-10 and abs(height) > 1e-10:
+                x = self._zoom_rectangle.get_x()
+                y = self._zoom_rectangle.get_y()
+                zoom_xs = sorted([x, x+width])
+                zoom_ys = sorted([y, y+height], reverse=True)
+
+                self.main_window.zoom_append( \
+                    from_=(self._map_axes.get_xlim(), self._map_axes.get_ylim()),
+                    to=(zoom_xs, zoom_ys))
 
             self._map_axes.patches[-1].remove()
             self._zoom_rectangle = None
-
-            from_ = (self._map_axes.get_xlim(), self._map_axes.get_ylim())
-            self.main_window.zoom_append(from_=from_, to=(zoom_xs, zoom_ys))
-            QtWidgets.QApplication.restoreOverrideCursor()
 
     def on_resize(self, event):
         self._tight_layout()
