@@ -32,6 +32,7 @@ class QACDProject:
         self._valid_preset_ratios = None
         self._ratios = {}  # dict of name -> tuple of
                            #   (formula, correction_model, preset, node_name)
+        self._phases = []  # List of (sorted) names only.
 
         # Regular expression to match input CSV filenames.
         self._csv_file_re = re.compile('^([A-Z][a-z]?) K series.csv$')
@@ -50,20 +51,28 @@ class QACDProject:
         # Add statistics of the specified array to the specified h5 file node.
         # If a mask is specified, it is applied to the array before calculating
         # the stats.
+        is_bool_array = array.dtype == np.bool
+
         if mask is not None:
             array = np.ma.masked_array(array, mask=mask)
 
-        h5node._v_attrs.min = array.min()
-        h5node._v_attrs.max = array.max()
+        if not is_bool_array:
+            h5node._v_attrs.min = array.min()
+            h5node._v_attrs.max = array.max()
 
-        if array.dtype != self._indices_dtype:
+        if array.dtype != self._indices_dtype and not is_bool_array:
             h5node._v_attrs.mean = array.mean()
             h5node._v_attrs.median = np.ma.median(array)
             h5node._v_attrs.std = array.std()
 
-        number_invalid = np.ma.count_masked(array)
+        if is_bool_array:
+            number_valid = np.count_nonzero(array)
+            number_invalid = array.size - number_valid
+        else:
+            number_invalid = np.ma.count_masked(array)
+            number_valid = array.size - number_invalid
         h5node._v_attrs.invalid = number_invalid
-        h5node._v_attrs.valid = array.size - number_invalid
+        h5node._v_attrs.valid = number_valid
 
     def _get_array(self, full_node_name, masked=True, want_stats=False,
                    h5file=None):
@@ -84,11 +93,17 @@ class QACDProject:
         group_node = h5file.get_node(full_node_name)
         array = h5file.get_node(group_node, 'data').read()
         if masked:
-            mask = h5file.get_node(group_node, 'mask').read()
+            if full_node_name + '/mask' in h5file:
+                mask = h5file.get_node(group_node, 'mask').read()
+            else:
+                # Derive mask from data array.
+                mask = array == 0
             array = np.ma.masked_array(array, mask=mask)
 
         if array.dtype in [self._raw_dtype, self._indices_dtype]:
             np.ma.set_fill_value(array, -1)
+        elif array.dtype == np.bool:
+            np.ma.set_fill_value(array, False)
         else:
             np.ma.set_fill_value(array, np.nan)
 
@@ -171,15 +186,64 @@ class QACDProject:
         if progress_callback:
             progress_callback(1.0, 'Finished')
 
+    def create_phase_map_from_filtered(self, name, elements_and_thresholds):
+        # Create a phase map (boolean array) of pixels that are within the
+        # (min, max) filtered values for one or more elements.
+        # elements_and_thresholds is a sequence of (element, min, max) tuples.
+        if self._state < State.FILTERED:
+            raise RuntimeError('Cannot create phase map, no filtered data present')
+        if name in self._phases:
+            raise RuntimeError('Phase name {} already used'.format(name))
+        if len(elements_and_thresholds) < 1:
+            raise RuntimeError('No elements and thresholds specified')
+
+        # Create phase map.
+        phase_map = None
+        for tuple_ in elements_and_thresholds:
+            if len(tuple_) != 3:
+                raise RuntimeError('Invalid element and threshold: {}'.format(tuple_))
+            element, min_, max_ = tuple_
+            if element not in self.elements:
+                raise RuntimeError('Unrecognised element {}'.format(element))
+            if max_ < min_:
+                raise RuntimeError('Min, max limits for element {} are decreasing'.format(element))
+
+            # Note that filtered has nans instead of being a masked array.
+            filtered = self.get_filtered(element, masked=False)
+
+            with np.errstate(invalid='ignore'):
+                in_limits = np.logical_and(filtered >= min_, filtered <= max_)
+
+            if phase_map is None:
+                phase_map = in_limits
+            else:
+                phase_map = np.logical_and(phase_map, in_limits)
+
+        # Store phase map.
+        with self._h5file() as h5file:
+            if '/phase' in h5file:
+                all_phases = h5file.get_node('/phase')
+            else:
+                all_phases = h5file.create_group('/', 'phase', 'Phase maps')
+
+            phase_group = h5file.create_group(all_phases, name)
+            phase_data = h5file.create_carray(phase_group, 'data', obj=phase_map)
+            self._add_array_stats(phase_group, phase_map, mask=None)
+            phase_group._v_attrs.source = 'filtered'
+            phase_group._v_attrs.elements_and_thresholds = elements_and_thresholds
+
+        self._phases.append(name)
+        self._phases.sort()
+
     def create_ratio_map(self, name, preset=None, elements=None,
                          correction_model=None):
         # Create and store a ratio map of the same shape as the element maps.
         # Either preset should be specified, or elements; the former gives a
         # preset ratio, the latter a custom ratio.
-        # For a custom ratio map, if elements is a list of element names of
+        # For a custom ratio map, elements is a list of element names of
         # len > 1, the ratio map is
         #     elements[0] / sum(elements)
-        # whereas ff elements is a list of a single element, the ratio map is
+        # whereas elements is a list of a single element, the ratio map is
         #     elements[0]
         # If a preset then it is looked up in the valid presets to determine
         # the corresponding element list.
@@ -482,6 +546,14 @@ class QACDProject:
         return self._get_array('/normalised/' + element, masked, want_stats,
                                h5file)
 
+    def get_phase(self, name, masked=True, want_stats=False, h5file=None):
+        # Return phase map which is an unmasked boolean array.
+        if name not in self._phases:
+            raise RuntimeError('No such phase map: {}'.format(name))
+
+        return self._get_array('/phase/' + name, masked=masked,
+                               want_stats=want_stats, h5file=h5file)
+
     def get_preset_elements(self, preset_name):
         return preset_ratios[preset_name]
 
@@ -760,6 +832,7 @@ class QACDProject:
             all_stats = indices_stats + ['mean', 'median', 'std']
             ratio_stats = all_stats + ['name', 'formula', 'correction_model',
                                        'preset']
+            phase_stats = ['valid', 'invalid', 'source']
 
             if self._state < State.RAW:
                 if '/raw' in h5file:
@@ -786,6 +859,9 @@ class QACDProject:
                         node = h5file.get_node('/raw/{}/{}'.format(element, type_))
                         if isinstance(node, tables.link.SoftLink):
                             node = node.dereference()
+
+                        if node.dtype != dtype:
+                            raise RuntimeError('Incorrect dtype for raw {} {}'.format(element, type_))
 
                         if type_ == 'mask' and node.shape == ():
                             if node.read() != False:
@@ -816,6 +892,9 @@ class QACDProject:
                         if isinstance(node, tables.link.SoftLink):
                             node = node.dereference()
 
+                        if node.dtype != dtype:
+                            raise RuntimeError('Incorrect dtype for filtered {} {}'.format(element, type_))
+
                         if type_ == 'mask' and node.shape == ():
                             if node.read() != False:
                                 raise RuntimeError('Incorrect empty mask for filtered {}'.format(element))
@@ -845,6 +924,9 @@ class QACDProject:
                         if isinstance(node, tables.link.SoftLink):
                             node = node.dereference()
 
+                        if node.dtype != dtype:
+                            raise RuntimeError('Incorrect dtype for normalised {} {}'.format(element, type_))
+
                         if type_ == 'mask' and node.shape == ():
                             if node.read() != False:
                                 raise RuntimeError('Incorrect empty mask for normalised {}'.format(element))
@@ -872,6 +954,9 @@ class QACDProject:
                     node = h5file.get_node('/h_factor/{}'.format(type_))
                     if isinstance(node, tables.link.SoftLink):
                         node = node.dereference()
+
+                    if node.dtype != dtype:
+                        raise RuntimeError('Incorrect dtype for h-factor {}'.format(type_))
 
                     if type_ == 'mask' and node.shape == ():
                         if node.read() != False:
@@ -921,6 +1006,9 @@ class QACDProject:
                         if isinstance(node, tables.link.SoftLink):
                             node = node.dereference()
 
+                        if node.dtype != dtype:
+                            raise RuntimeError('Incorrect dtype for ratio {} {}'.format(node_name, type_))
+
                         if type_ == 'mask' and node.shape == ():
                             if node.read() != False:
                                 raise RuntimeError('Incorrect empty mask for ratio {}'.format(node_name))
@@ -962,6 +1050,9 @@ class QACDProject:
                         if isinstance(node, tables.link.SoftLink):
                             node = node.dereference()
 
+                        if node.dtype != dtype:
+                            raise RuntimeError('Incorrect dtype for cluster indices {} {}'.format(k, type_))
+
                         if type_ == 'mask' and node.shape == ():
                             if node.read() != False:
                                 raise RuntimeError('Incorrect empty mask for cluster indices {}'.format(k))
@@ -980,6 +1071,39 @@ class QACDProject:
                         raise RuntimeError('Incorrect shape for cluster centroids {}'.format(k))
                     if centroids.dtype != np.float64:
                         raise RuntimeError('Incorrect dtype for cluster centroids {}'.format(k))
+
+            if '/phase' in h5file:
+                if self._state < State.FILTERED:
+                    raise RuntimeError('Unexpected node /phase')
+
+                group_node = h5file.get_node('/phase')
+                for phase_node in group_node._f_list_nodes():
+                    name = phase_node._v_name
+
+                    # Check attributes.
+                    attrs = phase_node._v_attrs._v_attrnames
+                    if not all([name in attrs for name in phase_stats]):
+                        raise RuntimeError('Missing stats in phase {}'.format(name))
+
+                    source = phase_node._v_attrs.source
+                    if source not in ['filtered', 'cluster']:
+                        raise RuntimeError('Incorrect source {} for phase {}'.format(source, name))
+                    if source == 'filtered':
+                        if 'elements_and_thresholds' not in attrs:
+                            raise RuntimeError('No elements_and_thresholds for phase {}'.format(name))
+                    else:
+                        raise RuntimeError('Not implemented yet')
+
+                    # Check array.
+                    node = h5file.get_node(phase_node, 'data')
+                    if node.dtype != np.bool:
+                        raise RuntimeError('Incorrect dtype for phase {}'.format(name))
+                    if node.shape != shape:
+                        raise RuntimeError('Incorrect shape for phase {}'.format(name))
+
+                    self._phases.append(name)
+
+                self._phases.sort()
 
     def normalise(self, progress_callback=None):
         if self._state != State.FILTERED:
@@ -1013,6 +1137,11 @@ class QACDProject:
 
         if progress_callback:
             progress_callback(1.0, 'Finished')
+
+    @property
+    def phases(self):
+        # Read-only property.
+        return self._phases
 
     @property
     def ratios(self):

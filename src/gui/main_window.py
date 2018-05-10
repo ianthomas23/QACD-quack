@@ -9,7 +9,7 @@ from src.model.qacd_project import QACDProject, State
 from .clustering_dialog import ClusteringDialog
 from .display_options_dialog import DisplayOptionsDialog
 from .filter_dialog import FilterDialog
-from .matplotlib_widget import MatplotlibWidget, PlotType
+from .matplotlib_widget import MatplotlibWidget, DataType, PlotType
 from .new_ratio_dialog import NewRatioDialog
 from .progress_dialog import ProgressDialog
 from .ui_main_window import Ui_MainWindow
@@ -17,6 +17,26 @@ from .zoom_history import ZoomHistory
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
+    # Inner class for current data displayed.
+    class Current:
+        def __init__(self):
+            self.clear()
+
+        def clear(self):
+            # Selected array read from project.
+            self.selected_array = None
+            self.selected_array_stats = None
+
+            # Displayed array is selected array masked by phase and/or region.
+            # May be same objects as selected above.
+            self.displayed_array = None
+            self.displayed_array_stats = None
+
+            self.data_type = DataType.NONE
+            self.name = None   # e.g. element name, or 'total', etc.
+            self.phase = None
+
+
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
 
@@ -24,26 +44,31 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.matplotlibWidget.set_main_window(self)
 
+        self.statusbar.messageChanged.connect(self.status_bar_change)
+
+        # Menu items.
         self.actionProjectNew.triggered.connect(self.new_project)
         self.actionProjectOpen.triggered.connect(self.choose_open_project)
         self.actionProjectClose.triggered.connect(self.close_project)
         self.actionFilter.triggered.connect(self.filter)
         self.actionClustering.triggered.connect(self.clustering)
         self.actionDisplayOptions.triggered.connect(self.display_options)
-        self.undoButton.clicked.connect(self.zoom_undo)
-        self.redoButton.clicked.connect(self.zoom_redo)
 
-        self.statusbar.messageChanged.connect(self.status_bar_change)
-
-        self.plotTypeComboBox.currentIndexChanged.connect(self.change_plot_type)
+        # Tab widget controls.
         self.rawElementList.itemSelectionChanged.connect(self.change_tab_list_item)
         self.filteredElementList.itemSelectionChanged.connect(self.change_tab_list_item)
         self.normalisedElementList.itemSelectionChanged.connect(self.change_tab_list_item)
         self.ratioTable.itemSelectionChanged.connect(self.change_tab_list_item)
         self.clusterTable.itemSelectionChanged.connect(self.change_tab_list_item)
-
+        self.phaseTable.itemSelectionChanged.connect(self.change_tab_list_item)
         self.newRatioButton.clicked.connect(self.new_ratio)
         self.deleteRatioButton.clicked.connect(self.delete_ratio)
+
+        # Matplotlib toolbar controls.
+        self.plotTypeComboBox.currentIndexChanged.connect(self.change_plot_type)
+        self.phaseComboBox.currentIndexChanged.connect(self.change_phase)
+        self.undoButton.clicked.connect(self.zoom_undo)
+        self.redoButton.clicked.connect(self.zoom_redo)
 
         # Set initial width of tabWidget.  Needs improvement.
         #self.splitter.setSizes([50, 100])
@@ -53,15 +78,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.tabWidget.removeTab(i)
 
         self._tabs_and_lists = (
-            ('raw', self.rawTab, self.rawElementList, ''),
-            ('filtered', self.filteredTab, self.filteredElementList, ''),
-            ('normalised', self.normalisedTab, self.normalisedElementList, ''),
-            ('ratio', self.ratioTab, self.ratioTable, 'Ratios'),
-            ('cluster', self.clusterTab, self.clusterTable, 'Clusters'),
+            (DataType.RAW, self.rawTab, self.rawElementList, ''),
+            (DataType.FILTERED, self.filteredTab, self.filteredElementList, ''),
+            (DataType.NORMALISED, self.normalisedTab, self.normalisedElementList, ''),
+            (DataType.RATIO, self.ratioTab, self.ratioTable, 'Ratios'),
+            (DataType.CLUSTER, self.clusterTab, self.clusterTable, 'Clusters'),
+            (DataType.PHASE, self.phaseTab, self.phaseTable, 'Phases'),
         )
 
         # Correct table widget properties.
-        for table in (self.ratioTable, self.clusterTable):
+        for table in (self.ratioTable, self.clusterTable, self.phaseTable):
             horiz = table.horizontalHeader()
             horiz.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
             horiz.setDefaultAlignment(QtCore.Qt.AlignLeft)
@@ -72,11 +98,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Member variables.
         self._project = None
 
-        # Current data to display.
-        self._array = None
-        self._array_stats = None
-        self._type = None
-        self._element = None  # Should be 'name' really, or 'identifier'
+        self._current = self.Current()  # Current data displayed.
 
         self._ignore_selection_change = False
         self._display_options_shown = False
@@ -85,6 +107,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.update_controls()
         self.update_title()
+
+    def change_phase(self):
+        text = self.phaseComboBox.currentText()
+        if text == '':
+            self._current.phase = None
+        else:
+            self._current.phase = ~self._project.get_phase(text, masked=False)
+
+        if self._project is not None:
+            self.update_matplotlib_widget()
+            self.update_status_bar()
 
     def change_plot_type(self):
         self.update_matplotlib_widget()
@@ -96,18 +129,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
 
         if self._project is not None:
+            current = self._current
+
             # Determine which list widget and which element selected.
             tab_index = self.tabWidget.currentIndex()
-            self._type, _, list_widget, _ = self._tabs_and_lists[tab_index]
+            current.data_type, _, list_widget, _ = self._tabs_and_lists[tab_index]
             if tab_index >= 3:
                 row = list_widget.currentRow()
                 item = list_widget.item(row, 0)
                 if item is not None:
-                    self._element = item.text()
+                    current.name = item.text()
                 else:
-                    self._element = None
+                    current.name = None
             else:
-                self._element = list_widget.currentItem().text().split()[0]
+                current.name = list_widget.currentItem().text().split()[0]
 
             # Clear other list widgets.
             self._ignore_selection_change = True
@@ -117,37 +152,39 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self._ignore_selection_change = False
 
             # Retrieve array and array stats from project.
-            if self._element is None:
-                self._type = None
+            if current.name is None:
+                current.data_type = DataType.NONE
                 ret = (None, None)
-            elif self._type == 'raw':
-                if self._element == 'Total':
+            elif current.data_type == DataType.RAW:
+                if current.name == 'Total':
                     ret = self._project.get_raw_total(want_stats=True)
                 else:
-                    ret = self._project.get_raw(self._element, want_stats=True)
-            elif self._type == 'filtered':
-                if self._element == 'Total':
+                    ret = self._project.get_raw(current.name, want_stats=True)
+            elif current.data_type == DataType.FILTERED:
+                if current.name == 'Total':
                     ret = self._project.get_filtered_total(want_stats=True)
                 else:
-                    ret = self._project.get_filtered(self._element, want_stats=True)
-            elif self._type == 'normalised':
-                if self._element in ('h', 'h-factor'):
+                    ret = self._project.get_filtered(current.name, want_stats=True)
+            elif current.data_type == DataType.NORMALISED:
+                if current.name in ('h', 'h-factor'):
                     ret = self._project.get_h_factor(want_stats=True)
                 else:
-                    ret = self._project.get_normalised(self._element, want_stats=True)
-            elif self._type == 'ratio':
-                ret = self._project.get_ratio_by_name(self._element, want_stats=True)
-            elif self._type == 'cluster':
-                self._element = int(self._element)
-                ret = self._project.get_cluster_indices(self._element, want_stats=True)
+                    ret = self._project.get_normalised(current.name, want_stats=True)
+            elif current.data_type == DataType.RATIO:
+                ret = self._project.get_ratio_by_name(current.name, want_stats=True)
+            elif current.data_type == DataType.CLUSTER:
+                current.name = int(current.name)
+                ret = self._project.get_cluster_indices(current.name, want_stats=True)
+            elif current.data_type == DataType.PHASE:
+                ret = self._project.get_phase(current.name, want_stats=True)
             else:
                 raise RuntimeError('Not implemented ' + type_)
 
-            self._array, self._array_stats = ret
+            current.selected_array, current.selected_array_stats = ret
 
         self.update_controls()
-        self.update_status_bar()
         self.update_matplotlib_widget()
+        self.update_status_bar()
         QtWidgets.QApplication.restoreOverrideCursor()
 
     def choose_open_project(self):
@@ -162,10 +199,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def close_project(self):
         if self._project is not None:
             self._project = None
-            self._array = None
-            self._array_stats = None
-            self._type = None
-            self._element = None
+            self._current.clear()
 
             # Clear list/table widgets.
             for i, (_, _, widget, _) in enumerate(self._tabs_and_lists):
@@ -181,6 +215,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.update_matplotlib_widget()
             self.matplotlibWidget.clear_all()
             self.update_controls()
+            self.update_phase_combo_box()
+            self.update_status_bar()
             self.update_title()
 
     def clustering(self):
@@ -231,7 +267,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 # If other ratios remain, one is automatically selected and so
                 # mpl widget is automatically updated.  Need to clear selection
                 # and update mpl widget manually if no other ratios remain.
-                self._type = None
+                self._current.data_type = DataType.NONE
                 self.update_matplotlib_widget()
 
     def display_options(self):
@@ -251,7 +287,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.update_controls()
 
     def fill_list_widget(self, index):
-        type_string, tab_widget, list_widget , _= self._tabs_and_lists[index]
+        data_type, tab_widget, list_widget , _= self._tabs_and_lists[index]
+        type_string = string.capwords(data_type.name.lower())
         want_total = list_widget in (self.rawElementList, self.filteredElementList)
         want_h_factor = (list_widget == self.normalisedElementList and
                          self._project.state >= State.H_FACTOR)
@@ -273,7 +310,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.tabWidget.insertTab(index, tab_widget, title)
 
     def fill_table_widget(self, index):
-        type_string, tab_widget, table_widget, tab_title = \
+        data_type, tab_widget, table_widget, tab_title = \
             self._tabs_and_lists[index]
 
         # Disable sorting whilst changing content.
@@ -284,15 +321,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.tabWidget.insertTab(index, tab_widget, tab_title)
 
         rows = []
-        if type_string == 'ratio':
+        if data_type == DataType.RATIO:
             for name, tuple_ in self._project.ratios.items():
                 rows.append((name, tuple_[0], tuple_[1]))
-        elif type_string == 'cluster':
+        elif data_type == DataType.CLUSTER:
             cluster_k = self._project.get_cluster_k()
             if cluster_k is not None:
                 k_min, k_max = cluster_k
                 for k in range(k_min, k_max+1):
                     rows.append((str(k),))
+        elif data_type == DataType.PHASE:
+            for name in self._project.phases:
+                rows.append((name,))
 
         nrows = len(rows)
         table_widget.setRowCount(nrows)
@@ -380,9 +420,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.tabWidget.setCurrentIndex(0)  # Bring tab to front.
 
         self.update_controls()
+        self.update_matplotlib_widget()
         self.update_status_bar()
         self.update_title()
-        self.update_matplotlib_widget()
         QtWidgets.QApplication.restoreOverrideCursor()
 
     def new_ratio(self):
@@ -430,11 +470,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if self._project.state >= State.H_FACTOR:
             self.fill_table_widget(3)  # Ratios.
             self.fill_table_widget(4)  # Clustering.
+            self.fill_table_widget(5)  # Phases.
 
         self.update_controls()
+        self.update_matplotlib_widget()
+        self.update_phase_combo_box()
         self.update_status_bar()
         self.update_title()
-        self.update_matplotlib_widget()
         QtWidgets.QApplication.restoreOverrideCursor()
 
     def set_colormap_name(self, colormap_name):
@@ -446,49 +488,103 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def status_bar_change(self):
         if (self.statusbar.currentMessage() == '' and \
-            self._array is not None):
+            self._current.selected_array is not None):
             self.update_status_bar()
 
     def update_controls(self):
         valid_project = self._project is not None
+        showing_phase = self._current.data_type == DataType.PHASE
+
+        # Menu items.
         self.actionProjectClose.setEnabled(valid_project)
         self.actionFilter.setEnabled(valid_project and
                                      self._project.state == State.RAW)
         self.actionClustering.setEnabled(valid_project and
                                          self._project.state == State.H_FACTOR)
         self.actionDisplayOptions.setEnabled(not self._display_options_shown)
+
+        # Tab widget controls.
         self.deleteRatioButton.setEnabled(self.ratioTable.currentItem() is not None)
+
+        # Matplotlib toolbar controls.
+        self.plotTypeComboBox.setEnabled(not showing_phase)
+        self.plotTypeLabel.setEnabled(not showing_phase)
+        self.phaseComboBox.setEnabled(not showing_phase)
+        self.phaseLabel.setEnabled(not showing_phase)
+        self.regionComboBox.setEnabled(not showing_phase)
+        self.regionLabel.setEnabled(not showing_phase)
         self.undoButton.setEnabled(self._zoom_history.has_undo())
         self.redoButton.setEnabled(self._zoom_history.has_redo())
 
     def update_matplotlib_widget(self):
-        if self._type is None:
+        current = self._current
+
+        if current.data_type is DataType.NONE:
             self.matplotlibWidget.clear()
         else:
             plot_type = PlotType(self.plotTypeComboBox.currentIndex())
             cmap_int_max = None
-            if self._element in ('h', 'h-factor'):
+            show_colorbar = True
+            if current.name in ('h', 'h-factor'):
                 title = 'h-factor'
-            elif self._type == 'ratio':
-                title = self._element + ' ratio'
-            elif self._type == 'cluster':
-                title = 'k={} cluster'.format(self._element)
-                cmap_int_max = self._element
+            elif current.data_type == DataType.RATIO:
+                title = current.name + ' ratio'
+            elif current.data_type == DataType.CLUSTER:
+                title = 'k={} cluster'.format(current.name)
+                cmap_int_max = current.name
+            elif current.data_type == DataType.PHASE:
+                title = current.name + ' phase'
+                cmap_int_max = 2
+                plot_type = PlotType.MAP
+                show_colorbar = False
             else:
-                if self._element == 'Total':
+                if current.name == 'Total':
                     name = 'total'
                 else:
-                    name = element_properties[self._element][0]
-                title = '{} {} element'.format(string.capwords(self._type), name)
+                    name = element_properties[current.name][0]
+                type_string = string.capwords(current.data_type.name.lower())
+                title = '{} {} element'.format(type_string, name)
+
+            if current.data_type != DataType.PHASE and current.phase is not None:
+                # May want to cache this instead of recalculating it each time.
+                array = np.ma.masked_where(current.phase, current.selected_array)
+                array_stats = {}
+                if 'valid' in current.selected_array_stats:
+                    number_invalid = np.ma.count_masked(array)
+                    array_stats['invalid'] = number_invalid
+                    array_stats['valid'] = array.size - number_invalid
+                if 'min' in current.selected_array_stats:
+                    array_stats['max'] = array.max()
+                    array_stats['min'] = array.min()
+                if 'mean' in current.selected_array_stats:
+                    array_stats['mean'] = array.mean()
+                if 'median' in current.selected_array_stats:
+                    array_stats['median'] = np.ma.median(array)
+                if 'std' in current.selected_array_stats:
+                    array_stats['std'] = array.std()
+                current.displayed_array = array
+                current.displayed_array_stats = array_stats
+                # Assuming update_status_bar will follow anyway.
+            else:
+                current.displayed_array = current.selected_array
+                current.displayed_array_stats = current.selected_array_stats
 
             self.matplotlibWidget.update( \
-                plot_type, self._array, self._array_stats, title,
-                cmap_int_max=cmap_int_max)
+                plot_type, current.displayed_array, current.displayed_array_stats,
+                title, show_colorbar=show_colorbar, cmap_int_max=cmap_int_max)
+
+    def update_phase_combo_box(self):
+        combo_box = self.phaseComboBox
+        combo_box.clear()
+        combo_box.addItem('')
+        if self._project is not None:
+            for phase in self._project.phases:
+                combo_box.addItem(phase)
 
     def update_status_bar(self):
         def stat_to_string(name, label=None):
             label = label or name
-            value = self._array_stats.get(name)
+            value = self._current.displayed_array_stats.get(name)
             if value is None:
                 return ''
             elif isinstance(value, np.float):
@@ -500,8 +596,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             else:
                 return ', {}={}'.format(label, value)
 
-        if self._array is not None:
-            ny, nx = self._array.shape
+        if self._current.displayed_array is not None:
+            ny, nx = self._current.displayed_array.shape
             msg = 'pixels={}x{}'.format(nx, ny)
             msg += stat_to_string('valid')
             msg += stat_to_string('invalid')

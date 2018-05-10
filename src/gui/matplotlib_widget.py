@@ -8,6 +8,16 @@ import numpy as np
 from PyQt5 import QtCore, QtWidgets
 
 
+@unique
+class DataType(Enum):
+    NONE       = -1
+    RAW        =  0
+    FILTERED   =  1
+    NORMALISED =  2
+    RATIO      =  3
+    CLUSTER    =  4
+    PHASE      =  5
+
 # Same values as in plotTypeComboBox.
 @unique
 class PlotType(Enum):
@@ -151,7 +161,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
             self._map_axes.set_ylim(ys)
             self._canvas.draw_idle()
 
-    def update(self, plot_type, array, array_stats, title,
+    def update(self, plot_type, array, array_stats, title, show_colorbar,
                cmap_int_max=None):
         self._cmap_int_max = cmap_int_max
 
@@ -187,8 +197,9 @@ class MatplotlibWidget(QtWidgets.QWidget):
             self._image = None
         else:
             self._image = map_axes.imshow(array, cmap=cmap, norm=norm)
-            colorbar = figure.colorbar(self._image, ax=map_axes,
-                                       ticks=cmap_ticks)
+            if show_colorbar:
+                colorbar = figure.colorbar(self._image, ax=map_axes,
+                                           ticks=cmap_ticks)
             map_axes.set_title(title + ' map')
             if self._map_xlim is not None:
                 map_axes.set_xlim(self._map_xlim)
