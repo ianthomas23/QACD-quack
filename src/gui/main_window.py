@@ -9,7 +9,8 @@ from src.model.qacd_project import QACDProject, State
 from .clustering_dialog import ClusteringDialog
 from .display_options_dialog import DisplayOptionsDialog
 from .filter_dialog import FilterDialog
-from .matplotlib_widget import MatplotlibWidget, DataType, PlotType
+from .matplotlib_widget import DataType, PlotType
+from .new_phase_filtered_dialog import NewPhaseFilteredDialog
 from .new_ratio_dialog import NewRatioDialog
 from .progress_dialog import ProgressDialog
 from .ui_main_window import Ui_MainWindow
@@ -42,7 +43,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.setupUi(self)
 
-        self.matplotlibWidget.set_main_window(self)
+        self.matplotlibWidget.initialise(owning_window=self)
 
         self.statusbar.messageChanged.connect(self.status_bar_change)
 
@@ -63,6 +64,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.phaseTable.itemSelectionChanged.connect(self.change_tab_list_item)
         self.newRatioButton.clicked.connect(self.new_ratio)
         self.deleteRatioButton.clicked.connect(self.delete_ratio)
+        self.newPhaseFilteredButton.clicked.connect(self.new_phase_filtered)
 
         # Matplotlib toolbar controls.
         self.plotTypeComboBox.currentIndexChanged.connect(self.change_plot_type)
@@ -424,6 +426,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.update_status_bar()
         self.update_title()
         QtWidgets.QApplication.restoreOverrideCursor()
+
+    def new_phase_filtered(self):
+        # Create new phase map from filtered element maps.
+        dialog = NewPhaseFilteredDialog(self._project, parent=self)
+        if dialog.exec_():
+            pass
+
+
 
     def new_ratio(self):
         dialog = NewRatioDialog(self._project, parent=self)

@@ -235,6 +235,13 @@
              </property>
             </widget>
            </item>
+           <item>
+            <widget class="QLabel" name="dummyLabel2">
+             <property name="text">
+              <string></string>
+             </property>
+            </widget>
+           </item>
           </layout>
          </item>
         </layout>
@@ -380,6 +387,24 @@
             </property>
            </column>
           </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout">
+           <item>
+            <widget class="QPushButton" name="newPhaseFilteredButton">
+             <property name="text">
+              <string>New from Filtered</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="dummyLabel3">
+             <property name="text">
+              <string></string>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </item>
         </layout>
        </widget>
