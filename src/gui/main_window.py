@@ -65,6 +65,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.newRatioButton.clicked.connect(self.new_ratio)
         self.deleteRatioButton.clicked.connect(self.delete_ratio)
         self.newPhaseFilteredButton.clicked.connect(self.new_phase_filtered)
+        self.deletePhaseButton.clicked.connect(self.delete_phase)
 
         # Matplotlib toolbar controls.
         self.plotTypeComboBox.currentIndexChanged.connect(self.change_plot_type)
@@ -253,6 +254,26 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.update_controls()
             QtWidgets.QApplication.restoreOverrideCursor()
 
+    def delete_phase(self):
+        table_widget = self.phaseTable
+
+        row = table_widget.currentRow()
+        name = table_widget.item(row, 0).text()
+        button = QtWidgets.QMessageBox.question(self, 'Delete phase map',
+            "Are you sure you want to delete phase map '{}'?".format(name))
+        if button == QtWidgets.QMessageBox.Yes:
+            table_widget.clearSelection()
+            table_widget.removeRow(row)
+            self._project.delete_phase_map(name)
+            self.update_phase_combo_box()
+            self.update_controls()
+            if len(self._project.phases) == 0:
+                # If other phases remain, one is automatically selected and so
+                # mpl widget is automatically updated.  Need to clear selection
+                # and update mpl widget manually if no other phases remain.
+                self._current.clear()
+                self.update_matplotlib_widget()
+
     def delete_ratio(self):
         table_widget = self.ratioTable
 
@@ -269,7 +290,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 # If other ratios remain, one is automatically selected and so
                 # mpl widget is automatically updated.  Need to clear selection
                 # and update mpl widget manually if no other ratios remain.
-                self._current.data_type = DataType.NONE
+                self._current.clear()
                 self.update_matplotlib_widget()
 
     def display_options(self):
@@ -371,6 +392,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.fill_list_widget(2)
             self.fill_table_widget(3)
             self.fill_table_widget(4)
+            self.fill_table_widget(5)
             self.tabWidget.setCurrentIndex(2)  # Bring tab to front.
 
             self.update_controls()
@@ -431,9 +453,19 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Create new phase map from filtered element maps.
         dialog = NewPhaseFilteredDialog(self._project, parent=self)
         if dialog.exec_():
-            pass
+            name = dialog.get_name()
 
+            self.fill_table_widget(5)
 
+            # Find row matching name and select it.
+            table_widget = self.phaseTable
+            match = table_widget.findItems(name, QtCore.Qt.MatchExactly)
+            row = match[0].row()
+            table_widget.clearSelection()
+            table_widget.selectRow(row)
+
+            self.update_phase_combo_box()
+            self.update_controls()
 
     def new_ratio(self):
         dialog = NewRatioDialog(self._project, parent=self)
@@ -444,9 +476,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             # Find row matching name and select it.
             table_widget = self.ratioTable
-            nrows = table_widget.rowCount()
-            names = [table_widget.item(row, 0).text() for row in range(nrows)]
-            row = names.index(name)
+            match = table_widget.findItems(name, QtCore.Qt.MatchExactly)
+            row = match[0].row()
+            table_widget.clearSelection()
             table_widget.selectRow(row)
 
             self.update_controls()
@@ -515,6 +547,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # Tab widget controls.
         self.deleteRatioButton.setEnabled(self.ratioTable.currentItem() is not None)
+        self.deletePhaseButton.setEnabled(self.phaseTable.currentItem() is not None)
 
         # Matplotlib toolbar controls.
         self.plotTypeComboBox.setEnabled(not showing_phase)

@@ -37,7 +37,7 @@
         <enum>QTabWidget::West</enum>
        </property>
        <property name="currentIndex">
-        <number>3</number>
+        <number>5</number>
        </property>
        <widget class="QWidget" name="rawTab">
         <property name="sizePolicy">
@@ -238,7 +238,7 @@
            <item>
             <widget class="QLabel" name="dummyLabel2">
              <property name="text">
-              <string></string>
+              <string/>
              </property>
             </widget>
            </item>
@@ -392,15 +392,25 @@
           <layout class="QHBoxLayout" name="horizontalLayout">
            <item>
             <widget class="QPushButton" name="newPhaseFilteredButton">
+             <property name="toolTip">
+              <string>Create new phase map by thresholding filtered element maps</string>
+             </property>
              <property name="text">
-              <string>New from Filtered</string>
+              <string>New phase</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="deletePhaseButton">
+             <property name="text">
+              <string>Delete phase</string>
              </property>
             </widget>
            </item>
            <item>
             <widget class="QLabel" name="dummyLabel3">
              <property name="text">
-              <string></string>
+              <string/>
              </property>
             </widget>
            </item>
@@ -534,7 +544,7 @@
           <item>
            <widget class="QLabel" name="dummyLabel">
             <property name="text">
-             <string></string>
+             <string/>
             </property>
            </widget>
           </item>
@@ -562,7 +572,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>18</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuProject">

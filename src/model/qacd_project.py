@@ -186,10 +186,14 @@ class QACDProject:
         if progress_callback:
             progress_callback(1.0, 'Finished')
 
-    def create_phase_map_from_filtered(self, name, elements_and_thresholds):
+    def create_phase_map_from_filtered(self, name, elements_and_thresholds,
+                                       phase_map=None):
         # Create a phase map (boolean array) of pixels that are within the
-        # (min, max) filtered values for one or more elements.
-        # elements_and_thresholds is a sequence of (element, min, max) tuples.
+        # (lower, upper) filtered values for one or more elements.
+        # elements_and_thresholds is a sequence of (element, lower, upper)
+        # tuples.
+        # The phase_map itself can be specified, in which case this is used and
+        # no validation of it is performed.
         if self._state < State.FILTERED:
             raise RuntimeError('Cannot create phase map, no filtered data present')
         if name in self._phases:
@@ -197,27 +201,19 @@ class QACDProject:
         if len(elements_and_thresholds) < 1:
             raise RuntimeError('No elements and thresholds specified')
 
-        # Create phase map.
-        phase_map = None
-        for tuple_ in elements_and_thresholds:
-            if len(tuple_) != 3:
-                raise RuntimeError('Invalid element and threshold: {}'.format(tuple_))
-            element, min_, max_ = tuple_
-            if element not in self.elements:
-                raise RuntimeError('Unrecognised element {}'.format(element))
-            if max_ < min_:
-                raise RuntimeError('Min, max limits for element {} are decreasing'.format(element))
+        if phase_map is None:
+            # Create phase map.
+            for tuple_ in elements_and_thresholds:
+                if len(tuple_) != 3:
+                    raise RuntimeError('Invalid element and threshold: {}'.format(tuple_))
+                element, lower, upper = tuple_
 
-            # Note that filtered has nans instead of being a masked array.
-            filtered = self.get_filtered(element, masked=False)
+                within_limits = self.get_filtered_within_limits(element, lower, upper)
 
-            with np.errstate(invalid='ignore'):
-                in_limits = np.logical_and(filtered >= min_, filtered <= max_)
-
-            if phase_map is None:
-                phase_map = in_limits
-            else:
-                phase_map = np.logical_and(phase_map, in_limits)
+                if phase_map is None:
+                    phase_map = within_limits
+                else:
+                    phase_map = np.logical_and(phase_map, within_limits)
 
         # Store phase map.
         with self._h5file() as h5file:
@@ -351,6 +347,14 @@ class QACDProject:
             if '/cluster' in h5file:
                 node = h5file.get_node('/cluster')
                 node._f_remove(recursive=True)
+
+    def delete_phase_map(self, name):
+        if name not in self.phases:
+            raise RuntimeError('No such phase map {}'.format(name))
+        self._phases.remove(name)
+        with self._h5file() as h5file:
+            node = h5file.get_node('/phase', name)
+            node._f_remove(recursive=True)
 
     def delete_ratio_map(self, name):
         ratio = self._ratios.pop(name)
@@ -513,6 +517,20 @@ class QACDProject:
 
         return self._get_array('/filtered/' + element, masked, want_stats,
                                h5file=h5file)
+
+    def get_filtered_within_limits(self, element, lower, upper):
+        # Return boolean array of the pixels in a filtered element map that are
+        # within the specified lower, upper limits.
+        if element not in self.elements:
+            raise RuntimeError('Unrecognised element {}'.format(element))
+        if upper < lower:
+            raise RuntimeError('Lower, upper limits for element {} are decreasing'.format(element))
+
+        # Note that filtered has nans instead of being a masked array.
+        filtered = self.get_filtered(element, masked=False)
+
+        with np.errstate(invalid='ignore'):
+            return np.logical_and(filtered >= lower, filtered <= upper)
 
     def get_filtered_total(self, masked=True, want_stats=False, h5file=None):
         # Return total of all filtered element maps.  If masked==True, invalid

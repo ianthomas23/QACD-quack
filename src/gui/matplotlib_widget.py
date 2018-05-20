@@ -81,6 +81,10 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._zoom_rectangle = None
         self._canvas.figure.clear()
         self._map_axes = None
+        self._image = None
+        self._bar = None
+        self._bar_norm_x = None
+
         self._canvas.draw_idle()
 
     def clear_all(self):
@@ -227,7 +231,8 @@ class MatplotlibWidget(QtWidgets.QWidget):
             if show_colorbar:
                 colorbar = figure.colorbar(self._image, ax=map_axes,
                                            ticks=cmap_ticks)
-            map_axes.set_title(title + ' map')
+            if title is not None:
+                map_axes.set_title(title + ' map')
             if self._map_xlim is not None:
                 map_axes.set_xlim(self._map_xlim)
                 map_axes.set_ylim(self._map_ylim)
@@ -265,7 +270,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
                                            label='median')
                 histogram_axes.legend()
 
-            if map_axes is None:
+            if map_axes is None and title is not None:
                 histogram_axes.set_title(title + ' histogram')
 
         self._map_axes = map_axes

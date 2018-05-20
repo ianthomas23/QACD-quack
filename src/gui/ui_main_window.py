@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'resources/ui_main_window.ui'
 #
-# Created by: PyQt5 UI code generator 5.9.2
+# Created by: PyQt5 UI code generator 5.6
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -189,6 +189,9 @@ class Ui_MainWindow(object):
         self.newPhaseFilteredButton = QtWidgets.QPushButton(self.phaseTab)
         self.newPhaseFilteredButton.setObjectName("newPhaseFilteredButton")
         self.horizontalLayout1.addWidget(self.newPhaseFilteredButton)
+        self.deletePhaseButton = QtWidgets.QPushButton(self.phaseTab)
+        self.deletePhaseButton.setObjectName("deletePhaseButton")
+        self.horizontalLayout1.addWidget(self.deletePhaseButton)
         self.dummyLabel3 = QtWidgets.QLabel(self.phaseTab)
         self.dummyLabel3.setText("")
         self.dummyLabel3.setObjectName("dummyLabel3")
@@ -286,7 +289,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_2.addWidget(self.splitter)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 18))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 22))
         self.menubar.setObjectName("menubar")
         self.menuProject = QtWidgets.QMenu(self.menubar)
         self.menuProject.setObjectName("menuProject")
@@ -321,7 +324,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuOptions.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabWidget.setCurrentIndex(3)
+        self.tabWidget.setCurrentIndex(5)
         self.plotTypeComboBox.setCurrentIndex(2)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
@@ -352,7 +355,9 @@ class Ui_MainWindow(object):
         self.phaseTable.setSortingEnabled(True)
         item = self.phaseTable.horizontalHeaderItem(0)
         item.setText(_translate("MainWindow", "Name"))
-        self.newPhaseFilteredButton.setText(_translate("MainWindow", "New from Filtered"))
+        self.newPhaseFilteredButton.setToolTip(_translate("MainWindow", "Create new phase map by thresholding filtered element maps"))
+        self.newPhaseFilteredButton.setText(_translate("MainWindow", "New phase"))
+        self.deletePhaseButton.setText(_translate("MainWindow", "Delete phase"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.phaseTab), _translate("MainWindow", "Phases"))
         self.plotTypeLabel.setText(_translate("MainWindow", "Plot type"))
         self.phaseLabel.setText(_translate("MainWindow", "Phase"))
