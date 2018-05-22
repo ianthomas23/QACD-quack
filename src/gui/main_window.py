@@ -336,6 +336,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         data_type, tab_widget, table_widget, tab_title = \
             self._tabs_and_lists[index]
 
+        # Store column widths.
+        ncolumns = table_widget.columnCount()
+        column_widths = [table_widget.columnWidth(i) for i in range(ncolumns)]
+
         # Disable sorting whilst changing content.
         sorting = table_widget.isSortingEnabled()
         table_widget.setSortingEnabled(False)
@@ -365,6 +369,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
                 table_widget.setItem(i, j, item)
         table_widget.setSortingEnabled(sorting)
+
+        # Reset column widths.
+        for i, width in enumerate(column_widths):
+            table_widget.setColumnWidth(i, width)
 
         if index == 4:
             cluster_elements = self._project.get_cluster_elements()
