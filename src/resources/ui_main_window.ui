@@ -37,7 +37,7 @@
         <enum>QTabWidget::West</enum>
        </property>
        <property name="currentIndex">
-        <number>5</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="rawTab">
         <property name="sizePolicy">
@@ -70,7 +70,11 @@
           </widget>
          </item>
          <item>
-          <widget class="QListWidget" name="rawElementList"/>
+          <widget class="QListWidget" name="rawElementList">
+           <property name="selectionBehavior">
+            <enum>QAbstractItemView::SelectItems</enum>
+           </property>
+          </widget>
          </item>
         </layout>
        </widget>
@@ -367,7 +371,7 @@
             <bool>true</bool>
            </property>
            <property name="columnCount">
-            <number>1</number>
+            <number>2</number>
            </property>
            <attribute name="horizontalHeaderHighlightSections">
             <bool>false</bool>
@@ -384,6 +388,11 @@
            <column>
             <property name="text">
              <string>Name</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Source</string>
             </property>
            </column>
           </widget>

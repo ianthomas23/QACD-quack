@@ -147,11 +147,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             else:
                 current.name = list_widget.currentItem().text().split()[0]
 
-            # Clear other list widgets.
+            # Clear other list/table widgets.
             self._ignore_selection_change = True
             for index, tuple_ in enumerate(self._tabs_and_lists):
                 if index != tab_index:
                     tuple_[2].clearSelection()
+                    tuple_[2].setCurrentItem(None)
             self._ignore_selection_change = False
 
             # Retrieve array and array stats from project.
@@ -359,7 +360,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     rows.append((str(k),))
         elif data_type == DataType.PHASE:
             for name in self._project.phases:
-                rows.append((name,))
+                source = self._project.get_phase_source(name)
+                rows.append((name, source))
 
         nrows = len(rows)
         table_widget.setRowCount(nrows)

@@ -40,7 +40,7 @@ def test_sequence():
     with pytest.raises(RuntimeError):
         p.get_filtered('Mg')
     with pytest.raises(RuntimeError):
-        p.create_phase_map_from_filtered('name', [['Ca', 100, 1000]])
+        p.create_phase_map_by_thresholding('name', [['Ca', 100, 1000]])
 
     # RAW -> FILTERED.
     p.filter(pixel_totals=True, median=True)
@@ -117,19 +117,19 @@ def test_sequence():
     assert len(p.ratios) == 3
     assert p.ratios['anorthite blah'][0] == 'Ca / (Ca+Na)'
 
-    # Phase maps - from filtered.
-    p.create_phase_map_from_filtered('one', [['Ca', 100, 1000]])
+    # Phase maps - by thresholding.
+    p.create_phase_map_by_thresholding('one', [['Ca', 100, 1000]])
     assert len(p.phases) == 1
     assert 'one' in p.phases
-    p.create_phase_map_from_filtered('two', [['Ca', 100, 1000], ['Mg', 0, 20000]])
+    p.create_phase_map_by_thresholding('two', [['Ca', 100, 1000], ['Mg', 0, 20000]])
     assert len(p.phases) == 2
     assert 'two' in p.phases
     with pytest.raises(RuntimeError):
-        p.create_phase_map_from_filtered('one', [['Ca', 100, 1000]])  # Already exists.
+        p.create_phase_map_by_thresholding('one', [['Ca', 100, 1000]])  # Already exists.
     with pytest.raises(RuntimeError):
-        p.create_phase_map_from_filtered('no elements', [[]])
+        p.create_phase_map_by_thresholding('no elements', [[]])
     with pytest.raises(RuntimeError):
-        p.create_phase_map_from_filtered('no such element', [['Aa', 0, 1]])
+        p.create_phase_map_by_thresholding('no such element', [['Aa', 0, 1]])
 
     # Cleanup.
     if os.path.isfile(temp_filename):
@@ -267,14 +267,14 @@ def consistency_impl(directory, pixel_totals, median):
         check_masked_array(cluster, (ny, nx), np.int8, cluster.mask, -1)
         check_stats(cluster, cluster_stats, 'min max invalid valid')
 
-    # Phase from filtered.
+    # Phase map by thresholding.
     elements_and_thresholds = [['Ca', 100, 1000], ['Mg', 0, 10000]]
     name = 'two'
-    p.create_phase_map_from_filtered(name, elements_and_thresholds)
+    p.create_phase_map_by_thresholding(name, elements_and_thresholds)
     phase, phase_stats = p.get_phase(name, want_stats=True)
     source = phase_stats.pop('source')
-    assert source in ('filtered', 'cluster')
-    if source == 'filtered':
+    assert source in ('thresholding', 'cluster')
+    if source == 'thresholding':
         phase_stats.pop('elements_and_thresholds')
     else:
         assert False  # Not implemented yet.

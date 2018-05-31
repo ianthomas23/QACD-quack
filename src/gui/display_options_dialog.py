@@ -13,6 +13,7 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         self.applyButton = self.buttonBox.button(QtWidgets.QDialogButtonBox.Apply)
 
         self.applyButton.clicked.connect(self.apply)
+        self.listWidget.itemDoubleClicked.connect(self.apply)
         self.listWidget.itemSelectionChanged.connect(self.update_buttons)
         self.reverseCheckBox.stateChanged.connect(self.update_buttons)
 

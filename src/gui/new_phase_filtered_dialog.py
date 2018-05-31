@@ -62,7 +62,7 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
                 lower = int(table_widget.item(row, 2).text())
                 upper = int(table_widget.item(row, 3).text())
                 elements_and_thresholds.append((element, lower, upper))
-            self.project.create_phase_map_from_filtered( \
+            self.project.create_phase_map_by_thresholding( \
                 name, elements_and_thresholds, phase_map=self.phase_map)
 
             # Close dialog.

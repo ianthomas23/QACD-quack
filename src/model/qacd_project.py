@@ -186,8 +186,8 @@ class QACDProject:
         if progress_callback:
             progress_callback(1.0, 'Finished')
 
-    def create_phase_map_from_filtered(self, name, elements_and_thresholds,
-                                       phase_map=None):
+    def create_phase_map_by_thresholding(self, name, elements_and_thresholds,
+                                         phase_map=None):
         # Create a phase map (boolean array) of pixels that are within the
         # (lower, upper) filtered values for one or more elements.
         # elements_and_thresholds is a sequence of (element, lower, upper)
@@ -225,7 +225,7 @@ class QACDProject:
             phase_group = h5file.create_group(all_phases, name)
             phase_data = h5file.create_carray(phase_group, 'data', obj=phase_map)
             self._add_array_stats(phase_group, phase_map, mask=None)
-            phase_group._v_attrs.source = 'filtered'
+            phase_group._v_attrs.source = 'thresholding'
             phase_group._v_attrs.elements_and_thresholds = elements_and_thresholds
 
         self._phases.append(name)
@@ -571,6 +571,15 @@ class QACDProject:
 
         return self._get_array('/phase/' + name, masked=masked,
                                want_stats=want_stats, h5file=h5file)
+
+    def get_phase_source(self, name):
+        # Returns source of phase map, either 'thresholding' or 'cluster'
+        if name not in self._phases:
+            raise RuntimeError('No such phase map: {}'.format(name))
+
+        with self._h5file_ro() as h5file:
+            node = h5file.get_node('/phase/' + name)
+            return node._v_attrs.source
 
     def get_preset_elements(self, preset_name):
         return preset_ratios[preset_name]
@@ -1104,9 +1113,9 @@ class QACDProject:
                         raise RuntimeError('Missing stats in phase {}'.format(name))
 
                     source = phase_node._v_attrs.source
-                    if source not in ['filtered', 'cluster']:
+                    if source not in ['thresholding', 'cluster']:
                         raise RuntimeError('Incorrect source {} for phase {}'.format(source, name))
-                    if source == 'filtered':
+                    if source == 'thresholding':
                         if 'elements_and_thresholds' not in attrs:
                             raise RuntimeError('No elements_and_thresholds for phase {}'.format(name))
                     else:
