@@ -507,6 +507,16 @@ class QACDProject:
             raise RuntimeError('Invalid CSV file name: {}'.format(csv_file))
         return match.group(1)
 
+    def get_filter_options(self):
+        # Return tuple of filter option booleans: (pixel_totals, median).
+        if self._state <= State.RAW:
+            raise RuntimeError('No filtered data present')
+
+        with self._h5file_ro() as h5file:
+            node = h5file.get_node('/filtered')
+            return (node._v_attrs.pixel_totals_filter,
+                    node._v_attrs.median_filter)
+
     def get_filtered(self, element, masked=True, want_stats=False, h5file=None):
         # Return filtered element map.  If masked==True, invalid pixels are
         # masked out otherwise they are np.nan.

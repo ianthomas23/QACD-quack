@@ -56,12 +56,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.actionDisplayOptions.triggered.connect(self.display_options)
 
         # Tab widget controls.
-        self.rawElementList.itemSelectionChanged.connect(self.change_tab_list_item)
-        self.filteredElementList.itemSelectionChanged.connect(self.change_tab_list_item)
-        self.normalisedElementList.itemSelectionChanged.connect(self.change_tab_list_item)
-        self.ratioTable.itemSelectionChanged.connect(self.change_tab_list_item)
-        self.clusterTable.itemSelectionChanged.connect(self.change_tab_list_item)
-        self.phaseTable.itemSelectionChanged.connect(self.change_tab_list_item)
         self.newRatioButton.clicked.connect(self.new_ratio)
         self.deleteRatioButton.clicked.connect(self.delete_ratio)
         self.newPhaseFilteredButton.clicked.connect(self.new_phase_filtered)
@@ -80,23 +74,30 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         for i in range(self.tabWidget.count()-1, 0, -1):
             self.tabWidget.removeTab(i)
 
-        self._tabs_and_lists = (
-            (DataType.RAW, self.rawTab, self.rawElementList, ''),
-            (DataType.FILTERED, self.filteredTab, self.filteredElementList, ''),
-            (DataType.NORMALISED, self.normalisedTab, self.normalisedElementList, ''),
-            (DataType.RATIO, self.ratioTab, self.ratioTable, 'Ratios'),
-            (DataType.CLUSTER, self.clusterTab, self.clusterTable, 'Clusters'),
-            (DataType.PHASE, self.phaseTab, self.phaseTable, 'Phases'),
+        self._tabs_and_tables = (
+            (DataType.RAW,        self.rawTab,        self.rawTable,        'Raw'),
+            (DataType.FILTERED,   self.filteredTab,   self.filteredTable,   'Filtered'),
+            (DataType.NORMALISED, self.normalisedTab, self.normalisedTable, 'Normalised'),
+            (DataType.RATIO,      self.ratioTab,      self.ratioTable,      'Ratios'),
+            (DataType.CLUSTER,    self.clusterTab,    self.clusterTable,    'Clusters'),
+            (DataType.PHASE,      self.phaseTab,      self.phaseTable,      'Phases'),
         )
 
-        # Correct table widget properties.
-        for table in (self.ratioTable, self.clusterTable, self.phaseTable):
+        # Correct table widget properties and connect signals and slots.
+        for (_, _, table, _) in self._tabs_and_tables:
             horiz = table.horizontalHeader()
-            horiz.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+            horiz.setSectionResizeMode(QtWidgets.QHeaderView.Interactive)
             horiz.setDefaultAlignment(QtCore.Qt.AlignLeft)
 
             vert = table.verticalHeader()
             vert.setDefaultSectionSize(vert.minimumSectionSize())
+
+            table.itemSelectionChanged.connect(self.change_table_item)
+
+        # Read-only checkboxes.
+        for checkbox in (self.pixelTotalsCheckBox, self.medianFilterCheckBox):
+            checkbox.setFocusPolicy(QtCore.Qt.NoFocus)
+            checkbox.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents, True)
 
         # Member variables.
         self._project = None
@@ -125,7 +126,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def change_plot_type(self):
         self.update_matplotlib_widget()
 
-    def change_tab_list_item(self):
+    def change_table_item(self):
         if self._ignore_selection_change:
             return
 
@@ -134,25 +135,22 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if self._project is not None:
             current = self._current
 
-            # Determine which list widget and which element selected.
+            # Determine which table widget and which element selected.
             tab_index = self.tabWidget.currentIndex()
-            current.data_type, _, list_widget, _ = self._tabs_and_lists[tab_index]
-            if tab_index >= 3:
-                row = list_widget.currentRow()
-                item = list_widget.item(row, 0)
-                if item is not None:
-                    current.name = item.text()
-                else:
-                    current.name = None
+            current.data_type, _, table_widget, _ = self._tabs_and_tables[tab_index]
+            row = table_widget.currentRow()
+            item = table_widget.item(row, 0)
+            if item is not None:
+                current.name = item.text()
             else:
-                current.name = list_widget.currentItem().text().split()[0]
+                current.name = None
 
-            # Clear other list/table widgets.
+            # Clear other table widgets.
             self._ignore_selection_change = True
-            for index, tuple_ in enumerate(self._tabs_and_lists):
+            for index, (_, _, widget, _) in enumerate(self._tabs_and_tables):
                 if index != tab_index:
-                    tuple_[2].clearSelection()
-                    tuple_[2].setCurrentItem(None)
+                    widget.clearSelection()
+                    widget.setCurrentItem(None)
             self._ignore_selection_change = False
 
             # Retrieve array and array stats from project.
@@ -205,12 +203,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self._project = None
             self._current.clear()
 
-            # Clear list/table widgets.
-            for i, (_, _, widget, _) in enumerate(self._tabs_and_lists):
-                if i >= 3:  # Is a table widget.
-                    widget.setRowCount(0)
-                else:  # Is a list widget.
-                    widget.clear()
+            # Clear table widgets.
+            for i, (_, _, widget, _) in enumerate(self._tabs_and_tables):
+                widget.setRowCount(0)
 
             # Hide all but the first tab.
             for i in range(self.tabWidget.count()-1, 0, -1):
@@ -310,36 +305,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self._display_options_shown = True
         self.update_controls()
 
-    def fill_list_widget(self, index):
-        data_type, tab_widget, list_widget , _= self._tabs_and_lists[index]
-        type_string = string.capwords(data_type.name.lower())
-        want_total = list_widget in (self.rawElementList, self.filteredElementList)
-        want_h_factor = (list_widget == self.normalisedElementList and
-                         self._project.state >= State.H_FACTOR)
-        list_widget.clear()
-
-        for i, element in enumerate(self._project.elements):
-            name = element_properties[element][0]
-            list_widget.addItem('{} - {}'.format(element, name))
-        if want_total:
-            list_widget.addItem('Total')
-            list_widget.item(i+1).setToolTip( \
-                'Sum of all {} element maps'.format(type_string))
-        if want_h_factor:
-            list_widget.addItem('h-factor')
-
-        # Show tab.
-        if self.tabWidget.widget(index) != tab_widget:
-            title = type_string[0].upper() + type_string[1:]
-            self.tabWidget.insertTab(index, tab_widget, title)
-
     def fill_table_widget(self, index):
         data_type, tab_widget, table_widget, tab_title = \
-            self._tabs_and_lists[index]
-
-        # Store column widths.
-        ncolumns = table_widget.columnCount()
-        column_widths = [table_widget.columnWidth(i) for i in range(ncolumns)]
+            self._tabs_and_tables[index]
 
         # Disable sorting whilst changing content.
         sorting = table_widget.isSortingEnabled()
@@ -349,7 +317,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.tabWidget.insertTab(index, tab_widget, tab_title)
 
         rows = []
-        if data_type == DataType.RATIO:
+        if data_type in (DataType.RAW, DataType.FILTERED, DataType.NORMALISED):
+            for i, element in enumerate(self._project.elements):
+                name = element_properties[element][0]
+                rows.append((element, name))
+            if data_type in (DataType.RAW, DataType.FILTERED):
+                rows.append(('Total', ''))
+            if data_type == DataType.NORMALISED and self._project.state >= State.H_FACTOR:
+                rows.append(('h-factor', ''))
+        elif data_type == DataType.RATIO:
             for name, tuple_ in self._project.ratios.items():
                 rows.append((name, tuple_[0], tuple_[1]))
         elif data_type == DataType.CLUSTER:
@@ -372,11 +348,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 table_widget.setItem(i, j, item)
         table_widget.setSortingEnabled(sorting)
 
-        # Reset column widths.
-        for i, width in enumerate(column_widths):
-            table_widget.setColumnWidth(i, width)
+        # Reset column widths
+        for column in range(table_widget.columnCount()):
+            table_widget.resizeColumnToContents(column)
 
-        if index == 4:
+        if index == 1:
+            filter_options = self._project.get_filter_options()
+            self.pixelTotalsCheckBox.setChecked(filter_options[0])
+            self.medianFilterCheckBox.setChecked(filter_options[1])
+        elif index == 4:
             cluster_elements = self._project.get_cluster_elements()
             self.includedElementsLabel.setText( \
                 'Included elements: {}'.format(cluster_elements))
@@ -398,11 +378,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self, 'Filter and Normalise', thread_func,
                 args=[self._project, pixel_totals, median_filter])
 
-            self.fill_list_widget(1)
-            self.fill_list_widget(2)
-            self.fill_table_widget(3)
-            self.fill_table_widget(4)
-            self.fill_table_widget(5)
+            for index in range(1, 6):
+                self.fill_table_widget(index)
             self.tabWidget.setCurrentIndex(2)  # Bring tab to front.
 
             self.update_controls()
@@ -450,7 +427,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self, 'New project ' + os.path.basename(filename), thread_func,
             args=[self._project, csv_directory, csv_files])
 
-        self.fill_list_widget(0)
+        self.fill_table_widget(0)
         self.tabWidget.setCurrentIndex(0)  # Bring tab to front.
 
         self.update_controls()
@@ -508,15 +485,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self._project = project
 
         if self._project.state >= State.RAW:
-            self.fill_list_widget(0)  # Raw.
+            self.fill_table_widget(0)  # Raw.
             self.tabWidget.setCurrentIndex(0)  # Bring tab to front.
 
         if self._project.state >= State.FILTERED:
-            self.fill_list_widget(1)  # Filtered.
+            self.fill_table_widget(1)  # Filtered.
             self.tabWidget.setCurrentIndex(1)  # Bring tab to front.
 
         if self._project.state >= State.NORMALISED:
-            self.fill_list_widget(2)  # Normalised (and h-factor if present).
+            self.fill_table_widget(2)  # Normalised (and h-factor if present).
             self.tabWidget.setCurrentIndex(2)  # Bring tab to front.
 
         if self._project.state >= State.H_FACTOR:
