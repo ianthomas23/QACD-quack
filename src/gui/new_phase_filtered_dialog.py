@@ -10,6 +10,7 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
     def __init__(self, project, parent=None):
         QtWidgets.QDialog.__init__(self, parent)
         self.setupUi(self)
+        self.setWindowFlags(QtCore.Qt.Window)
 
         self.project = project
         self.elementMatplotlibWidget.initialise(owning_window=self,
@@ -186,6 +187,14 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
                             self.updateThresholdsButton):
                 control.setEnabled(False)
 
+    def set_table_widget_cell(self, table_widget, row, column, text):
+        if not text:
+            table_widget.setItem(row, column, None)
+        else:
+            item = QtWidgets.QTableWidgetItem(text)
+            item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
+            table_widget.setItem(row, column, item)
+
     # Set thresholds for current element.  May be None.
     def set_thresholds(self, lower, upper):
         table_widget = self.elementTable
@@ -210,14 +219,6 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
         else:
             self.cache[self.element] = self.project.get_filtered_within_limits(\
                 self.element, lower, upper)
-
-    def set_table_widget_cell(self, table_widget, row, column, text):
-        if not text:
-            table_widget.setItem(row, column, None)
-        else:
-            item = QtWidgets.QTableWidgetItem(text)
-            item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
-            table_widget.setItem(row, column, item)
 
     def update_buttons(self):
         row = self.elementTable.currentRow()

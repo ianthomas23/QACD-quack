@@ -37,7 +37,7 @@
         <enum>QTabWidget::West</enum>
        </property>
        <property name="currentIndex">
-        <number>1</number>
+        <number>4</number>
        </property>
        <widget class="QWidget" name="rawTab">
         <property name="sizePolicy">
@@ -454,6 +454,27 @@
             <bool>true</bool>
            </property>
           </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_2">
+           <item>
+            <widget class="QPushButton" name="newPhaseClusterButton">
+             <property name="toolTip">
+              <string>Create new phase map(s) from selected cluster map</string>
+             </property>
+             <property name="text">
+              <string>New phase(s)</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="dummyLabel_2">
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </item>
         </layout>
        </widget>

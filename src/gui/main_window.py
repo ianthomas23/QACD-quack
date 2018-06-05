@@ -10,6 +10,7 @@ from .clustering_dialog import ClusteringDialog
 from .display_options_dialog import DisplayOptionsDialog
 from .filter_dialog import FilterDialog
 from .matplotlib_widget import DataType, PlotType
+from .new_phase_cluster_dialog import NewPhaseClusterDialog
 from .new_phase_filtered_dialog import NewPhaseFilteredDialog
 from .new_ratio_dialog import NewRatioDialog
 from .progress_dialog import ProgressDialog
@@ -58,6 +59,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Tab widget controls.
         self.newRatioButton.clicked.connect(self.new_ratio)
         self.deleteRatioButton.clicked.connect(self.delete_ratio)
+        self.newPhaseClusterButton.clicked.connect(self.new_phase_cluster)
         self.newPhaseFilteredButton.clicked.connect(self.new_phase_filtered)
         self.deletePhaseButton.clicked.connect(self.delete_phase)
 
@@ -436,6 +438,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.update_title()
         QtWidgets.QApplication.restoreOverrideCursor()
 
+    def new_phase_cluster(self):
+        # Create new phase maps from selected cluster map.
+        cluster_map = self._current.selected_array
+        stats = self._current.selected_array_stats
+        dialog = NewPhaseClusterDialog(self._project, cluster_map, stats,
+                                       parent=self)
+        if dialog.exec_():
+            pass
+
+
+
+
     def new_phase_filtered(self):
         # Create new phase map from filtered element maps.
         dialog = NewPhaseFilteredDialog(self._project, parent=self)
@@ -453,6 +467,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             self.update_phase_combo_box()
             self.update_controls()
+
 
     def new_ratio(self):
         dialog = NewRatioDialog(self._project, parent=self)
@@ -535,6 +550,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Tab widget controls.
         self.deleteRatioButton.setEnabled(self.ratioTable.currentItem() is not None)
         self.deletePhaseButton.setEnabled(self.phaseTable.currentItem() is not None)
+        self.newPhaseClusterButton.setEnabled(self.clusterTable.currentItem() is not None)
 
         # Matplotlib toolbar controls.
         self.plotTypeComboBox.setEnabled(not showing_phase)

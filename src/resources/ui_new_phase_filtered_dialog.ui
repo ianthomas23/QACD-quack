@@ -123,7 +123,7 @@
      </attribute>
      <column>
       <property name="text">
-       <string>Symbol</string>
+       <string>Element</string>
       </property>
      </column>
      <column>

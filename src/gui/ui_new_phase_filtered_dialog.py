@@ -148,7 +148,7 @@ class Ui_NewPhaseFilteredDialog(object):
         self.label_2.setText(_translate("NewPhaseFilteredDialog", "Upper"))
         self.elementTable.setSortingEnabled(True)
         item = self.elementTable.horizontalHeaderItem(0)
-        item.setText(_translate("NewPhaseFilteredDialog", "Symbol"))
+        item.setText(_translate("NewPhaseFilteredDialog", "Element"))
         item = self.elementTable.horizontalHeaderItem(1)
         item.setText(_translate("NewPhaseFilteredDialog", "Name"))
         item = self.elementTable.horizontalHeaderItem(2)

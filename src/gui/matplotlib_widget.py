@@ -55,12 +55,6 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._map_xlim = None        # Zoom to this when create new map.
         self._map_ylim = None
 
-    def _create_colormap(self):
-        if self._cmap_int_max is None:
-            return cm.get_cmap(self.get_colormap_name())
-        else:
-            return cm.get_cmap(self.get_colormap_name(), self._cmap_int_max)
-
     def _determine_valid_colormap_names(self):
         # Exclude reversed cmaps which have names ending with '_r'.
         all_ = set(filter(lambda s: not s.endswith('_r'), cm.cmap_d.keys()))
@@ -92,6 +86,12 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._map_xlim = None
         self._map_ylim = None
         self.clear()
+
+    def create_colormap(self):
+        if self._cmap_int_max is None:
+            return cm.get_cmap(self.get_colormap_name())
+        else:
+            return cm.get_cmap(self.get_colormap_name(), self._cmap_int_max)
 
     def get_colormap_name(self):
         return self._colormap_name
@@ -171,7 +171,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
     def set_colormap_name(self, colormap_name):
         self._colormap_name = colormap_name
-        cmap = self._create_colormap()
+        cmap = self.create_colormap()
 
         if self._image is not None:
             self._image.set_cmap(cmap)
@@ -211,7 +211,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
         else:
             raise RuntimeError('Invalid plot type')
 
-        cmap = self._create_colormap()
+        cmap = self.create_colormap()
 
         if cmap_int_max is None:
             show_stats = True
@@ -276,4 +276,3 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._map_axes = map_axes
         self._tight_layout()
         self._canvas.draw_idle()
-
