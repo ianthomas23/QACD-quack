@@ -387,6 +387,35 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.update_controls()
             QtWidgets.QApplication.restoreOverrideCursor()
 
+    def get_status_string(self, array, stats):
+        def stat_to_string(name, label=None):
+            label = label or name
+            value = stats.get(name)
+            if value is None:
+                return ''
+            elif isinstance(value, np.float):
+                if int(value) == value:
+                    value = int(value)
+                else:
+                    value = float('{:.5g}'.format(value))
+                return ', {}={}'.format(label, value)
+            else:
+                return ', {}={}'.format(label, value)
+
+        if array is not None:
+            ny, nx = array.shape
+            msg = 'pixels={}x{}'.format(nx, ny)
+            msg += stat_to_string('valid')
+            msg += stat_to_string('invalid')
+            msg += stat_to_string('min')
+            msg += stat_to_string('max')
+            msg += stat_to_string('mean')
+            msg += stat_to_string('median')
+            msg += stat_to_string('std')
+            return msg
+        else:
+            return None
+
     def new_project(self):
         # Select file to save new project to.
         options = QtWidgets.QFileDialog.Options()
@@ -628,33 +657,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 combo_box.addItem(phase)
 
     def update_status_bar(self):
-        def stat_to_string(name, label=None):
-            label = label or name
-            value = self._current.displayed_array_stats.get(name)
-            if value is None:
-                return ''
-            elif isinstance(value, np.float):
-                if int(value) == value:
-                    value = int(value)
-                else:
-                    value = float('{:.5g}'.format(value))
-                return ', {}={}'.format(label, value)
-            else:
-                return ', {}={}'.format(label, value)
-
-        if self._current.displayed_array is not None:
-            ny, nx = self._current.displayed_array.shape
-            msg = 'pixels={}x{}'.format(nx, ny)
-            msg += stat_to_string('valid')
-            msg += stat_to_string('invalid')
-            msg += stat_to_string('min')
-            msg += stat_to_string('max')
-            msg += stat_to_string('mean')
-            msg += stat_to_string('median')
-            msg += stat_to_string('std')
-            self.statusbar.showMessage(msg)
-        else:
+        msg = self.get_status_string(self._current.displayed_array,
+                                     self._current.displayed_array_stats)
+        if msg is None:
             self.statusbar.clearMessage()
+        else:
+            self.statusbar.showMessage(msg)
 
     def update_title(self):
         title = 'QACD quack'

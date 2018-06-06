@@ -15,22 +15,37 @@ class NewPhaseClusterDialog(QtWidgets.QDialog, Ui_NewPhaseClusterDialog):
         self.deleteButton.clicked.connect(self.delete_phases)
         self.mergeButton.clicked.connect(self.merge_phases)
         self.tableWidget.itemSelectionChanged.connect(self.change_selection)
+        self.tableWidget.itemChanged.connect(self.change_name)
+
+        # Correct table widget properties.
+        horiz = self.tableWidget.horizontalHeader()
+        horiz.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        horiz.setDefaultAlignment(QtCore.Qt.AlignLeft)
+        vert = self.tableWidget.verticalHeader()
+        vert.setDefaultSectionSize(vert.minimumSectionSize())
 
         self.project = project
 
         # Copy cluster_map and cluster_map_stats as do not want to alter
         # originals owned by parent.
         self.cluster_map = cluster_map.copy()
+        self.cluster_map.unshare_mask()
         self.cluster_map_stats = cluster_map_stats.copy()
         self.k = cluster_map_stats['max'] + 1
+        self.nvalues = self.k
 
-        # Count of pixels in each cluster.
-        _, self.pixels = np.unique(np.ma.compressed(self.cluster_map),
-                                   return_counts=True)
+        self.ignore_change_name = True
+
+        # Names, pixel counts and list of original values for each cluster are
+        # stored in a cache.
+        _, pixels = np.unique(np.ma.compressed(self.cluster_map),
+                              return_counts=True)
+        self.cache = [[None, pixels[value], [value]] for value in range(self.nvalues)]
 
         self.matplotlibWidget.initialise(owning_window=self, zoom_enabled=False)
-        self.update_matplotlib_widget()
 
+        self.update_status_label()
+        self.update_matplotlib_widget()
         self.fill_table_widget()  # After mpl widget as uses its colormap.
         self.update_buttons()
 
@@ -49,6 +64,13 @@ class NewPhaseClusterDialog(QtWidgets.QDialog, Ui_NewPhaseClusterDialog):
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, 'Error', str(e))
 
+    def change_name(self, item):
+        if not self.ignore_change_name and item is not None and item.column() == 0:
+            row = item.row()
+            name = item.text()
+            value = int(self.tableWidget.item(row, 1).text())
+            self.cache[value][0] = name
+
     def change_selection(self):
         self.tableWidget.setCurrentItem(None)
         self.update_buttons()
@@ -57,55 +79,108 @@ class NewPhaseClusterDialog(QtWidgets.QDialog, Ui_NewPhaseClusterDialog):
         self.tableWidget.clearSelection()
 
     def delete_phases(self):
-        rows = self.get_selected_rows()
-        print('selected rows', rows)
-        #delete_count = len(rows)
-        for row in rows:
-            value = int(self.tableWidget.item(row, 1).text())
-            print(row, value)
+        values = self.get_selected_values()
+        values.sort(reverse=True)
+        for value in values:
+            # Count of deleted pixels.
+            count = self.cache[value][1]
+
+            # Mask out deleted pixels.
             self.cluster_map = np.ma.masked_equal(self.cluster_map, value)
 
+            # Reduce values larger than the deleted value by one.
+            self.cluster_map[self.cluster_map > value] -= 1
+            if self.cluster_map_stats['max'] > 0:
+                self.cluster_map_stats['max'] -= 1
+            self.nvalues -= 1
 
+            # Delete entry from cache.
+            self.cache.pop(value)
 
+            # Correct stats.
+            self.cluster_map_stats['valid'] -= count
+            self.cluster_map_stats['invalid'] += count
+
+        self.update_status_label()
         self.update_matplotlib_widget()
+        self.clear_selections()
+        self.fill_table_widget()  # After mpl widget as uses its colormap.
+        self.update_buttons()
 
-    def fill_table_widget(self):
-        # Correct table widget properties.
+    def fill_table_widget(self, select_value=None):
+        self.ignore_change_name = True
         table_widget = self.tableWidget
-        horiz = table_widget.horizontalHeader()
-        horiz.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
-        horiz.setDefaultAlignment(QtCore.Qt.AlignLeft)
-        vert = table_widget.verticalHeader()
-        vert.setDefaultSectionSize(vert.minimumSectionSize())
 
-        # Should cache pixel counts.............
-        _, pixels = np.unique(np.ma.compressed(self.cluster_map),
-                              return_counts=True)
-
-        pixmap_size = (40, vert.minimumSectionSize()-1)
         cmap = self.matplotlibWidget.create_colormap()
+        pixmap_size = \
+            (40, self.tableWidget.verticalHeader().minimumSectionSize()-1)
 
-        table_widget.setRowCount(self.k)
-        for value in range(self.k):
-            row = self.k-1 - value
+        table_widget.setRowCount(self.nvalues)
+        for value in range(self.nvalues):
+            row = self.nvalues-1 - value
 
             rgba = np.asarray(cmap(value)[:3])*255.0
             rgba = rgba.astype(np.int)
             pixmap = QtGui.QPixmap(pixmap_size[0], pixmap_size[1])
             pixmap.fill(QtGui.QColor(rgba[0], rgba[1], rgba[2], 255))
 
-            self.set_table_widget_cell(table_widget, row, 0, 'phase {}'.format(value))
+            name, pixels, original_values = self.cache[value]
+            if name is None:
+                name = '<phase {}>'.format(value)
+            original_values = ', '.join(map(str, original_values))
+
+            self.set_table_widget_cell(table_widget, row, 0, name)
             self.set_table_widget_cell(table_widget, row, 1, value)
             self.set_table_widget_cell(table_widget, row, 2, pixmap)
-            #self.set_table_widget_cell(table_widget, row, 3, pixels[value])
+            self.set_table_widget_cell(table_widget, row, 3, pixels)
+            self.set_table_widget_cell(table_widget, row, 4, original_values)
+
+            if select_value == value:
+                table_widget.selectRow(row)
+
+        self.ignore_change_name = False
 
     def get_selected_rows(self):
         selected = self.tableWidget.selectionModel().selectedRows()
         rows = [model_index.row() for model_index in selected]
         return rows
 
+    def get_selected_values(self):
+        rows = self.get_selected_rows()
+        values = [int(self.tableWidget.item(row, 1).text()) for row in rows]
+        return values
+
     def merge_phases(self):
-        pass
+        # Merge into the cluster with the lowest value.
+        values = self.get_selected_values()
+        values.sort(reverse=True)
+        source_values = values[:-1]
+        target_value = values[-1]
+        for source_value in source_values:
+            # Transfer pixels from source to target.
+            self.cluster_map[self.cluster_map == source_value] = target_value
+
+            # Correct target pixel count.
+            self.cache[target_value][1] += self.cache[source_value][1]
+
+            # Reduce values larger than the source value by one.
+            self.cluster_map[self.cluster_map > source_value] -= 1
+            if self.cluster_map_stats['max'] > 0:
+                self.cluster_map_stats['max'] -= 1
+            self.nvalues -= 1
+
+            # Correct target original_values.
+            self.cache[target_value][2] += self.cache[source_value][2]
+            self.cache[target_value][2].sort()
+
+            # Delete entry from cache.
+            self.cache.pop(source_value)
+
+        self.update_status_label()
+        self.update_matplotlib_widget()
+        self.clear_selections()
+        self.fill_table_widget(select_value=target_value)  # After mpl widget as uses its colormap.
+        self.update_buttons()
 
     def set_table_widget_cell(self, table_widget, row, column, contents):
         if contents is None:
@@ -131,4 +206,9 @@ class NewPhaseClusterDialog(QtWidgets.QDialog, Ui_NewPhaseClusterDialog):
         title = 'k={} cluster'.format(self.k)
         self.matplotlibWidget.update( \
             PlotType.MAP, self.cluster_map, self.cluster_map_stats, title,
-            show_colorbar=True, cmap_int_max = self.k)
+            show_colorbar=True, cmap_int_max=self.cluster_map_stats['max']+1)
+
+    def update_status_label(self):
+        msg = self.parent().get_status_string(self.cluster_map,
+                                              self.cluster_map_stats)
+        self.statusLabel.setText(msg)

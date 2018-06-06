@@ -194,6 +194,8 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
     def update(self, plot_type, array, array_stats, title, show_colorbar,
                cmap_int_max=None):
+        if cmap_int_max == 0:
+            cmap_int_max = 1  # To avoid colorbar errors.
         self._cmap_int_max = cmap_int_max
 
         figure = self._canvas.figure

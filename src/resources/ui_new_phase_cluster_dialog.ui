@@ -43,7 +43,7 @@
    <property name="geometry">
     <rect>
      <x>50</x>
-     <y>490</y>
+     <y>510</y>
      <width>511</width>
      <height>211</height>
     </rect>
@@ -86,6 +86,11 @@
      <string>Pixels</string>
     </property>
    </column>
+   <column>
+    <property name="text">
+     <string>Original values</string>
+    </property>
+   </column>
   </widget>
   <widget class="QPushButton" name="clearButton">
    <property name="geometry">
@@ -124,6 +129,19 @@
    </property>
    <property name="text">
     <string>Merge selected phases</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="statusLabel">
+   <property name="geometry">
+    <rect>
+     <x>70</x>
+     <y>480</y>
+     <width>571</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>TextLabel</string>
    </property>
   </widget>
  </widget>
