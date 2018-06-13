@@ -19,7 +19,7 @@ if len(project.ratios) == 0:
 else:
     names = ['Mg#', 'Example']
     for i, name in enumerate(names):
-        ratio, stats = project.get_ratio_by_name(name, want_stats=True)
+        ratio, stats = project.get_ratio(name, want_stats=True)
         plt.subplot(len(names), 1, i+1)
         plt.imshow(ratio)
         plt.colorbar()

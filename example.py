@@ -76,7 +76,7 @@ if 1:
 
 if 1:
     ratio_name = 'some ratio'
-    ratio, stats = project.get_ratio_by_name(ratio_name, want_stats=True)
+    ratio, stats = project.get_ratio(ratio_name, want_stats=True)
     plt.figure()
     plt.subplot(211)
     plt.imshow(ratio)

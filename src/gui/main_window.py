@@ -206,7 +206,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 else:
                     ret = self._project.get_normalised(current.name, want_stats=True)
             elif current.data_type == DataType.RATIO:
-                ret = self._project.get_ratio_by_name(current.name, want_stats=True)
+                ret = self._project.get_ratio(current.name, want_stats=True)
             elif current.data_type == DataType.CLUSTER:
                 current.name = int(current.name)
                 ret = self._project.get_cluster_indices(current.name, want_stats=True)

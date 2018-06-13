@@ -33,7 +33,7 @@ class QACDProject:
         self._elements = None
         self._valid_preset_ratios = None
         self._ratios = {}  # dict of name -> tuple of
-                           #   (formula, correction_model, preset, node_name)
+                           #   (formula, correction_model, preset)
         self._phases = {}  # dict of name -> tuple of (source, ...).  Extra
                            # items depend on source, see create_phase_*
 
@@ -293,7 +293,6 @@ class QACDProject:
         # the corresponding element list.
         # Correction model may be either the name of a correction model, or
         # None if no correction is to be used.
-        # Return the node name.
         # Note: Uses unmasked numpy arrays, using np.nan to denote masked out
         # pixels.
         if self._state <= State.NORMALISED:
@@ -376,19 +375,16 @@ class QACDProject:
             else:
                 all_ratios = h5file.create_group('/', 'ratio', 'Ratio maps')
 
-            node_name = 'ratio_{}'.format(all_ratios._v_nchildren)
-            ratio_group = h5file.create_group(all_ratios, node_name)
+            ratio_group = h5file.create_group(all_ratios, name)
             ratio_data = h5file.create_carray(ratio_group, 'data', obj=ratio)
             ratio_mask = h5file.create_carray(ratio_group, 'mask', obj=mask,
                                               chunkshape=ratio_data.chunkshape)
             self._add_array_stats(ratio_group, ratio, mask=mask)
-            ratio_group._v_attrs.name = name
             ratio_group._v_attrs.formula = formula
             ratio_group._v_attrs.correction_model = correction_model
             ratio_group._v_attrs.preset = preset
 
-        self._ratios[name] = (formula, correction_model, preset, node_name)
-        return node_name
+        self._ratios[name] = (formula, correction_model, preset)
 
     def delete_all_clusters(self):
         with self._h5file() as h5file:
@@ -405,10 +401,11 @@ class QACDProject:
             node._f_remove(recursive=True)
 
     def delete_ratio_map(self, name):
+        if name not in self.ratio:
+            raise RuntimeError('No such ratio map {}'.format(name))
         ratio = self._ratios.pop(name)
-        node_name = ratio[-1]
         with self._h5file() as h5file:
-            node = h5file.get_node('/ratio', node_name)
+            node = h5file.get_node('/ratio', name)
             node._f_remove(recursive=True)
 
     @property
@@ -636,16 +633,15 @@ class QACDProject:
     def get_preset_formula(self, preset_name):
         return self.get_formula_from_elements(self.get_preset_elements(preset_name))
 
-    def get_ratio_by_name(self, ratio, masked=True, want_stats=False):
+    def get_ratio(self, name, masked=True, want_stats=False):
         # Return ratio map.  If masked==True, invalid pixels are masked out
         # otherwise they are np.nan.
         if self._state <= State.NORMALISED:
             raise RuntimeError('No normalised data present')
-        if ratio not in self._ratios:
-            raise RuntimeError('No such ratio: {}'.format(ratio))
+        if name not in self._ratios:
+            raise RuntimeError('No such ratio: {}'.format(name))
 
-        node_name = self._ratios[ratio][-1]
-        return self._get_array('/ratio/' + node_name, masked, want_stats)
+        return self._get_array('/ratio/' + name, masked, want_stats)
 
     def get_raw(self, element, masked=True, want_stats=False, h5file=None):
         # Return raw element map.  If masked==True, invalid pixels are masked
@@ -906,8 +902,7 @@ class QACDProject:
             shape = None
             indices_stats = ['min', 'max', 'invalid', 'valid']
             all_stats = indices_stats + ['mean', 'median', 'std']
-            ratio_stats = all_stats + ['name', 'formula', 'correction_model',
-                                       'preset']
+            ratio_stats = all_stats + ['formula', 'correction_model', 'preset']
             phase_stats = ['valid', 'invalid', 'source']
 
             if self._state < State.RAW:
@@ -1052,18 +1047,18 @@ class QACDProject:
 
                 # Load and check ratios.
                 ratio_chunkshape = None
-                for group_node in h5file.get_node('/ratio')._f_list_nodes():
-                    node_name = group_node._v_name
+                group_node = h5file.get_node('/ratio')
+                for ratio_node in group_node._f_list_nodes():
+                    name = ratio_node._v_name
 
-                    attrs = group_node._v_attrs._v_attrnames
+                    attrs = ratio_node._v_attrs._v_attrnames
                     if not all([name in attrs for name in ratio_stats]):
-                        raise RuntimeError('Missing stats in ratio {}'.format(node_name))
+                        raise RuntimeError('Missing stats in ratio {}'.format(name))
 
-                    # Non-stat attributes of the group node.
-                    name = group_node._v_attrs.name
-                    formula = group_node._v_attrs.formula
-                    correction_model = group_node._v_attrs.correction_model
-                    preset = group_node._v_attrs.preset
+                    # Non-stat attributes of the ratio node.
+                    formula = ratio_node._v_attrs.formula
+                    correction_model = ratio_node._v_attrs.correction_model
+                    preset = ratio_node._v_attrs.preset
                     is_preset = preset is not None
 
                     if name in self._ratios:
@@ -1074,28 +1069,27 @@ class QACDProject:
                     if is_preset and preset not in self.get_valid_preset_ratios():
                         raise RuntimeError('Invalid preset ratio {}'.format(preset))
 
-                    self._ratios[name] = (formula, correction_model, preset,
-                                          node_name)
+                    self._ratios[name] = (formula, correction_model, preset)
 
                     for type_, dtype in zip(['data', 'mask'], [np.float64, np.bool]):
-                        node = h5file.get_node('/ratio/{}/{}'.format(node_name, type_))
+                        node = h5file.get_node('/ratio/{}/{}'.format(name, type_))
                         if isinstance(node, tables.link.SoftLink):
                             node = node.dereference()
 
                         if node.dtype != dtype:
-                            raise RuntimeError('Incorrect dtype for ratio {} {}'.format(node_name, type_))
+                            raise RuntimeError('Incorrect dtype for ratio {} {}'.format(name, type_))
 
                         if type_ == 'mask' and node.shape == ():
                             if node.read() != False:
-                                raise RuntimeError('Incorrect empty mask for ratio {}'.format(node_name))
+                                raise RuntimeError('Incorrect empty mask for ratio {}'.format(name))
                         else:
                             if node.shape != shape:
-                                raise RuntimeError('Incorrect shape for ratio {} {}'.format(node_name, type_))
+                                raise RuntimeError('Incorrect shape for ratio {} {}'.format(name, type_))
                             if ratio_chunkshape is None:
                                 ratio_chunkshape = node.chunkshape
                             else:
                                 if node.chunkshape != ratio_chunkshape:
-                                    raise RuntimeError('Incorrect chunkshape for ratio {}'.format(node_name, type_))
+                                    raise RuntimeError('Incorrect chunkshape for ratio {}'.format(name, type_))
 
             if '/cluster' in h5file:
                 if self._state < State.H_FACTOR:
@@ -1246,9 +1240,7 @@ class QACDProject:
         self._ratios[name] = old_tuple
 
         with self._h5file() as h5file:
-            node_name = old_tuple[3]
-            node = h5file.get_node('/ratio', node_name)
-            node._v_attrs.name = name
+            h5file.rename_node('/ratio', name, old_name)
 
     def set_filename(self, filename):
         if self._state != State.INVALID:

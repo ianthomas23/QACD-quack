@@ -94,7 +94,7 @@ def test_sequence():
 
     # Ratio maps - custom.
     p.create_ratio_map('some_ratio', elements=['Mg', 'Ca'])
-    p.get_ratio_by_name('some_ratio')
+    p.get_ratio('some_ratio')
     assert len(p.ratios) == 1
     assert 'some_ratio' in p.ratios
     assert p.ratios['some_ratio'][0] == 'Mg / (Mg+Ca)'
@@ -113,7 +113,7 @@ def test_sequence():
 
     # Ratio maps - presets.
     p.create_ratio_map('anorthite blah', preset='anorthite')
-    p.get_ratio_by_name('some_ratio')
+    p.get_ratio('some_ratio')
     assert len(p.ratios) == 3
     assert p.ratios['anorthite blah'][0] == 'Ca / (Ca+Na)'
 
@@ -259,8 +259,7 @@ def consistency_impl(directory, pixel_totals, median):
         p.create_ratio_map(name, elements=ratio_elements, correction_model=correction_model)
         ratio_entry = p.ratios[name]
         assert formula, name == ratio_entry
-        ratio, ratio_stats = p.get_ratio_by_name(name, want_stats=True)
-        ratio_stats.pop('name')
+        ratio, ratio_stats = p.get_ratio(name, want_stats=True)
         ratio_stats.pop('formula')
         ratio_stats.pop('correction_model')
         ratio_stats.pop('preset')
