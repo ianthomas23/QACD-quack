@@ -131,6 +131,17 @@ def test_sequence():
     with pytest.raises(RuntimeError):
         p.create_phase_map_by_thresholding('no such element', [['Aa', 0, 1]])
 
+    # Phase maps - from cluster.
+    cluster = p.get_cluster_indices(k_min)
+    phase_map = cluster == 0
+    p.create_phase_map_from_cluster('from_cluster', phase_map, k_min, [0])
+    assert len(p.phases) == 3
+    assert 'from_cluster' in p.phases
+    with pytest.raises(RuntimeError):
+        p.create_phase_map_from_cluster('from_cluster', phase_map, k_min, [0])  # Already exists.
+    with pytest.raises(RuntimeError):
+        p.create_phase_map_from_cluster('no original values', phase_map, k_min, [])
+
     # Cleanup.
     if os.path.isfile(temp_filename):
         os.remove(temp_filename)
@@ -273,11 +284,26 @@ def consistency_impl(directory, pixel_totals, median):
     p.create_phase_map_by_thresholding(name, elements_and_thresholds)
     phase, phase_stats = p.get_phase(name, want_stats=True)
     source = phase_stats.pop('source')
-    assert source in ('thresholding', 'cluster')
-    if source == 'thresholding':
-        phase_stats.pop('elements_and_thresholds')
-    else:
-        assert False  # Not implemented yet.
+    assert source == 'thresholding'
+    phase_stats.pop('elements_and_thresholds')
+    assert p.phases[name] == ('thresholding', elements_and_thresholds)
+
+    mask = phase == False
+    check_masked_array(phase, (ny, nx), np.bool, mask, False)
+    check_stats(phase, phase_stats, 'invalid valid')
+
+    # Phase map from cluster.
+    k = k_min
+    original_values = [0]
+    name = 'three'
+    phase_map = cluster == 0
+    p.create_phase_map_from_cluster(name, phase_map, k, original_values)
+    phase, phase_stats = p.get_phase(name, want_stats=True)
+    source = phase_stats.pop('source')
+    assert source == 'cluster'
+    phase_stats.pop('k')
+    phase_stats.pop('original_values')
+    assert p.phases[name] == ('cluster', k, original_values)
 
     mask = phase == False
     check_masked_array(phase, (ny, nx), np.bool, mask, False)

@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'resources/ui_main_window.ui'
 #
-# Created by: PyQt5 UI code generator 5.9.2
+# Created by: PyQt5 UI code generator 5.6
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -158,6 +158,9 @@ class Ui_MainWindow(object):
         self.ratioTable.horizontalHeader().setStretchLastSection(True)
         self.ratioTable.verticalHeader().setVisible(False)
         self.verticalLayout3.addWidget(self.ratioTable)
+        self.label = QtWidgets.QLabel(self.ratioTab)
+        self.label.setObjectName("label")
+        self.verticalLayout3.addWidget(self.label)
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.newRatioButton = QtWidgets.QPushButton(self.ratioTab)
@@ -229,18 +232,23 @@ class Ui_MainWindow(object):
         self.phaseTable.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.phaseTable.setShowGrid(False)
         self.phaseTable.setGridStyle(QtCore.Qt.SolidLine)
-        self.phaseTable.setColumnCount(2)
+        self.phaseTable.setColumnCount(3)
         self.phaseTable.setObjectName("phaseTable")
         self.phaseTable.setRowCount(0)
         item = QtWidgets.QTableWidgetItem()
         self.phaseTable.setHorizontalHeaderItem(0, item)
         item = QtWidgets.QTableWidgetItem()
         self.phaseTable.setHorizontalHeaderItem(1, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.phaseTable.setHorizontalHeaderItem(2, item)
         self.phaseTable.horizontalHeader().setHighlightSections(False)
         self.phaseTable.horizontalHeader().setSortIndicatorShown(True)
         self.phaseTable.horizontalHeader().setStretchLastSection(True)
         self.phaseTable.verticalHeader().setVisible(False)
         self.verticalLayout5.addWidget(self.phaseTable)
+        self.label_2 = QtWidgets.QLabel(self.phaseTab)
+        self.label_2.setObjectName("label_2")
+        self.verticalLayout5.addWidget(self.label_2)
         self.horizontalLayout1 = QtWidgets.QHBoxLayout()
         self.horizontalLayout1.setObjectName("horizontalLayout1")
         self.newPhaseFilteredButton = QtWidgets.QPushButton(self.phaseTab)
@@ -346,7 +354,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_2.addWidget(self.splitter)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 18))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 22))
         self.menubar.setObjectName("menubar")
         self.menuProject = QtWidgets.QMenu(self.menubar)
         self.menuProject.setObjectName("menuProject")
@@ -381,7 +389,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuOptions.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabWidget.setCurrentIndex(4)
+        self.tabWidget.setCurrentIndex(5)
         self.plotTypeComboBox.setCurrentIndex(2)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
@@ -415,6 +423,7 @@ class Ui_MainWindow(object):
         item.setText(_translate("MainWindow", "Formula"))
         item = self.ratioTable.horizontalHeaderItem(2)
         item.setText(_translate("MainWindow", "Correction model"))
+        self.label.setText(_translate("MainWindow", "Double-click on a name to change it."))
         self.newRatioButton.setText(_translate("MainWindow", "New Ratio"))
         self.deleteRatioButton.setText(_translate("MainWindow", "Delete Ratio"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.ratioTab), _translate("MainWindow", "Ratios"))
@@ -430,6 +439,9 @@ class Ui_MainWindow(object):
         item.setText(_translate("MainWindow", "Name"))
         item = self.phaseTable.horizontalHeaderItem(1)
         item.setText(_translate("MainWindow", "Source"))
+        item = self.phaseTable.horizontalHeaderItem(2)
+        item.setText(_translate("MainWindow", "Details"))
+        self.label_2.setText(_translate("MainWindow", "Double-click on a name to change it."))
         self.newPhaseFilteredButton.setToolTip(_translate("MainWindow", "Create new phase map by thresholding filtered element maps"))
         self.newPhaseFilteredButton.setText(_translate("MainWindow", "New phase"))
         self.deletePhaseButton.setText(_translate("MainWindow", "Delete phase"))

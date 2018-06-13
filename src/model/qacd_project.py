@@ -1,10 +1,12 @@
 from contextlib import contextmanager
 from enum import IntEnum, unique
 import numpy as np
+from operator import itemgetter
 import os
 import re
 from sklearn.cluster import MiniBatchKMeans
 import tables
+import warnings
 
 from .correction_models import correction_models
 from .elements import element_properties
@@ -32,7 +34,8 @@ class QACDProject:
         self._valid_preset_ratios = None
         self._ratios = {}  # dict of name -> tuple of
                            #   (formula, correction_model, preset, node_name)
-        self._phases = []  # List of (sorted) names only.
+        self._phases = {}  # dict of name -> tuple of (source, ...).  Extra
+                           # items depend on source, see create_phase_*
 
         # Regular expression to match input CSV filenames.
         self._csv_file_re = re.compile('^([A-Z][a-z]?) K series.csv$')
@@ -46,6 +49,8 @@ class QACDProject:
 
         # Common elements for simpler analysis.
         self.common_elements = ('Al', 'Ca', 'Fe', 'Mg', 'Si')
+
+        warnings.simplefilter('ignore', tables.NaturalNameWarning)
 
     def _add_array_stats(self, h5node, array, mask=None):
         # Add statistics of the specified array to the specified h5 file node.
@@ -214,6 +219,13 @@ class QACDProject:
                     phase_map = within_limits
                 else:
                     phase_map = np.logical_and(phase_map, within_limits)
+        else:
+            # Check phase map shape and dtype.
+            if phase_map.dtype != np.bool:
+                raise RuntimeError('Incorrect dtype for phase {}'.format(name))
+            raw_total = self.get_raw_total(masked=False)
+            if phase_map.shape != raw_total.shape:
+                raise RuntimeError('Incorrect shape for phase {}'.format(name))
 
         # Store phase map.
         with self._h5file() as h5file:
@@ -225,11 +237,47 @@ class QACDProject:
             phase_group = h5file.create_group(all_phases, name)
             phase_data = h5file.create_carray(phase_group, 'data', obj=phase_map)
             self._add_array_stats(phase_group, phase_map, mask=None)
-            phase_group._v_attrs.source = 'thresholding'
+            source = 'thresholding'
+            phase_group._v_attrs.source = source
             phase_group._v_attrs.elements_and_thresholds = elements_and_thresholds
 
-        self._phases.append(name)
-        self._phases.sort()
+        self._phases[name] = (source, elements_and_thresholds)
+
+    def create_phase_map_from_cluster(self, name, phase_map, k, original_values):
+        # Create and store a phase map (boolean array) derived from k-means
+        # clustering.  k and original_values can be used to recreate the phase
+        # map: k is the number of clusters, original_values is a list of values
+        # from the original clustering that this phase comprises.
+        if self._state < State.FILTERED:
+            raise RuntimeError('Cannot create phase map, no filtered data present')
+        if name in self._phases:
+            raise RuntimeError('Phase name {} already used'.format(name))
+        if len(original_values) < 1:
+            raise RuntimeError('No original values specified')
+
+        # Check phase map shape and dtype.
+        if phase_map.dtype != np.bool:
+            raise RuntimeError('Incorrect dtype for phase {}'.format(name))
+        raw_total = self.get_raw_total(masked=False)
+        if phase_map.shape != raw_total.shape:
+            raise RuntimeError('Incorrect shape for phase {}'.format(name))
+
+        # Store phase map.
+        with self._h5file() as h5file:
+            if '/phase' in h5file:
+                all_phases = h5file.get_node('/phase')
+            else:
+                all_phases = h5file.create_group('/', 'phase', 'Phase maps')
+
+            phase_group = h5file.create_group(all_phases, name)
+            phase_data = h5file.create_carray(phase_group, 'data', obj=phase_map)
+            self._add_array_stats(phase_group, phase_map, mask=None)
+            source = 'cluster'
+            phase_group._v_attrs.source = source
+            phase_group._v_attrs.k = k
+            phase_group._v_attrs.original_values = original_values
+
+        self._phases[name] = (source, k, original_values)
 
     def create_ratio_map(self, name, preset=None, elements=None,
                          correction_model=None):
@@ -351,7 +399,7 @@ class QACDProject:
     def delete_phase_map(self, name):
         if name not in self.phases:
             raise RuntimeError('No such phase map {}'.format(name))
-        self._phases.remove(name)
+        self._phases.pop(name)
         with self._h5file() as h5file:
             node = h5file.get_node('/phase', name)
             node._f_remove(recursive=True)
@@ -581,15 +629,6 @@ class QACDProject:
 
         return self._get_array('/phase/' + name, masked=masked,
                                want_stats=want_stats, h5file=h5file)
-
-    def get_phase_source(self, name):
-        # Returns source of phase map, either 'thresholding' or 'cluster'
-        if name not in self._phases:
-            raise RuntimeError('No such phase map: {}'.format(name))
-
-        with self._h5file_ro() as h5file:
-            node = h5file.get_node('/phase/' + name)
-            return node._v_attrs.source
 
     def get_preset_elements(self, preset_name):
         return preset_ratios[preset_name]
@@ -1125,11 +1164,16 @@ class QACDProject:
                     source = phase_node._v_attrs.source
                     if source not in ['thresholding', 'cluster']:
                         raise RuntimeError('Incorrect source {} for phase {}'.format(source, name))
-                    if source == 'thresholding':
+
+                    is_thresholding = source == 'thresholding'
+                    if is_thresholding:
                         if 'elements_and_thresholds' not in attrs:
                             raise RuntimeError('No elements_and_thresholds for phase {}'.format(name))
                     else:
-                        raise RuntimeError('Not implemented yet')
+                        if 'k' not in attrs:
+                            raise RuntimeError('No k for phase {}'.format(name))
+                        if 'original_values' not in attrs:
+                            raise RuntimeError('No original_values for phase {}'.format(name))
 
                     # Check array.
                     node = h5file.get_node(phase_node, 'data')
@@ -1138,9 +1182,14 @@ class QACDProject:
                     if node.shape != shape:
                         raise RuntimeError('Incorrect shape for phase {}'.format(name))
 
-                    self._phases.append(name)
-
-                self._phases.sort()
+                    # Store cached data.
+                    if is_thresholding:
+                        tuple_ = (source,
+                                  phase_node._v_attrs.elements_and_thresholds)
+                    else:
+                        tuple_ = (source, phase_node._v_attrs.k,
+                                  phase_node._v_attrs.original_values)
+                    self._phases[name] = tuple_
 
     def normalise(self, progress_callback=None):
         if self._state != State.FILTERED:
@@ -1184,6 +1233,22 @@ class QACDProject:
     def ratios(self):
         # Read-only property.
         return self._ratios
+
+    def rename_phase(self, old_name, name):
+        old_tuple = self._phases.pop(old_name)
+        self._phases[name] = old_tuple
+
+        with self._h5file() as h5file:
+            h5file.rename_node('/phase', name, old_name)
+
+    def rename_ratio(self, old_name, name):
+        old_tuple = self._ratios.pop(old_name)
+        self._ratios[name] = old_tuple
+
+        with self._h5file() as h5file:
+            node_name = old_tuple[3]
+            node = h5file.get_node('/ratio', node_name)
+            node._v_attrs.name = name
 
     def set_filename(self, filename):
         if self._state != State.INVALID:

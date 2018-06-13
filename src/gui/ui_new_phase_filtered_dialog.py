@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'resources/ui_new_phase_filtered_dialog.ui'
 #
-# Created by: PyQt5 UI code generator 5.6
+# Created by: PyQt5 UI code generator 5.9.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -142,7 +142,7 @@ class Ui_NewPhaseFilteredDialog(object):
 
     def retranslateUi(self, NewPhaseFilteredDialog):
         _translate = QtCore.QCoreApplication.translate
-        NewPhaseFilteredDialog.setWindowTitle(_translate("NewPhaseFilteredDialog", "New phase map by thresholding filtered element maps"))
+        NewPhaseFilteredDialog.setWindowTitle(_translate("NewPhaseFilteredDialog", "Create new phase map by thresholding filtered element maps"))
         self.label_3.setText(_translate("NewPhaseFilteredDialog", "Thresholds"))
         self.label.setText(_translate("NewPhaseFilteredDialog", "Lower"))
         self.label_2.setText(_translate("NewPhaseFilteredDialog", "Upper"))

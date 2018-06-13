@@ -1,3 +1,4 @@
+from collections import Counter
 import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -44,6 +45,7 @@ class NewPhaseClusterDialog(QtWidgets.QDialog, Ui_NewPhaseClusterDialog):
 
         self.matplotlibWidget.initialise(owning_window=self, zoom_enabled=False)
 
+        self.clear_selections()
         self.update_status_label()
         self.update_matplotlib_widget()
         self.fill_table_widget()  # After mpl widget as uses its colormap.
@@ -52,12 +54,24 @@ class NewPhaseClusterDialog(QtWidgets.QDialog, Ui_NewPhaseClusterDialog):
     def accept(self):
         try:
             # Validation.
+            names = [item[0] or self.get_default_name(value) \
+                     for value, item in enumerate(self.cache)]
+            already_used = []
+            for name in names:
+                if name in self.project.phases:
+                    already_used.append(name)
+            if len(already_used) > 0:
+                msg = ', '.join(already_used)
+                raise RuntimeError('The following phase names have already in use: ' + msg)
 
+            # Create new phase maps one at a time, as unmasked boolean arrays.
+            for value in range(self.nvalues):
+                name = names[value]
+                original_values = self.cache[value][2]
+                phase_map = self.cluster_map == value
 
-            # Create new phase maps.
-
-            #self.project.create_phase_map_by_thresholding( \
-            #    name, elements_and_thresholds, phase_map=self.phase_map)
+                self.project.create_phase_map_from_cluster( \
+                    name, phase_map, self.k, original_values)
 
             # Close dialog.
             super().accept()
@@ -69,7 +83,16 @@ class NewPhaseClusterDialog(QtWidgets.QDialog, Ui_NewPhaseClusterDialog):
             row = item.row()
             name = item.text()
             value = int(self.tableWidget.item(row, 1).text())
+            old_name = self.cache[value][0]
             self.cache[value][0] = name
+            if self.has_duplicate_names():
+                QtWidgets.QMessageBox.warning(self, 'Warning',
+                    "Name '{}' is already in use, reverting change.".format(name))
+                if not old_name:
+                    old_name = self.get_default_name(value)
+                self.ignore_change_name = True
+                self.set_table_widget_cell(self.tableWidget, row, 0, old_name)
+                self.ignore_change_name = False
 
     def change_selection(self):
         self.tableWidget.setCurrentItem(None)
@@ -77,6 +100,7 @@ class NewPhaseClusterDialog(QtWidgets.QDialog, Ui_NewPhaseClusterDialog):
 
     def clear_selections(self):
         self.tableWidget.clearSelection()
+        self.tableWidget.setCurrentItem(None)
 
     def delete_phases(self):
         values = self.get_selected_values()
@@ -126,7 +150,7 @@ class NewPhaseClusterDialog(QtWidgets.QDialog, Ui_NewPhaseClusterDialog):
 
             name, pixels, original_values = self.cache[value]
             if name is None:
-                name = '<phase {}>'.format(value)
+                name = self.get_default_name(value)
             original_values = ', '.join(map(str, original_values))
 
             self.set_table_widget_cell(table_widget, row, 0, name)
@@ -140,6 +164,9 @@ class NewPhaseClusterDialog(QtWidgets.QDialog, Ui_NewPhaseClusterDialog):
 
         self.ignore_change_name = False
 
+    def get_default_name(self, value):
+        return '<phase {}>'.format(value)
+
     def get_selected_rows(self):
         selected = self.tableWidget.selectionModel().selectedRows()
         rows = [model_index.row() for model_index in selected]
@@ -149,6 +176,11 @@ class NewPhaseClusterDialog(QtWidgets.QDialog, Ui_NewPhaseClusterDialog):
         rows = self.get_selected_rows()
         values = [int(self.tableWidget.item(row, 1).text()) for row in rows]
         return values
+
+    def has_duplicate_names(self):
+        names = [item[0] for item in self.cache if item[0]]
+        counter = Counter(names)
+        return len(counter) != len(names)
 
     def merge_phases(self):
         # Merge into the cluster with the lowest value.

@@ -77,16 +77,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.tabWidget.removeTab(i)
 
         self._tabs_and_tables = (
-            (DataType.RAW,        self.rawTab,        self.rawTable,        'Raw'),
-            (DataType.FILTERED,   self.filteredTab,   self.filteredTable,   'Filtered'),
-            (DataType.NORMALISED, self.normalisedTab, self.normalisedTable, 'Normalised'),
-            (DataType.RATIO,      self.ratioTab,      self.ratioTable,      'Ratios'),
-            (DataType.CLUSTER,    self.clusterTab,    self.clusterTable,    'Clusters'),
-            (DataType.PHASE,      self.phaseTab,      self.phaseTable,      'Phases'),
+            (DataType.RAW,        self.rawTab,        self.rawTable,        'Raw',        False),
+            (DataType.FILTERED,   self.filteredTab,   self.filteredTable,   'Filtered',   False),
+            (DataType.NORMALISED, self.normalisedTab, self.normalisedTable, 'Normalised', False),
+            (DataType.RATIO,      self.ratioTab,      self.ratioTable,      'Ratios',     True),
+            (DataType.CLUSTER,    self.clusterTab,    self.clusterTable,    'Clusters',   False),
+            (DataType.PHASE,      self.phaseTab,      self.phaseTable,      'Phases',     True),
         )
 
         # Correct table widget properties and connect signals and slots.
-        for (_, _, table, _) in self._tabs_and_tables:
+        for (_, _, table, _, editable_name) in self._tabs_and_tables:
             horiz = table.horizontalHeader()
             horiz.setSectionResizeMode(QtWidgets.QHeaderView.Interactive)
             horiz.setDefaultAlignment(QtCore.Qt.AlignLeft)
@@ -95,6 +95,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             vert.setDefaultSectionSize(vert.minimumSectionSize())
 
             table.itemSelectionChanged.connect(self.change_table_item)
+            if editable_name:
+                table.itemChanged.connect(self.change_name)
 
         # Read-only checkboxes.
         for checkbox in (self.pixelTotalsCheckBox, self.medianFilterCheckBox):
@@ -106,13 +108,42 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self._current = self.Current()  # Current data displayed.
 
-        self._ignore_selection_change = False
+        self._ignore_change_name = False
+        self._ignore_change_selection = False
         self._display_options_shown = False
 
         self._zoom_history = ZoomHistory()
 
         self.update_controls()
         self.update_title()
+
+    def change_name(self, item):
+        if self._ignore_change_name or item is None:
+            return
+
+        name = item.text()
+        old_name = item.data(QtCore.Qt.UserRole)
+        if name == old_name:
+            # No change, do nothing.
+            return
+
+        table_widget = item.tableWidget()
+        if table_widget == self.ratioTable:
+            all_items = self._project.ratios
+        else:  # table_widget == self.phaseTable:
+            all_items = self._project.phases
+
+        if name in all_items:
+            QtWidgets.QMessageBox.warning(self, 'Warning',
+                "Name '{}' is already in use, reverting change.".format(name))
+            self.ignore_change_name = True
+            item.setText(old_name)
+            self.ignore_change_name = False
+        else:
+            if table_widget == self.ratioTable:
+                self._project.rename_ratio(old_name, name)
+            else:  # table_widget == self.phaseTable:
+                self._project.rename_phase(old_name, name)
 
     def change_phase(self):
         text = self.phaseComboBox.currentText()
@@ -129,7 +160,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.update_matplotlib_widget()
 
     def change_table_item(self):
-        if self._ignore_selection_change:
+        if self._ignore_change_selection:
             return
 
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
@@ -139,7 +170,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             # Determine which table widget and which element selected.
             tab_index = self.tabWidget.currentIndex()
-            current.data_type, _, table_widget, _ = self._tabs_and_tables[tab_index]
+            current.data_type, _, table_widget, _, _ = self._tabs_and_tables[tab_index]
             row = table_widget.currentRow()
             item = table_widget.item(row, 0)
             if item is not None:
@@ -148,12 +179,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 current.name = None
 
             # Clear other table widgets.
-            self._ignore_selection_change = True
-            for index, (_, _, widget, _) in enumerate(self._tabs_and_tables):
+            self._ignore_change_selection = True
+            for index, (_, _, widget, _, _) in enumerate(self._tabs_and_tables):
                 if index != tab_index:
                     widget.clearSelection()
                     widget.setCurrentItem(None)
-            self._ignore_selection_change = False
+            self._ignore_change_selection = False
 
             # Retrieve array and array stats from project.
             if current.name is None:
@@ -206,7 +237,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self._current.clear()
 
             # Clear table widgets.
-            for i, (_, _, widget, _) in enumerate(self._tabs_and_tables):
+            for i, (_, _, widget, _, _) in enumerate(self._tabs_and_tables):
                 widget.setRowCount(0)
 
             # Hide all but the first tab.
@@ -261,16 +292,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             "Are you sure you want to delete phase map '{}'?".format(name))
         if button == QtWidgets.QMessageBox.Yes:
             table_widget.clearSelection()
+            table_widget.setCurrentItem(None)
             table_widget.removeRow(row)
+
             self._project.delete_phase_map(name)
+
             self.update_phase_combo_box()
             self.update_controls()
-            if len(self._project.phases) == 0:
-                # If other phases remain, one is automatically selected and so
-                # mpl widget is automatically updated.  Need to clear selection
-                # and update mpl widget manually if no other phases remain.
-                self._current.clear()
-                self.update_matplotlib_widget()
+            self._current.clear()
+            self.update_matplotlib_widget()
 
     def delete_ratio(self):
         table_widget = self.ratioTable
@@ -281,15 +311,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             "Are you sure you want to delete ratio map '{}'?".format(name))
         if button == QtWidgets.QMessageBox.Yes:
             table_widget.clearSelection()
+            table_widget.setCurrentItem(None)
             table_widget.removeRow(row)
+
             self._project.delete_ratio_map(name)
+
             self.update_controls()
-            if len(self._project.ratios) == 0:
-                # If other ratios remain, one is automatically selected and so
-                # mpl widget is automatically updated.  Need to clear selection
-                # and update mpl widget manually if no other ratios remain.
-                self._current.clear()
-                self.update_matplotlib_widget()
+            self._current.clear()
+            self.update_matplotlib_widget()
 
     def display_options(self):
         def finished():
@@ -308,7 +337,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.update_controls()
 
     def fill_table_widget(self, index):
-        data_type, tab_widget, table_widget, tab_title = \
+        data_type, tab_widget, table_widget, tab_title, editable_name = \
             self._tabs_and_tables[index]
 
         # Disable sorting whilst changing content.
@@ -337,17 +366,32 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 for k in range(k_min, k_max+1):
                     rows.append((str(k),))
         elif data_type == DataType.PHASE:
-            for name in self._project.phases:
-                source = self._project.get_phase_source(name)
-                rows.append((name, source))
+            phases = self._project.phases
+            for name in sorted(phases.keys()):
+                tuple_ = phases[name]
+                source = tuple_[0]
+                if source == 'thresholding':
+                    strings = ['{} \u2264 {} \u2264 {}'.format(x[1], x[0], x[2]) for x in tuple_[1]]
+                    details = ', '.join(strings)
+                else:
+                    details = 'k={}, original values={}'.format( \
+                        tuple_[1], ', '.join(map(str, tuple_[2])))
+                rows.append((name, source, details))
 
+        self._ignore_change_name = True
         nrows = len(rows)
         table_widget.setRowCount(nrows)
         for i, row in enumerate(rows):
             for j, text in enumerate(row):
                 item = QtWidgets.QTableWidgetItem(text)
-                item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
+                if j == 0 and editable_name:
+                    # Store hidden data for when user edits first column.
+                    item.setData(QtCore.Qt.UserRole, text)
+                else:
+                    # Non-editable cell.
+                    item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
                 table_widget.setItem(i, j, item)
+        self._ignore_change_name = False
         table_widget.setSortingEnabled(sorting)
 
         # Reset column widths
@@ -474,10 +518,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         dialog = NewPhaseClusterDialog(self._project, cluster_map, stats,
                                        parent=self)
         if dialog.exec_():
-            pass
+            self.fill_table_widget(5)
 
+            # Bring phase tab to front.
+            self.tabWidget.setCurrentIndex(5)  # Bring tab to front.
 
-
+            self.update_phase_combo_box()
+            self.update_controls()
 
     def new_phase_filtered(self):
         # Create new phase map from filtered element maps.
@@ -496,7 +543,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             self.update_phase_combo_box()
             self.update_controls()
-
 
     def new_ratio(self):
         dialog = NewRatioDialog(self._project, parent=self)
@@ -653,8 +699,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         combo_box.clear()
         combo_box.addItem('')
         if self._project is not None:
-            for phase in self._project.phases:
-                combo_box.addItem(phase)
+            for name in sorted(self._project.phases.keys()):
+                combo_box.addItem(name)
 
     def update_status_bar(self):
         msg = self.get_status_string(self._current.displayed_array,

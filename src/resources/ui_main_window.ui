@@ -37,7 +37,7 @@
         <enum>QTabWidget::West</enum>
        </property>
        <property name="currentIndex">
-        <number>4</number>
+        <number>5</number>
        </property>
        <widget class="QWidget" name="rawTab">
         <property name="sizePolicy">
@@ -354,6 +354,13 @@
           </widget>
          </item>
          <item>
+          <widget class="QLabel" name="label">
+           <property name="text">
+            <string>Double-click on a name to change it.</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <layout class="QHBoxLayout" name="horizontalLayout">
            <item>
             <widget class="QPushButton" name="newRatioButton">
@@ -522,7 +529,7 @@
             <bool>true</bool>
            </property>
            <property name="columnCount">
-            <number>2</number>
+            <number>3</number>
            </property>
            <attribute name="horizontalHeaderHighlightSections">
             <bool>false</bool>
@@ -546,6 +553,18 @@
              <string>Source</string>
             </property>
            </column>
+           <column>
+            <property name="text">
+             <string>Details</string>
+            </property>
+           </column>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_2">
+           <property name="text">
+            <string>Double-click on a name to change it.</string>
+           </property>
           </widget>
          </item>
          <item>
@@ -732,7 +751,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>18</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuProject">
