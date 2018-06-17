@@ -21,7 +21,7 @@ def map_calc1(varProj, mapname, mapDic):
     val = mapDic['function']
     val2 = mapDic['val2']
     corr = mapDic['correction']
-    print('==> map_calc1', va, vb, val, val2, corr, 'STRANGE')
+    print('==> map_calc1', va, vb, val, val2, corr, 'preset')
     print va, vb, val
     mapname = mapname
     print mapname
@@ -221,7 +221,7 @@ def map_calc4(varProj, mapname, mapDic):
     val = mapDic['function']
     val2 = mapDic['val2']
     corr = mapDic['correction']
-    print('==> map_calc4', va, vb, vc, val, val2, corr, 'STRANGE')
+    print('==> map_calc4', va, vb, vc, val, val2, corr, 'preset?')
     print va, vb, vc, val
     mapname = mapname
     print mapname

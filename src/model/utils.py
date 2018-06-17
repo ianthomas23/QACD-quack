@@ -2,6 +2,15 @@ import numpy as np
 import numba
 
 
+def apply_correction_model(correction_model, element_or_preset_name, array):
+    correction = correction_model[element_or_preset_name]
+    if correction[0] != 'poly':
+        raise RuntimeError('Unrecognised correction type: {}'.format(correction[0]))
+    poly = list(reversed(correction[1]))  # Decreasing power order.
+    poly = np.poly1d(poly)
+    return poly(array)
+
+
 # 3x3 median filter, ignoring nans.
 # Would like to use scipy.ndimage.filters.median_filter but it treats nans as
 # finite numbers.  scipy.ndimage.filters.generic_filter using np.nanmedian works
@@ -17,7 +26,11 @@ def median_filter_with_nans(input_array):
         for i in range(nx):
             im = i-1 if i > 0 else 0
             ip = i+2 if i < nx-1 else i+1
-            output_array[j, i] = np.nanmedian(input_array[jm:jp, im:ip])
+            subarray = input_array[jm:jp, im:ip]
+            if np.isnan(subarray).sum() > subarray.size // 2:
+                output_array[j, i] = np.nan
+            else:
+                output_array[j, i] = np.nanmedian(subarray)
     return output_array
 
 

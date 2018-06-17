@@ -11,7 +11,7 @@ import warnings
 from .correction_models import correction_models
 from .elements import element_properties
 from .preset_ratios import preset_ratios
-from .utils import median_filter_with_nans, read_csv
+from .utils import apply_correction_model, median_filter_with_nans, read_csv
 
 
 @unique
@@ -306,8 +306,7 @@ class QACDProject:
             raise RuntimeError('Only specify one of preset and elements when creating a ratio map')
 
         # Get preset ratio.
-        is_preset_ratio = preset is not None
-        if is_preset_ratio:
+        if preset is not None:
             if preset not in self.get_valid_preset_ratios():
                 raise RuntimeError('No such preset ratio: {}'.format(preset))
             elements = preset_ratios[preset]
@@ -332,40 +331,45 @@ class QACDProject:
                                    ', '.join(missing_elements))
 
         if correction_model is None:
-            # If no correction model, do not need to multiply by h factor.
+            # If no correction model, do not need to multiply by h-factor.
             numerator = self.get_filtered(elements[0], masked=False)
             denominator = numerator.copy()
             for element in elements[1:]:
                 denominator += self.get_filtered(element, masked=False)
         else:
-            if is_preset_ratio:
-                raise RuntimeError('Correction models for presets not implemented yet')
-
+            # Using a correction model.  If not a preset, apply correction to
+            # each (h-factor multiplied) filtered element map before combining
+            # to create ratio.  If is a preset, combine (h-factor multiplied)
+            # filtered element maps before applying correction.
             h_factor = self.get_h_factor(masked=False)
 
-            correction = model[elements[0]]
-            if correction[0] != 'poly':
-                raise RuntimeError('Unrecognised correction type: {}'.format(correction[0]))
-            poly = list(reversed(correction[1]))  # Decreasing power order.
-            poly = np.poly1d(poly)
-            numerator = poly(self.get_filtered( \
-                elements[0], masked=False)*h_factor)
+            numerator = self.get_filtered(elements[0], masked=False)*h_factor
+            if preset is None:
+                numerator = apply_correction_model(model, elements[0], numerator)
 
             denominator = numerator.copy()
             for element in elements[1:]:
-                correction = model[element]
-                if correction[0] != 'poly':
-                    raise RuntimeError('Unrecognised correction type: {}'.format(correction[0]))
-                poly = list(reversed(correction[1]))  # Decreasing power order.
-                poly = np.poly1d(poly)
-                denominator += poly(self.get_filtered( \
-                    element, masked=False)*h_factor)
+                term = self.get_filtered(element, masked=False)*h_factor
+                if preset is None:
+                    term = apply_correction_model(model, element, term)
+                denominator += term
 
         # Avoid zero/zero by masking such pixels beforehand.
         denominator[denominator == 0.0] = np.nan
         ratio = numerator / denominator
 
+        if preset is not None and correction_model is not None:
+            # Apply correction.
+            ratio = apply_correction_model(model, preset, ratio)
+
         formula = self.get_formula_from_elements(elements)
+
+        # Restrict values to between 0 and 1.
+        # Need to deal with runtime warnings about nans here.
+        #print('==> before min, max', ratio.min(), ratio.max())
+        #ratio[ratio < 0.0] = np.nan
+        #ratio[ratio > 1.0] = np.nan
+        #print('==> after min, max', ratio.min(), ratio.max())
 
         mask = np.isnan(ratio)
 
@@ -401,7 +405,7 @@ class QACDProject:
             node._f_remove(recursive=True)
 
     def delete_ratio_map(self, name):
-        if name not in self.ratio:
+        if name not in self.ratios:
             raise RuntimeError('No such ratio map {}'.format(name))
         ratio = self._ratios.pop(name)
         with self._h5file() as h5file:

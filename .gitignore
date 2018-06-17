@@ -3,3 +3,4 @@ __pycache__/
 .cache/
 example.quack
 out.quack
+.pytest_cache/

@@ -76,8 +76,8 @@ class NewRatioDialog(QtWidgets.QDialog, Ui_NewRatioDialog):
             if correction_model:
                 model_elements = self.project.get_correction_model_elements(correction_model)
                 if is_preset:
-                    raise RuntimeError('Correction models are not yet implemented for presets')
-                    if name not in model_elements:
+                    #raise RuntimeError('Correction models are not yet implemented for presets')
+                    if preset not in model_elements:
                         raise RuntimeError("Correction model '{}' does not include preset '{}'".format( \
                             correction_model, name))
                 else:
