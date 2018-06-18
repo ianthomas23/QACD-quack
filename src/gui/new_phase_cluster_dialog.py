@@ -2,7 +2,7 @@ from collections import Counter
 import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from .matplotlib_widget import PlotType
+from .enums import ArrayType, PlotType
 from .ui_new_phase_cluster_dialog import Ui_NewPhaseClusterDialog
 
 
@@ -236,9 +236,8 @@ class NewPhaseClusterDialog(QtWidgets.QDialog, Ui_NewPhaseClusterDialog):
 
     def update_matplotlib_widget(self):
         title = 'k={} cluster'.format(self.k)
-        self.matplotlibWidget.update( \
-            PlotType.MAP, self.cluster_map, self.cluster_map_stats, title,
-            show_colorbar=True, cmap_int_max=self.cluster_map_stats['max']+1)
+        self.matplotlibWidget.update(PlotType.MAP, ArrayType.CLUSTER,
+            self.cluster_map, self.cluster_map_stats, title)
 
     def update_status_label(self):
         msg = self.parent().get_status_string(self.cluster_map,

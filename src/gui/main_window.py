@@ -7,9 +7,10 @@ import time
 from src.model.elements import element_properties
 from src.model.qacd_project import QACDProject, State
 from .clustering_dialog import ClusteringDialog
+from .enums import ArrayType, PlotType
 from .display_options_dialog import DisplayOptionsDialog
 from .filter_dialog import FilterDialog
-from .matplotlib_widget import DataType, PlotType
+from .matplotlib_widget import ArrayType, PlotType
 from .new_phase_cluster_dialog import NewPhaseClusterDialog
 from .new_phase_filtered_dialog import NewPhaseFilteredDialog
 from .new_ratio_dialog import NewRatioDialog
@@ -34,7 +35,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.displayed_array = None
             self.displayed_array_stats = None
 
-            self.data_type = DataType.NONE
+            self.array_type = ArrayType.NONE
             self.name = None   # e.g. element name, or 'total', etc.
             self.phase = None
 
@@ -77,12 +78,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.tabWidget.removeTab(i)
 
         self._tabs_and_tables = (
-            (DataType.RAW,        self.rawTab,        self.rawTable,        'Raw',        False),
-            (DataType.FILTERED,   self.filteredTab,   self.filteredTable,   'Filtered',   False),
-            (DataType.NORMALISED, self.normalisedTab, self.normalisedTable, 'Normalised', False),
-            (DataType.RATIO,      self.ratioTab,      self.ratioTable,      'Ratios',     True),
-            (DataType.CLUSTER,    self.clusterTab,    self.clusterTable,    'Clusters',   False),
-            (DataType.PHASE,      self.phaseTab,      self.phaseTable,      'Phases',     True),
+            (ArrayType.RAW,        self.rawTab,        self.rawTable,        'Raw',        False),
+            (ArrayType.FILTERED,   self.filteredTab,   self.filteredTable,   'Filtered',   False),
+            (ArrayType.NORMALISED, self.normalisedTab, self.normalisedTable, 'Normalised', False),
+            (ArrayType.RATIO,      self.ratioTab,      self.ratioTable,      'Ratios',     True),
+            (ArrayType.CLUSTER,    self.clusterTab,    self.clusterTable,    'Clusters',   False),
+            (ArrayType.PHASE,      self.phaseTab,      self.phaseTable,      'Phases',     True),
         )
 
         # Correct table widget properties and connect signals and slots.
@@ -102,6 +103,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         for checkbox in (self.pixelTotalsCheckBox, self.medianFilterCheckBox):
             checkbox.setFocusPolicy(QtCore.Qt.NoFocus)
             checkbox.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents, True)
+
+        # Hide unwanted region controls until regions implemented.
+        self.regionLabel.setVisible(False)
+        self.regionComboBox.setVisible(False)
 
         # Member variables.
         self._project = None
@@ -170,7 +175,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             # Determine which table widget and which element selected.
             tab_index = self.tabWidget.currentIndex()
-            current.data_type, _, table_widget, _, _ = self._tabs_and_tables[tab_index]
+            current.array_type, _, table_widget, _, _ = self._tabs_and_tables[tab_index]
             row = table_widget.currentRow()
             item = table_widget.item(row, 0)
             if item is not None:
@@ -188,29 +193,29 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             # Retrieve array and array stats from project.
             if current.name is None:
-                current.data_type = DataType.NONE
+                current.array_type = ArrayType.NONE
                 ret = (None, None)
-            elif current.data_type == DataType.RAW:
+            elif current.array_type == ArrayType.RAW:
                 if current.name == 'Total':
                     ret = self._project.get_raw_total(want_stats=True)
                 else:
                     ret = self._project.get_raw(current.name, want_stats=True)
-            elif current.data_type == DataType.FILTERED:
+            elif current.array_type == ArrayType.FILTERED:
                 if current.name == 'Total':
                     ret = self._project.get_filtered_total(want_stats=True)
                 else:
                     ret = self._project.get_filtered(current.name, want_stats=True)
-            elif current.data_type == DataType.NORMALISED:
+            elif current.array_type == ArrayType.NORMALISED:
                 if current.name in ('h', 'h-factor'):
                     ret = self._project.get_h_factor(want_stats=True)
                 else:
                     ret = self._project.get_normalised(current.name, want_stats=True)
-            elif current.data_type == DataType.RATIO:
+            elif current.array_type == ArrayType.RATIO:
                 ret = self._project.get_ratio(current.name, want_stats=True)
-            elif current.data_type == DataType.CLUSTER:
+            elif current.array_type == ArrayType.CLUSTER:
                 current.name = int(current.name)
                 ret = self._project.get_cluster_indices(current.name, want_stats=True)
-            elif current.data_type == DataType.PHASE:
+            elif current.array_type == ArrayType.PHASE:
                 ret = self._project.get_phase(current.name, want_stats=True)
             else:
                 raise RuntimeError('Not implemented ' + type_)
@@ -337,7 +342,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.update_controls()
 
     def fill_table_widget(self, index):
-        data_type, tab_widget, table_widget, tab_title, editable_name = \
+        array_type, tab_widget, table_widget, tab_title, editable_name = \
             self._tabs_and_tables[index]
 
         # Disable sorting whilst changing content.
@@ -348,24 +353,24 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.tabWidget.insertTab(index, tab_widget, tab_title)
 
         rows = []
-        if data_type in (DataType.RAW, DataType.FILTERED, DataType.NORMALISED):
+        if array_type in (ArrayType.RAW, ArrayType.FILTERED, ArrayType.NORMALISED):
             for i, element in enumerate(self._project.elements):
                 name = element_properties[element][0]
                 rows.append((element, name))
-            if data_type in (DataType.RAW, DataType.FILTERED):
+            if array_type in (ArrayType.RAW, ArrayType.FILTERED):
                 rows.append(('Total', ''))
-            if data_type == DataType.NORMALISED and self._project.state >= State.H_FACTOR:
+            if array_type == ArrayType.NORMALISED and self._project.state >= State.H_FACTOR:
                 rows.append(('h-factor', ''))
-        elif data_type == DataType.RATIO:
+        elif array_type == ArrayType.RATIO:
             for name, tuple_ in self._project.ratios.items():
                 rows.append((name, tuple_[0], tuple_[1]))
-        elif data_type == DataType.CLUSTER:
+        elif array_type == ArrayType.CLUSTER:
             cluster_k = self._project.get_cluster_k()
             if cluster_k is not None:
                 k_min, k_max = cluster_k
                 for k in range(k_min, k_max+1):
                     rows.append((str(k),))
-        elif data_type == DataType.PHASE:
+        elif array_type == ArrayType.PHASE:
             phases = self._project.phases
             for name in sorted(phases.keys()):
                 tuple_ = phases[name]
@@ -567,29 +572,29 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         try:
             project = QACDProject()
             project.load_file(filename)
+
+            # Opened project is OK, so can close previous project.
+            self.close_project()
+            self._project = project
+
+            if self._project.state >= State.RAW:
+                self.fill_table_widget(0)  # Raw.
+                self.tabWidget.setCurrentIndex(0)  # Bring tab to front.
+
+            if self._project.state >= State.FILTERED:
+                self.fill_table_widget(1)  # Filtered.
+                self.tabWidget.setCurrentIndex(1)  # Bring tab to front.
+
+            if self._project.state >= State.NORMALISED:
+                self.fill_table_widget(2)  # Normalised (and h-factor if present).
+                self.tabWidget.setCurrentIndex(2)  # Bring tab to front.
+
+            if self._project.state >= State.H_FACTOR:
+                self.fill_table_widget(3)  # Ratios.
+                self.fill_table_widget(4)  # Clustering.
+                self.fill_table_widget(5)  # Phases.
         except Exception as e:
-            print('Need to display message box: {}'.format(e))
-
-        # Opened project is OK, so can close previous project.
-        self.close_project()
-        self._project = project
-
-        if self._project.state >= State.RAW:
-            self.fill_table_widget(0)  # Raw.
-            self.tabWidget.setCurrentIndex(0)  # Bring tab to front.
-
-        if self._project.state >= State.FILTERED:
-            self.fill_table_widget(1)  # Filtered.
-            self.tabWidget.setCurrentIndex(1)  # Bring tab to front.
-
-        if self._project.state >= State.NORMALISED:
-            self.fill_table_widget(2)  # Normalised (and h-factor if present).
-            self.tabWidget.setCurrentIndex(2)  # Bring tab to front.
-
-        if self._project.state >= State.H_FACTOR:
-            self.fill_table_widget(3)  # Ratios.
-            self.fill_table_widget(4)  # Clustering.
-            self.fill_table_widget(5)  # Phases.
+            QtWidgets.QMessageBox.critical(self, 'Error', str(e))
 
         self.update_controls()
         self.update_matplotlib_widget()
@@ -612,7 +617,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def update_controls(self):
         valid_project = self._project is not None
-        showing_phase = self._current.data_type == DataType.PHASE
+        showing_phase = self._current.array_type == ArrayType.PHASE
 
         # Menu items.
         self.actionProjectClose.setEnabled(valid_project)
@@ -640,33 +645,28 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def update_matplotlib_widget(self):
         current = self._current
 
-        if current.data_type is DataType.NONE:
+        if current.array_type is ArrayType.NONE:
             self.matplotlibWidget.clear()
         else:
             plot_type = PlotType(self.plotTypeComboBox.currentIndex())
-            cmap_int_max = None
-            show_colorbar = True
             if current.name in ('h', 'h-factor'):
                 title = 'h-factor'
-            elif current.data_type == DataType.RATIO:
+            elif current.array_type == ArrayType.RATIO:
                 title = current.name + ' ratio'
-            elif current.data_type == DataType.CLUSTER:
+            elif current.array_type == ArrayType.CLUSTER:
                 title = 'k={} cluster'.format(current.name)
-                cmap_int_max = current.name
-            elif current.data_type == DataType.PHASE:
+            elif current.array_type == ArrayType.PHASE:
                 title = current.name + ' phase'
-                cmap_int_max = 2
-                plot_type = PlotType.MAP
-                show_colorbar = False
+                plot_type = PlotType.MAP  # Don't want histogram.
             else:
                 if current.name == 'Total':
                     name = 'total'
                 else:
                     name = element_properties[current.name][0]
-                type_string = string.capwords(current.data_type.name.lower())
+                type_string = string.capwords(current.array_type.name.lower())
                 title = '{} {} element'.format(type_string, name)
 
-            if current.data_type != DataType.PHASE and current.phase is not None:
+            if current.array_type != ArrayType.PHASE and current.phase is not None:
                 # May want to cache this instead of recalculating it each time.
                 array = np.ma.masked_where(current.phase, current.selected_array)
                 array_stats = {}
@@ -690,9 +690,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 current.displayed_array = current.selected_array
                 current.displayed_array_stats = current.selected_array_stats
 
-            self.matplotlibWidget.update( \
-                plot_type, current.displayed_array, current.displayed_array_stats,
-                title, show_colorbar=show_colorbar, cmap_int_max=cmap_int_max)
+            self.matplotlibWidget.update(plot_type, current.array_type,
+                current.displayed_array, current.displayed_array_stats, title)
 
     def update_phase_combo_box(self):
         combo_box = self.phaseComboBox

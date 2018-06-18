@@ -346,7 +346,7 @@ class Ui_MainWindow(object):
         self.rightVerticalLayout.addLayout(self.topRightHorizontalLayout)
         self.matplotlibWidget = MatplotlibWidget(self.layoutWidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
-        sizePolicy.setHorizontalStretch(9)
+        sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(1)
         sizePolicy.setHeightForWidth(self.matplotlibWidget.sizePolicy().hasHeightForWidth())
         self.matplotlibWidget.setSizePolicy(sizePolicy)

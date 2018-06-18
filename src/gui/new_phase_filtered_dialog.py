@@ -2,7 +2,7 @@ import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from src.model.elements import element_properties
-from .matplotlib_widget import PlotType
+from .enums import ArrayType, PlotType
 from .ui_new_phase_filtered_dialog import Ui_NewPhaseFilteredDialog
 
 
@@ -154,9 +154,8 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
                 self.element, want_stats=True)
             title = 'Filtered {} element'.format(self.element)
 
-            self.elementMatplotlibWidget.update( \
-                PlotType.MAP, self.array, self.array_stats, title,
-                show_colorbar=True)
+            self.elementMatplotlibWidget.update(PlotType.MAP,
+                ArrayType.FILTERED, self.array, self.array_stats, title)
 
             for control in (self.lowerSlider, self.upperSlider,
                             self.lowerLineEdit, self.upperLineEdit,
@@ -254,9 +253,8 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
             self.phaseMatplotlibWidget.clear()
         else:
             self.phase_map = np.ma.masked_equal(self.phase_map, 0)
-            self.phaseMatplotlibWidget.update( \
-                PlotType.MAP, self.phase_map, None, None, show_colorbar=False,
-                cmap_int_max=2)
+            self.phaseMatplotlibWidget.update(PlotType.MAP, ArrayType.PHASE,
+                self.phase_map, None, None)
 
     def update_thresholds(self):
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)

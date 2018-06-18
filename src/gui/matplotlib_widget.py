@@ -1,30 +1,13 @@
 from enum import Enum, unique
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 import matplotlib.cm as cm
-from matplotlib.colors import Normalize
+from matplotlib.colors import LinearSegmentedColormap, Normalize
 from matplotlib.figure import Figure
 from matplotlib.patches import Rectangle
 import numpy as np
 from PyQt5 import QtCore, QtWidgets
 
-
-@unique
-class DataType(Enum):
-    NONE       = -1
-    RAW        =  0
-    FILTERED   =  1
-    NORMALISED =  2
-    RATIO      =  3
-    CLUSTER    =  4
-    PHASE      =  5
-
-# Same values as in plotTypeComboBox.
-@unique
-class PlotType(Enum):
-    INVALID   = -1
-    MAP       =  0
-    HISTOGRAM =  1
-    BOTH      =  2
+from .enums import ArrayType, PlotType
 
 
 class MatplotlibWidget(QtWidgets.QWidget):
@@ -42,10 +25,11 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._bar = None         # Bar used for histogram.
         self._bar_norm_x = None  # Normalised x-positions of centres of bars
                                  #   in range 0 (= min) to 1.0 (= max value).
+        self._array_type = ArrayType.NONE
+        self._cmap_int_max = None  # One beyond end, as in numpy slicing.
 
         self._valid_colormap_names = self._determine_valid_colormap_names()
         self._colormap_name = 'rainbow'
-        self._cmap_int_max = None  # One beyond end, as in numpy slicing.
 
         # Initialised in initialise().
         self._owning_window = None
@@ -54,6 +38,10 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._zoom_rectangle = None  # Only set when zooming.
         self._map_xlim = None        # Zoom to this when create new map.
         self._map_ylim = None
+
+    def _create_black_colormap(self):
+        colors = [(0, 0, 0), (0, 0, 0)]  # Black
+        return LinearSegmentedColormap.from_list('black', colors, N=1)
 
     def _determine_valid_colormap_names(self):
         # Exclude reversed cmaps which have names ending with '_r'.
@@ -67,8 +55,9 @@ class MatplotlibWidget(QtWidgets.QWidget):
                        'tab20', 'tab20b', 'tab20c'])
         return sorted(all_.difference(exclude))
 
-    def _tight_layout(self):
-        self._canvas.figure.tight_layout(pad=1.5)
+    def _adjust_layout(self):
+        #self._canvas.figure.tight_layout(pad=1.5)
+        pass
 
     def clear(self):
         # Clear current plots.
@@ -78,6 +67,8 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._image = None
         self._bar = None
         self._bar_norm_x = None
+        self._array_type = ArrayType.NONE
+        self._cmap_int_max = None  # One beyond end, as in numpy slicing.
 
         self._canvas.draw_idle()
 
@@ -88,6 +79,8 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self.clear()
 
     def create_colormap(self):
+        if self._array_type == ArrayType.PHASE:
+            return self._create_black_colormap()
         if self._cmap_int_max is None:
             return cm.get_cmap(self.get_colormap_name())
         else:
@@ -159,7 +152,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
             self._zoom_rectangle = None
 
     def on_resize(self, event):
-        self._tight_layout()
+        self._adjust_layout()
 
     def set_colormap_limits(self, lower, upper):
         if self._image is not None:
@@ -172,6 +165,9 @@ class MatplotlibWidget(QtWidgets.QWidget):
     def set_colormap_name(self, colormap_name):
         self._colormap_name = colormap_name
         cmap = self.create_colormap()
+
+        if self._array_type == ArrayType.PHASE:
+            return
 
         if self._image is not None:
             self._image.set_cmap(cmap)
@@ -192,10 +188,17 @@ class MatplotlibWidget(QtWidgets.QWidget):
             self._map_axes.set_ylim(ys)
             self._canvas.draw_idle()
 
-    def update(self, plot_type, array, array_stats, title, show_colorbar,
-               cmap_int_max=None):
-        if cmap_int_max == 0:
-            cmap_int_max = 1  # To avoid colorbar errors.
+    def update(self, plot_type, array_type, array, array_stats, title):
+        # Derived quantities.
+        show_colorbar = True
+        cmap_int_max = None
+        if array_type == ArrayType.CLUSTER:
+            cmap_int_max = array_stats['max'] + 1
+        elif array_type == ArrayType.PHASE:
+            show_colorbar = False
+            cmap_int_max = 2
+
+        self._array_type = array_type
         self._cmap_int_max = cmap_int_max
 
         figure = self._canvas.figure
@@ -276,5 +279,5 @@ class MatplotlibWidget(QtWidgets.QWidget):
                 histogram_axes.set_title(title + ' histogram')
 
         self._map_axes = map_axes
-        self._tight_layout()
+        self._adjust_layout()
         self._canvas.draw_idle()
