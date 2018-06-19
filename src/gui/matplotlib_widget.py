@@ -39,6 +39,10 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._map_xlim = None        # Zoom to this when create new map.
         self._map_ylim = None
 
+    def _adjust_layout(self):
+        #self._canvas.figure.tight_layout(pad=1.5)
+        pass
+
     def _create_black_colormap(self):
         colors = [(0, 0, 0), (0, 0, 0)]  # Black
         return LinearSegmentedColormap.from_list('black', colors, N=1)
@@ -55,9 +59,9 @@ class MatplotlibWidget(QtWidgets.QWidget):
                        'tab20', 'tab20b', 'tab20c'])
         return sorted(all_.difference(exclude))
 
-    def _adjust_layout(self):
-        #self._canvas.figure.tight_layout(pad=1.5)
-        pass
+    def _redraw(self):
+        self._canvas.draw()
+        #self._canvas.draw_idle()
 
     def clear(self):
         # Clear current plots.
@@ -70,7 +74,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._array_type = ArrayType.NONE
         self._cmap_int_max = None  # One beyond end, as in numpy slicing.
 
-        self._canvas.draw_idle()
+        self._redraw()
 
     def clear_all(self):
         # Clear everything, including cached zoom limits, etc.
@@ -122,7 +126,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
             rectangle = Rectangle((event.xdata, event.ydata), width=0, height=0,
                                   fc='none', ec='k', ls='--')
             self._zoom_rectangle = self._map_axes.add_patch(rectangle)
-            self._canvas.draw_idle()
+            self._redraw()
 
     def on_mouse_move(self, event):
         if self._zoom_rectangle is not None and event.inaxes == self._map_axes:
@@ -130,7 +134,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
             y = event.ydata
             self._zoom_rectangle.set_width(x - self._zoom_rectangle.get_x())
             self._zoom_rectangle.set_height(y - self._zoom_rectangle.get_y())
-            self._canvas.draw_idle()
+            self._redraw()
 
     def on_mouse_up(self, event):
         if (self._zoom_rectangle is not None and event.button == 1 and
@@ -160,7 +164,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
             cmap = self._image.get_cmap()
             cmap.set_over('w')
             cmap.set_under('w')
-            self._canvas.draw_idle()
+            self._redraw()
 
     def set_colormap_name(self, colormap_name):
         self._colormap_name = colormap_name
@@ -177,7 +181,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
             for index, item in enumerate(self._bar):
                 item.set_color(colors[index])
 
-        self._canvas.draw_idle()
+        self._redraw()
 
     def set_map_zoom(self, xs, ys):
         if self._map_axes is not None:
@@ -186,7 +190,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
             self._map_axes.set_xlim(xs)
             self._map_axes.set_ylim(ys)
-            self._canvas.draw_idle()
+            self._redraw()
 
     def update(self, plot_type, array_type, array, array_stats, title):
         # Derived quantities.
@@ -247,7 +251,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
             self._bar_norm_x = None
         else:
             if cmap_int_max is None:
-                bins = 'sqrt'
+                bins = 100
             else:
                 bins = np.arange(0, cmap_int_max+1)-0.5
             hist, bin_edges = np.histogram(np.ma.compressed(array), bins=bins)
@@ -280,4 +284,4 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
         self._map_axes = map_axes
         self._adjust_layout()
-        self._canvas.draw_idle()
+        self._redraw()

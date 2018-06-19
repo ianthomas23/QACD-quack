@@ -415,8 +415,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def filter(self):
         dialog = FilterDialog(parent=self)
         if dialog.exec_():
-            QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
-
             pixel_totals = dialog.pixelTotalsCheckBox.isChecked()
             median_filter = dialog.medianFilterCheckBox.isChecked()
 
@@ -424,6 +422,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.short_wait()
                 project.filter_normalise_and_h_factor( \
                     pixel_totals, median_filter, progress_callback=progress_callback)
+
+            QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
 
             ProgressDialog.worker_thread( \
                 self, 'Filter and Normalise', thread_func,
@@ -495,17 +495,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             csv_directory = os.path.dirname(csv_files[0])
             csv_files = [os.path.basename(f) for f in csv_files]
-        except:
-            print('Need to display message box')
 
-        def thread_func(project, csv_directory, csv_files, progress_callback):
-            self.short_wait()
-            project.import_raw_csv_files(csv_directory, csv_files,
-                                         progress_callback=progress_callback)
+            def thread_func(project, csv_directory, csv_files, progress_callback):
+                self.short_wait()
+                project.import_raw_csv_files(csv_directory, csv_files,
+                                             progress_callback=progress_callback)
 
-        ProgressDialog.worker_thread( \
-            self, 'New project ' + os.path.basename(filename), thread_func,
-            args=[self._project, csv_directory, csv_files])
+            ProgressDialog.worker_thread( \
+                self, 'New project ' + os.path.basename(filename), thread_func,
+                args=[self._project, csv_directory, csv_files])
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, 'Error', str(e))
 
         self.fill_table_widget(0)
         self.tabWidget.setCurrentIndex(0)  # Bring tab to front.
