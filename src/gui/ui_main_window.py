@@ -355,7 +355,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_2.addWidget(self.splitter)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 22))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 18))
         self.menubar.setObjectName("menubar")
         self.menuProject = QtWidgets.QMenu(self.menubar)
         self.menuProject.setObjectName("menuProject")
@@ -390,7 +390,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuOptions.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabWidget.setCurrentIndex(5)
+        self.tabWidget.setCurrentIndex(3)
         self.plotTypeComboBox.setCurrentIndex(2)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
@@ -425,8 +425,8 @@ class Ui_MainWindow(object):
         item = self.ratioTable.horizontalHeaderItem(2)
         item.setText(_translate("MainWindow", "Correction model"))
         self.label.setText(_translate("MainWindow", "Double-click on a name to change it."))
-        self.newRatioButton.setText(_translate("MainWindow", "New Ratio"))
-        self.deleteRatioButton.setText(_translate("MainWindow", "Delete Ratio"))
+        self.newRatioButton.setText(_translate("MainWindow", "New ratio"))
+        self.deleteRatioButton.setText(_translate("MainWindow", "Delete ratio"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.ratioTab), _translate("MainWindow", "Ratios"))
         self.clusterTable.setSortingEnabled(True)
         item = self.clusterTable.horizontalHeaderItem(0)

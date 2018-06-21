@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'resources/ui_display_options_dialog.ui'
 #
-# Created by: PyQt5 UI code generator 5.6
+# Created by: PyQt5 UI code generator 5.9.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -37,7 +37,7 @@ class Ui_DisplayOptionsDialog(object):
     def retranslateUi(self, DisplayOptionsDialog):
         _translate = QtCore.QCoreApplication.translate
         DisplayOptionsDialog.setWindowTitle(_translate("DisplayOptionsDialog", "Display Options"))
-        self.label.setText(_translate("DisplayOptionsDialog", "Colormap"))
+        self.label.setText(_translate("DisplayOptionsDialog", "Colourmap"))
         self.reverseCheckBox.setText(_translate("DisplayOptionsDialog", "Reverse"))
 
 

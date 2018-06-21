@@ -40,7 +40,7 @@
         <enum>QTabWidget::West</enum>
        </property>
        <property name="currentIndex">
-        <number>5</number>
+        <number>3</number>
        </property>
        <widget class="QWidget" name="rawTab">
         <property name="sizePolicy">
@@ -368,14 +368,14 @@
            <item>
             <widget class="QPushButton" name="newRatioButton">
              <property name="text">
-              <string>New Ratio</string>
+              <string>New ratio</string>
              </property>
             </widget>
            </item>
            <item>
             <widget class="QPushButton" name="deleteRatioButton">
              <property name="text">
-              <string>Delete Ratio</string>
+              <string>Delete ratio</string>
              </property>
             </widget>
            </item>
@@ -754,7 +754,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>22</height>
+     <height>18</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuProject">

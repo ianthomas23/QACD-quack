@@ -145,10 +145,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             item.setText(old_name)
             self.ignore_change_name = False
         else:
+            self._current.name = name
             if table_widget == self.ratioTable:
                 self._project.rename_ratio(old_name, name)
             else:  # table_widget == self.phaseTable:
                 self._project.rename_phase(old_name, name)
+                self.update_phase_combo_box()
+
+            self.update_matplotlib_widget()
 
     def change_phase(self):
         text = self.phaseComboBox.currentText()

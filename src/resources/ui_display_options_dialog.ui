@@ -17,7 +17,7 @@
    <item>
     <widget class="QLabel" name="label">
      <property name="text">
-      <string>Colormap</string>
+      <string>Colourmap</string>
      </property>
     </widget>
    </item>
