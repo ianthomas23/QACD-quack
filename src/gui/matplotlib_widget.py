@@ -3,11 +3,11 @@ from matplotlib.backends.backend_qt5agg import FigureCanvas
 import matplotlib.cm as cm
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 from matplotlib.figure import Figure
-from matplotlib.patches import Rectangle
 import numpy as np
 from PyQt5 import QtCore, QtWidgets
 
-from .enums import ArrayType, PlotType
+from .enums import ArrayType, ModeType, PlotType
+from .mode_handler import *
 
 
 class MatplotlibWidget(QtWidgets.QWidget):
@@ -25,7 +25,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._bar = None         # Bar used for histogram.
         self._bar_norm_x = None  # Normalised x-positions of centres of bars
                                  #   in range 0 (= min) to 1.0 (= max value).
-        self._array_type = ArrayType.NONE
+        self._array_type = ArrayType.INVALID
         self._cmap_int_max = None  # One beyond end, as in numpy slicing.
 
         self._valid_colormap_names = self._determine_valid_colormap_names()
@@ -33,9 +33,10 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
         # Initialised in initialise().
         self._owning_window = None
-        self._zoom_enabled = True
+        self._mode_type = ModeType.INVALID
+        self._mode_handler = None
 
-        self._zoom_rectangle = None  # Only set when zooming.
+        #self._zoom_rectangle = None  # Only set when zooming.
         self._map_xlim = None        # Zoom to this when create new map.
         self._map_ylim = None
 
@@ -71,7 +72,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._image = None
         self._bar = None
         self._bar_norm_x = None
-        self._array_type = ArrayType.NONE
+        self._array_type = ArrayType.INVALID
         self._cmap_int_max = None  # One beyond end, as in numpy slicing.
 
         self._redraw()
@@ -98,62 +99,38 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
     def initialise(self, owning_window, zoom_enabled=True):
         self._owning_window = owning_window
-        self._zoom_enabled = zoom_enabled
-
-        if self._zoom_enabled:
-            # Matplotlib canvas events.
+        if zoom_enabled:
             self._canvas.mpl_connect('axes_enter_event', self.on_axes_enter)
             self._canvas.mpl_connect('axes_leave_event', self.on_axes_leave)
             self._canvas.mpl_connect('button_press_event', self.on_mouse_down)
             self._canvas.mpl_connect('button_release_event', self.on_mouse_up)
             self._canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
 
+            self.set_mode_type(ModeType.ZOOM)
+        else:
+            self.set_mode_type(ModeType.INVALID)
+
         self._canvas.mpl_connect('resize_event', self.on_resize)
 
     def on_axes_enter(self, event):
-        if event.inaxes is not None and event.inaxes == self._map_axes:
-            QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CrossCursor)
+        if self._mode_handler:
+            self._mode_handler.on_axes_enter(event)
 
     def on_axes_leave(self, event):
-        if event.inaxes is not None and event.inaxes == self._map_axes:
-            QtWidgets.QApplication.restoreOverrideCursor()
+        if self._mode_handler:
+            self._mode_handler.on_axes_leave(event)
 
     def on_mouse_down(self, event):
-        if (self._zoom_rectangle is None and self._map_axes is not None and
-            event.button == 1 and event.dblclick == False and
-            event.inaxes == self._map_axes):
-
-            rectangle = Rectangle((event.xdata, event.ydata), width=0, height=0,
-                                  fc='none', ec='k', ls='--')
-            self._zoom_rectangle = self._map_axes.add_patch(rectangle)
-            self._redraw()
+        if self._mode_handler:
+            self._mode_handler.on_mouse_down(event)
 
     def on_mouse_move(self, event):
-        if self._zoom_rectangle is not None and event.inaxes == self._map_axes:
-            x = event.xdata
-            y = event.ydata
-            self._zoom_rectangle.set_width(x - self._zoom_rectangle.get_x())
-            self._zoom_rectangle.set_height(y - self._zoom_rectangle.get_y())
-            self._redraw()
+        if self._mode_handler:
+            self._mode_handler.on_mouse_move(event)
 
     def on_mouse_up(self, event):
-        if (self._zoom_rectangle is not None and event.button == 1 and
-            event.dblclick == False):
-
-            width = self._zoom_rectangle.get_width()
-            height = self._zoom_rectangle.get_height()
-            if abs(width) > 1e-10 and abs(height) > 1e-10:
-                x = self._zoom_rectangle.get_x()
-                y = self._zoom_rectangle.get_y()
-                zoom_xs = sorted([x, x+width])
-                zoom_ys = sorted([y, y+height], reverse=True)
-
-                self._owning_window.zoom_append( \
-                    from_=(self._map_axes.get_xlim(), self._map_axes.get_ylim()),
-                    to=(zoom_xs, zoom_ys))
-
-            self._map_axes.patches[-1].remove()
-            self._zoom_rectangle = None
+        if self._mode_handler:
+            self._mode_handler.on_mouse_up(event)
 
     def on_resize(self, event):
         self._adjust_layout()
@@ -191,6 +168,22 @@ class MatplotlibWidget(QtWidgets.QWidget):
             self._map_axes.set_xlim(xs)
             self._map_axes.set_ylim(ys)
             self._redraw()
+
+    def set_mode_type(self, mode_type):
+        if mode_type != self._mode_type:
+            self._mode_type = mode_type
+
+            if self._mode_handler:
+                self._mode_handler.tidy_up()
+
+            if mode_type == ModeType.ZOOM:
+                self._mode_handler = ZoomHandler(self)
+            elif mode_type == ModeType.REGION_RECTANGLE:
+                self._mode_handler = RectangleRegionHandler(self)
+            elif mode_type == ModeType.REGION_ELLIPSE:
+                self._mode_handler = EllipseRegionHandler(self)
+            else:
+                self._mode_handler = None
 
     def update(self, plot_type, array_type, array, array_stats, title):
         # Derived quantities.

@@ -778,8 +778,18 @@
     </property>
     <addaction name="actionDisplayOptions"/>
    </widget>
+   <widget class="QMenu" name="menuMode">
+    <property name="title">
+     <string>Mode</string>
+    </property>
+    <addaction name="actionModeZoom"/>
+    <addaction name="separator"/>
+    <addaction name="actionModeRegionRectangle"/>
+    <addaction name="actionModeRegionEllipse"/>
+   </widget>
    <addaction name="menuProject"/>
    <addaction name="menuAction"/>
+   <addaction name="menuMode"/>
    <addaction name="menuOptions"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
@@ -811,6 +821,30 @@
   <action name="actionClustering">
    <property name="text">
     <string>k-means Clustering</string>
+   </property>
+  </action>
+  <action name="actionModeZoom">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Zoom</string>
+   </property>
+  </action>
+  <action name="actionModeRegionRectangle">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Rectangle Region</string>
+   </property>
+  </action>
+  <action name="actionModeRegionEllipse">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Ellipse Region</string>
    </property>
   </action>
  </widget>

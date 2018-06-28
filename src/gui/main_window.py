@@ -7,7 +7,7 @@ import time
 from src.model.elements import element_properties
 from src.model.qacd_project import QACDProject, State
 from .clustering_dialog import ClusteringDialog
-from .enums import ArrayType, PlotType
+from .enums import ArrayType, ModeType, PlotType
 from .display_options_dialog import DisplayOptionsDialog
 from .filter_dialog import FilterDialog
 from .matplotlib_widget import ArrayType, PlotType
@@ -35,7 +35,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.displayed_array = None
             self.displayed_array_stats = None
 
-            self.array_type = ArrayType.NONE
+            self.array_type = ArrayType.INVALID
             self.name = None   # e.g. element name, or 'total', etc.
             self.phase = None
 
@@ -48,6 +48,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.matplotlibWidget.initialise(owning_window=self)
 
         self.statusbar.messageChanged.connect(self.status_bar_change)
+
+        # Action groups.
+        self.modeGroup = QtWidgets.QActionGroup(self)
+        self.modeGroup.addAction(self.actionModeZoom)
+        self.modeGroup.addAction(self.actionModeRegionRectangle)
+        self.modeGroup.addAction(self.actionModeRegionEllipse)
+        self.modeGroup.triggered.connect(self.change_mode)
+        self.actionModeZoom.setChecked(True)
 
         # Menu items.
         self.actionProjectNew.triggered.connect(self.new_project)
@@ -121,6 +129,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.update_controls()
         self.update_title()
+
+    def change_mode(self, action):
+        mode_type = ModeType.INVALID
+        if action == self.actionModeZoom:
+            mode_type = ModeType.ZOOM
+        elif action == self.actionModeRegionRectangle:
+            mode_type = ModeType.REGION_RECTANGLE
+        elif action == self.actionModeRegionEllipse:
+            mode_type = ModeType.REGION_ELLIPSE
+
+        self.matplotlibWidget.set_mode_type(mode_type)
 
     def change_name(self, item):
         if self._ignore_change_name or item is None:
@@ -197,7 +216,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             # Retrieve array and array stats from project.
             if current.name is None:
-                current.array_type = ArrayType.NONE
+                current.array_type = ArrayType.INVALID
                 ret = (None, None)
             elif current.array_type == ArrayType.RAW:
                 if current.name == 'Total':
@@ -649,7 +668,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def update_matplotlib_widget(self):
         current = self._current
 
-        if current.array_type is ArrayType.NONE:
+        if current.array_type is ArrayType.INVALID:
             self.matplotlibWidget.clear()
         else:
             plot_type = PlotType(self.plotTypeComboBox.currentIndex())
