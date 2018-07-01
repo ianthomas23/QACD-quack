@@ -11,7 +11,7 @@ import warnings
 from .correction_models import correction_models
 from .elements import element_properties
 from .preset_ratios import preset_ratios
-from .utils import apply_correction_model, median_filter_with_nans, read_csv
+from . import utils
 
 
 @unique
@@ -153,7 +153,21 @@ class QACDProject:
         finally:
             h5file.close()
 
-    def calculate_h_factor(self, progress_callback=None):
+    def calculate_region_ellipse(self, centre, size):
+        # Calculate and return boolean array corresponding to ellipse region.
+        # Does not store the region.  centre and size are 2-tuples.
+        shape = self.shape
+        x, y = np.meshgrid(np.arange(shape[1]), np.arange(shape[0]))
+        return utils.calculate_region_ellipse(x, y, centre, size)
+
+    def calculate_region_rectangle(self, corner0, corner1):
+        # Calculate and return boolean array corresponding to rectangle region.
+        # Does not store the region.  corner0 and corner1 are 2-tuples.
+        shape = self.shape
+        x, y = np.meshgrid(np.arange(shape[1]), np.arange(shape[0]))
+        return utils.calculate_region_rectangle(x, y, corner0, corner1)
+
+    def create_h_factor(self, progress_callback=None):
         if self._state != State.NORMALISED:
             raise RuntimeError('Project does not contain normalised data')
 
@@ -345,13 +359,14 @@ class QACDProject:
 
             numerator = self.get_filtered(elements[0], masked=False)*h_factor
             if preset is None:
-                numerator = apply_correction_model(model, elements[0], numerator)
+                numerator = utils.apply_correction_model(model, elements[0],
+                                                         numerator)
 
             denominator = numerator.copy()
             for element in elements[1:]:
                 term = self.get_filtered(element, masked=False)*h_factor
                 if preset is None:
-                    term = apply_correction_model(model, element, term)
+                    term = utils.apply_correction_model(model, element, term)
                 denominator += term
 
         # Avoid zero/zero by masking such pixels beforehand.
@@ -360,7 +375,7 @@ class QACDProject:
 
         if preset is not None and correction_model is not None:
             # Apply correction.
-            ratio = apply_correction_model(model, preset, ratio)
+            ratio = utils.apply_correction_model(model, preset, ratio)
 
         formula = self.get_formula_from_elements(elements)
 
@@ -468,7 +483,7 @@ class QACDProject:
 
                 if median:
                     # Median filter applied separately to each element map.
-                    filtered = median_filter_with_nans(filtered)
+                    filtered = utils.median_filter_with_nans(filtered)
 
                 if filtered_mask is None:
                     # All filtered masks are identical, so calculate only once.
@@ -517,7 +532,7 @@ class QACDProject:
         self.normalise(progress_callback=local_callback)
 
         stage = 2
-        self.calculate_h_factor(progress_callback=local_callback)
+        self.create_h_factor(progress_callback=local_callback)
 
     def get_cluster_elements(self):
         with self._h5file_ro() as h5file:
@@ -723,7 +738,7 @@ class QACDProject:
 
                 elements.append(element)
                 full_filename = os.path.join(directory, csv_filename)
-                raw = read_csv(full_filename, self._raw_dtype, shape)
+                raw = utils.read_csv(full_filename, self._raw_dtype, shape)
                 if index == 0:
                     shape = raw.shape
 
@@ -1254,6 +1269,16 @@ class QACDProject:
         with self._h5file() as f:
             # Creates project file.
             self._state = State.EMPTY
+
+    @property
+    def shape(self):
+        # Read-only property.  Could cache it instead.
+        if self._state >= State.FILTERED:
+            return self.get_filtered_total(masked=False).shape
+        elif self._state == State.RAW:
+            return self.get_raw_total(masked=False).shape
+        else:
+            return None
 
     @property
     def state(self):

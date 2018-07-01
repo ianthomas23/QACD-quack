@@ -1,3 +1,4 @@
+from matplotlib.patches import Ellipse, Rectangle
 import numpy as np
 import numba
 
@@ -9,6 +10,26 @@ def apply_correction_model(correction_model, element_or_preset_name, array):
     poly = list(reversed(correction[1]))  # Decreasing power order.
     poly = np.poly1d(poly)
     return poly(array)
+
+
+def calculate_region_ellipse(x, y, centre, size):
+    # Return boolean array of same shape as x and y.
+    xy = np.stack((x.ravel(), y.ravel()), axis=1)  # Shape (npoints, 2)
+    ellipse = Ellipse(centre, width=size[0], height=size[1])
+    region = ellipse.contains_points(xy)           # Shape (2*npoints)
+    region.shape = x.shape                         # Shape (npoints, 2)
+    return region
+
+
+def calculate_region_rectangle(x, y, corner0, corner1):
+    # Return boolean array of same shape as x and y.
+    xy = np.stack((x.ravel(), y.ravel()), axis=1)  # Shape (npoints, 2)
+    rectangle = Rectangle(corner0,
+                          width=corner1[0]-corner0[0],
+                          height=corner1[1]-corner0[1])
+    region = rectangle.contains_points(xy)           # Shape (2*npoints)
+    region.shape = x.shape                         # Shape (npoints, 2)
+    return region
 
 
 # 3x3 median filter, ignoring nans.

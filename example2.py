@@ -12,7 +12,7 @@ p.set_filename('out.quack')
 p.import_raw_csv_files('test_data')
 p.filter(pixel_totals=True, median=True)
 p.normalise()
-p.calculate_h_factor()
+p.create_h_factor()
 
 print(p.elements)
 

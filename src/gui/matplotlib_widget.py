@@ -36,17 +36,30 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._mode_type = ModeType.INVALID
         self._mode_handler = None
 
-        #self._zoom_rectangle = None  # Only set when zooming.
         self._map_xlim = None        # Zoom to this when create new map.
         self._map_ylim = None
+
+        # Created when first needed.
+        self._black_colormap = None
+        self._white_colormap = None
 
     def _adjust_layout(self):
         #self._canvas.figure.tight_layout(pad=1.5)
         pass
 
     def _create_black_colormap(self):
-        colors = [(0, 0, 0), (0, 0, 0)]  # Black
-        return LinearSegmentedColormap.from_list('black', colors, N=1)
+        if self._black_colormap == None:
+            colors = [(0, 0, 0), (0, 0, 0)]
+            self._black_colormap = \
+                LinearSegmentedColormap.from_list('black', colors, N=1)
+        return self._black_colormap
+
+    def _create_white_colormap(self):
+        if self._white_colormap == None:
+            colors = [(1, 1, 1), (1, 1, 1)]
+            self._white_colormap = \
+                LinearSegmentedColormap.from_list('white', colors, N=1)
+        return self._white_colormap
 
     def _determine_valid_colormap_names(self):
         # Exclude reversed cmaps which have names ending with '_r'.
@@ -63,6 +76,13 @@ class MatplotlibWidget(QtWidgets.QWidget):
     def _redraw(self):
         self._canvas.draw()
         #self._canvas.draw_idle()
+
+    def add_patch(self, patch):
+        # Add the specified patch to the _map_axes.
+        if self._map_axes and patch:
+            return self._map_axes.add_patch(patch)
+        else:
+            return None
 
     def clear(self):
         # Clear current plots.
@@ -134,6 +154,16 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
     def on_resize(self, event):
         self._adjust_layout()
+
+    def remove_image(self, image):
+        # Remove the specified image from the _map_axes, if it is present.
+        if self._map_axes and image and image in self._map_axes.images:
+            self._map_axes.images.remove(image)
+
+    def remove_patch(self, patch):
+        # Remove the specified patch from the _map_axes, if it is present.
+        if self._map_axes and patch and patch in self._map_axes.patches:
+            self._map_axes.patches.remove(patch)
 
     def set_colormap_limits(self, lower, upper):
         if self._image is not None:

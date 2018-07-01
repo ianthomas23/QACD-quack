@@ -18,7 +18,7 @@ def create_test_project_file(filename, state):
         project.normalise()
 
     if state >= State.H_FACTOR:
-        project.calculate_h_factor()
+        project.create_h_factor()
 
 
 

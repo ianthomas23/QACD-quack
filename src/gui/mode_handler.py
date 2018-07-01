@@ -1,4 +1,5 @@
 from matplotlib.patches import Ellipse, Rectangle
+import numpy as np
 from PyQt5 import QtCore, QtWidgets
 
 
@@ -29,7 +30,8 @@ class RegionHandler(ModeHandler):
     def __init__(self, matplotlib_widget):
         super().__init__(matplotlib_widget)
         self._editing = False
-        self._patch = None
+        self._patch = None         # Outline patch used for editing.
+        self._region_image = None  # Image showing region.
 
     def on_axes_enter(self, event):
         if (event.inaxes is not None and
@@ -54,7 +56,7 @@ class RegionHandler(ModeHandler):
 
             self._editing = True
             patch = self._create_patch(event.xdata, event.ydata)
-            self._patch = self.matplotlib_widget._map_axes.add_patch(patch)
+            self._patch = self.matplotlib_widget.add_patch(patch)
             self.matplotlib_widget._redraw()
 
     def on_mouse_move(self, event):
@@ -69,22 +71,43 @@ class RegionHandler(ModeHandler):
             event.button == 1 and event.dblclick == False):
 
             self._editing = False
+            region = self._calculate_region()
+            if region is not None:
+                masked = np.ma.masked_equal(region, True)
+
+                cmap = self.matplotlib_widget._create_white_colormap()
+                self._region_image = self.matplotlib_widget._map_axes.imshow( \
+                    masked, alpha=0.9, cmap=cmap)
+                self.matplotlib_widget._redraw()
 
     def tidy_up(self):
-        if (self._patch is not None and
-            self.matplotlib_widget._map_axes is not None):
+        if self.matplotlib_widget._map_axes is not None:
+            if self._patch:
+                self.matplotlib_widget.remove_patch(self._patch)
+                self._patch = None
 
-            self.matplotlib_widget._map_axes.patches[-1].remove()
-            self.matplotlib_widget._redraw()
+            if self._region_image:
+                self.matplotlib_widget.remove_image(self._region_image)
+                self._region_image = None
 
             self._editing = False
-            self._patch = None
+
+            self.matplotlib_widget._redraw()
 
 
 class EllipseRegionHandler(RegionHandler):
     def __init__(self, matplotlib_widget):
         super().__init__(matplotlib_widget)
         self._start_xy = None
+
+    def _calculate_region(self):
+        project = self.matplotlib_widget._owning_window._project
+        if project is not None:
+            centre = self._patch.center
+            size = (self._patch.width, self._patch.height)
+            return project.calculate_region_ellipse(centre, size)
+        else:
+            return None
 
     def _create_patch(self, x, y):
         self._start_xy = (x, y)
@@ -104,6 +127,16 @@ class EllipseRegionHandler(RegionHandler):
 class RectangleRegionHandler(RegionHandler):
     def __init__(self, matplotlib_widget):
         super().__init__(matplotlib_widget)
+
+    def _calculate_region(self):
+        project = self.matplotlib_widget._owning_window._project
+        if project is not None:
+            corner0 = self._patch.get_xy()
+            corner1 = (corner0[0] + self._patch.get_width(),
+                       corner0[1] + self._patch.get_height())
+            return project.calculate_region_rectangle(corner0, corner1)
+        else:
+            return None
 
     def _create_patch(self, x, y):
         rectangle = Rectangle((x, y), width=0, height=0,
@@ -140,8 +173,7 @@ class ZoomHandler(ModeHandler):
 
             rectangle = Rectangle((event.xdata, event.ydata), width=0, height=0,
                                   fc='none', ec='k', ls='--')
-            self._zoom_rectangle = \
-                self.matplotlib_widget._map_axes.add_patch(rectangle)
+            self._zoom_rectangle = self.matplotlib_widget.add_patch(rectangle)
             self.matplotlib_widget._redraw()
 
     def on_mouse_move(self, event):
@@ -178,6 +210,7 @@ class ZoomHandler(ModeHandler):
         if (self._zoom_rectangle is not None and
             self.matplotlib_widget._map_axes is not None):
 
-            self.matplotlib_widget._map_axes.patches[-1].remove()
-            self.matplotlib_widget._redraw()
+            self.matplotlib_widget.remove_patch(self._zoom_rectangle)
             self._zoom_rectangle = None
+
+            self.matplotlib_widget._redraw()

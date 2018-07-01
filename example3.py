@@ -26,7 +26,7 @@ else:
 
 project.filter(pixel_totals=True, median=True)
 project.normalise()
-project.calculate_h_factor()
+project.create_h_factor()
 
 project.create_phase_map_by_thresholding('test', [['Ca', 1500, 1700],
                                                   ['Na', 100, 800]])

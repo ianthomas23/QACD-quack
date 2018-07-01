@@ -72,7 +72,7 @@ def test_sequence():
         p.create_ratio_map('some_ratio', ['Mg', 'Ca'])
 
     # NORMALISED -> H_FACTOR.
-    p.calculate_h_factor()
+    p.create_h_factor()
     assert p.state == State.H_FACTOR
     with pytest.raises(RuntimeError):
         p.normalise()
@@ -84,7 +84,7 @@ def test_sequence():
     assert p.state == State.H_FACTOR
     assert p.has_cluster()
     with pytest.raises(RuntimeError):
-        p.calculate_h_factor()
+        p.create_h_factor()
     p.get_cluster_indices(k_min)
     p.get_cluster_indices(k_max)
     with pytest.raises(RuntimeError):
@@ -191,7 +191,7 @@ def consistency_impl(directory, pixel_totals, median):
     p.import_raw_csv_files(directory)#, [el+' K series.csv' for el in ['Mg', 'Ca', 'Na']])
     p.filter(pixel_totals=pixel_totals, median=median)
     p.normalise()
-    p.calculate_h_factor()
+    p.create_h_factor()
 
     elements = p.elements
     files = fnmatch.filter(os.listdir(directory), '* K series.csv')

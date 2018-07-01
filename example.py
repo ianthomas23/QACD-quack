@@ -25,7 +25,7 @@ else:
 
 project.filter(pixel_totals=True, median=True)
 project.normalise()
-project.calculate_h_factor()
+project.create_h_factor()
 project.create_ratio_map('some ratio', elements=['Mg', 'Ca'], correction_model='pyroxene')
 project.create_ratio_map('Anorthite', preset='anorthite')
 print(project.get_valid_preset_ratios())
