@@ -355,7 +355,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_2.addWidget(self.splitter)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 18))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 22))
         self.menubar.setObjectName("menubar")
         self.menuProject = QtWidgets.QMenu(self.menubar)
         self.menuProject.setObjectName("menuProject")
@@ -390,6 +390,9 @@ class Ui_MainWindow(object):
         self.actionModeRegionEllipse = QtWidgets.QAction(MainWindow)
         self.actionModeRegionEllipse.setCheckable(True)
         self.actionModeRegionEllipse.setObjectName("actionModeRegionEllipse")
+        self.actionModeRegionPolygon = QtWidgets.QAction(MainWindow)
+        self.actionModeRegionPolygon.setCheckable(True)
+        self.actionModeRegionPolygon.setObjectName("actionModeRegionPolygon")
         self.menuProject.addAction(self.actionProjectNew)
         self.menuProject.addAction(self.actionProjectOpen)
         self.menuProject.addAction(self.actionProjectClose)
@@ -400,6 +403,7 @@ class Ui_MainWindow(object):
         self.menuMode.addSeparator()
         self.menuMode.addAction(self.actionModeRegionRectangle)
         self.menuMode.addAction(self.actionModeRegionEllipse)
+        self.menuMode.addAction(self.actionModeRegionPolygon)
         self.menubar.addAction(self.menuProject.menuAction())
         self.menubar.addAction(self.menuAction.menuAction())
         self.menubar.addAction(self.menuMode.menuAction())
@@ -485,6 +489,7 @@ class Ui_MainWindow(object):
         self.actionModeZoom.setText(_translate("MainWindow", "Zoom"))
         self.actionModeRegionRectangle.setText(_translate("MainWindow", "Rectangle Region"))
         self.actionModeRegionEllipse.setText(_translate("MainWindow", "Ellipse Region"))
+        self.actionModeRegionPolygon.setText(_translate("MainWindow", "Polygon Region"))
 
 from .matplotlib_widget import MatplotlibWidget
 

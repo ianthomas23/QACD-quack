@@ -1,4 +1,4 @@
-from matplotlib.patches import Ellipse, Rectangle
+from matplotlib.patches import Ellipse, Polygon, Rectangle
 import numpy as np
 import numba
 
@@ -21,13 +21,22 @@ def calculate_region_ellipse(x, y, centre, size):
     return region
 
 
+def calculate_region_polygon(x, y, points):
+    # Return boolean array of same shape as x and y.
+    xy = np.stack((x.ravel(), y.ravel()), axis=1)  # Shape (npoints, 2)
+    polygon = Polygon(points, closed=False)        # Already closed.
+    region = polygon.contains_points(xy)           # Shape (2*npoints)
+    region.shape = x.shape                         # Shape (npoints, 2)
+    return region
+
+
 def calculate_region_rectangle(x, y, corner0, corner1):
     # Return boolean array of same shape as x and y.
     xy = np.stack((x.ravel(), y.ravel()), axis=1)  # Shape (npoints, 2)
     rectangle = Rectangle(corner0,
                           width=corner1[0]-corner0[0],
                           height=corner1[1]-corner0[1])
-    region = rectangle.contains_points(xy)           # Shape (2*npoints)
+    region = rectangle.contains_points(xy)         # Shape (2*npoints)
     region.shape = x.shape                         # Shape (npoints, 2)
     return region
 

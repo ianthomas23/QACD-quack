@@ -54,6 +54,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.modeGroup.addAction(self.actionModeZoom)
         self.modeGroup.addAction(self.actionModeRegionRectangle)
         self.modeGroup.addAction(self.actionModeRegionEllipse)
+        self.modeGroup.addAction(self.actionModeRegionPolygon)
         self.modeGroup.triggered.connect(self.change_mode)
         self.actionModeZoom.setChecked(True)
 
@@ -138,6 +139,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             mode_type = ModeType.REGION_RECTANGLE
         elif action == self.actionModeRegionEllipse:
             mode_type = ModeType.REGION_ELLIPSE
+        elif action == self.actionModeRegionPolygon:
+            mode_type = ModeType.REGION_POLYGON
 
         self.matplotlibWidget.set_mode_type(mode_type)
 

@@ -77,13 +77,6 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._canvas.draw()
         #self._canvas.draw_idle()
 
-    def add_patch(self, patch):
-        # Add the specified patch to the _map_axes.
-        if self._map_axes and patch:
-            return self._map_axes.add_patch(patch)
-        else:
-            return None
-
     def clear(self):
         # Clear current plots.
         self._zoom_rectangle = None
@@ -155,16 +148,6 @@ class MatplotlibWidget(QtWidgets.QWidget):
     def on_resize(self, event):
         self._adjust_layout()
 
-    def remove_image(self, image):
-        # Remove the specified image from the _map_axes, if it is present.
-        if self._map_axes and image and image in self._map_axes.images:
-            self._map_axes.images.remove(image)
-
-    def remove_patch(self, patch):
-        # Remove the specified patch from the _map_axes, if it is present.
-        if self._map_axes and patch and patch in self._map_axes.patches:
-            self._map_axes.patches.remove(patch)
-
     def set_colormap_limits(self, lower, upper):
         if self._image is not None:
             self._image.set_clim(lower, upper)
@@ -204,7 +187,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
             self._mode_type = mode_type
 
             if self._mode_handler:
-                self._mode_handler.tidy_up()
+                self._mode_handler.clear()
 
             if mode_type == ModeType.ZOOM:
                 self._mode_handler = ZoomHandler(self)
@@ -212,6 +195,8 @@ class MatplotlibWidget(QtWidgets.QWidget):
                 self._mode_handler = RectangleRegionHandler(self)
             elif mode_type == ModeType.REGION_ELLIPSE:
                 self._mode_handler = EllipseRegionHandler(self)
+            elif mode_type == ModeType.REGION_POLYGON:
+                self._mode_handler = PolygonRegionHandler(self)
             else:
                 self._mode_handler = None
 
@@ -227,6 +212,9 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
         self._array_type = array_type
         self._cmap_int_max = cmap_int_max
+
+        if self._mode_handler:
+            self._mode_handler.clear(redraw=False)
 
         figure = self._canvas.figure
         figure.clear()

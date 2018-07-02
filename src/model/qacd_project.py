@@ -160,6 +160,13 @@ class QACDProject:
         x, y = np.meshgrid(np.arange(shape[1]), np.arange(shape[0]))
         return utils.calculate_region_ellipse(x, y, centre, size)
 
+    def calculate_region_polygon(self, points):
+        # Calculate and return boolean array corresponding to polygon region.
+        # Does not store the region.  points is a numpy array of shape (n, 2).
+        shape = self.shape
+        x, y = np.meshgrid(np.arange(shape[1]), np.arange(shape[0]))
+        return utils.calculate_region_polygon(x, y, points)
+
     def calculate_region_rectangle(self, corner0, corner1):
         # Calculate and return boolean array corresponding to rectangle region.
         # Does not store the region.  corner0 and corner1 are 2-tuples.

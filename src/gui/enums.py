@@ -18,6 +18,7 @@ class ModeType(Enum):
     ZOOM             = 1
     REGION_RECTANGLE = 2
     REGION_ELLIPSE   = 3
+    REGION_POLYGON   = 4
 
 
 # Same values as in plotTypeComboBox.
