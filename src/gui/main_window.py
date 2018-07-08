@@ -14,6 +14,7 @@ from .matplotlib_widget import ArrayType, PlotType
 from .new_phase_cluster_dialog import NewPhaseClusterDialog
 from .new_phase_filtered_dialog import NewPhaseFilteredDialog
 from .new_ratio_dialog import NewRatioDialog
+from .new_region_dialog import NewRegionDialog
 from .progress_dialog import ProgressDialog
 from .ui_main_window import Ui_MainWindow
 from .zoom_history import ZoomHistory
@@ -49,21 +50,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.statusbar.messageChanged.connect(self.status_bar_change)
 
-        # Action groups.
-        self.modeGroup = QtWidgets.QActionGroup(self)
-        self.modeGroup.addAction(self.actionModeZoom)
-        self.modeGroup.addAction(self.actionModeRegionRectangle)
-        self.modeGroup.addAction(self.actionModeRegionEllipse)
-        self.modeGroup.addAction(self.actionModeRegionPolygon)
-        self.modeGroup.triggered.connect(self.change_mode)
-        self.actionModeZoom.setChecked(True)
-
         # Menu items.
         self.actionProjectNew.triggered.connect(self.new_project)
         self.actionProjectOpen.triggered.connect(self.choose_open_project)
         self.actionProjectClose.triggered.connect(self.close_project)
         self.actionFilter.triggered.connect(self.filter)
         self.actionClustering.triggered.connect(self.clustering)
+        self.actionNewRegion.triggered.connect(self.new_region)
         self.actionDisplayOptions.triggered.connect(self.display_options)
 
         # Tab widget controls.
@@ -72,6 +65,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.newPhaseClusterButton.clicked.connect(self.new_phase_cluster)
         self.newPhaseFilteredButton.clicked.connect(self.new_phase_filtered)
         self.deletePhaseButton.clicked.connect(self.delete_phase)
+        self.deleteRegionButton.clicked.connect(self.delete_region)
 
         # Matplotlib toolbar controls.
         self.plotTypeComboBox.currentIndexChanged.connect(self.change_plot_type)
@@ -86,13 +80,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         for i in range(self.tabWidget.count()-1, 0, -1):
             self.tabWidget.removeTab(i)
 
-        self._tabs_and_tables = (
+        self._tabs_and_tables = (  # Final column is editable name boolean.
             (ArrayType.RAW,        self.rawTab,        self.rawTable,        'Raw',        False),
             (ArrayType.FILTERED,   self.filteredTab,   self.filteredTable,   'Filtered',   False),
             (ArrayType.NORMALISED, self.normalisedTab, self.normalisedTable, 'Normalised', False),
             (ArrayType.RATIO,      self.ratioTab,      self.ratioTable,      'Ratios',     True),
             (ArrayType.CLUSTER,    self.clusterTab,    self.clusterTable,    'Clusters',   False),
             (ArrayType.PHASE,      self.phaseTab,      self.phaseTable,      'Phases',     True),
+            (ArrayType.REGION,     self.regionTab,     self.regionTable,     'Regions',    True),
         )
 
         # Correct table widget properties and connect signals and slots.
@@ -124,25 +119,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self._ignore_change_name = False
         self._ignore_change_selection = False
-        self._display_options_shown = False
+        self._display_options_shown = False   # Modeless dialog.
+        self._new_region_shown = False        # Modeless dialog.
 
         self._zoom_history = ZoomHistory()
 
         self.update_controls()
         self.update_title()
-
-    def change_mode(self, action):
-        mode_type = ModeType.INVALID
-        if action == self.actionModeZoom:
-            mode_type = ModeType.ZOOM
-        elif action == self.actionModeRegionRectangle:
-            mode_type = ModeType.REGION_RECTANGLE
-        elif action == self.actionModeRegionEllipse:
-            mode_type = ModeType.REGION_ELLIPSE
-        elif action == self.actionModeRegionPolygon:
-            mode_type = ModeType.REGION_POLYGON
-
-        self.matplotlibWidget.set_mode_type(mode_type)
 
     def change_name(self, item):
         if self._ignore_change_name or item is None:
@@ -243,6 +226,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 ret = self._project.get_cluster_indices(current.name, want_stats=True)
             elif current.array_type == ArrayType.PHASE:
                 ret = self._project.get_phase(current.name, want_stats=True)
+            elif current.array_type == ArrayType.REGION:
+                ret = self._project.get_region(current.name, want_stats=True)
             else:
                 raise RuntimeError('Not implemented ' + type_)
 
@@ -351,6 +336,25 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self._current.clear()
             self.update_matplotlib_widget()
 
+    def delete_region(self):
+        table_widget = self.regionTable
+
+        row = table_widget.currentRow()
+        name = table_widget.item(row, 0).text()
+        button = QtWidgets.QMessageBox.question(self, 'Delete region',
+            "Are you sure you want to delete region '{}'?".format(name))
+        if button == QtWidgets.QMessageBox.Yes:
+            table_widget.clearSelection()
+            table_widget.setCurrentItem(None)
+            table_widget.removeRow(row)
+
+            self._project.delete_region(name)
+
+            #self.update_region_combo_box()
+            self.update_controls()
+            self._current.clear()
+            self.update_matplotlib_widget()
+
     def display_options(self):
         def finished():
             self._display_options_shown = False
@@ -408,6 +412,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     details = 'k={}, original values={}'.format( \
                         tuple_[1], ', '.join(map(str, tuple_[2])))
                 rows.append((name, source, details))
+        elif array_type == ArrayType.REGION:
+            regions = self._project.regions
+            for name in sorted(regions.keys()):
+                rows.append((name, regions[name]))
 
         self._ignore_change_name = True
         nrows = len(rows)
@@ -455,7 +463,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self, 'Filter and Normalise', thread_func,
                 args=[self._project, pixel_totals, median_filter])
 
-            for index in range(1, 6):
+            for index in range(1, 7):
                 self.fill_table_widget(index)
             self.tabWidget.setCurrentIndex(2)  # Bring tab to front.
 
@@ -591,6 +599,30 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             self.update_controls()
 
+    def new_region(self):
+        def finished():
+            self._new_region_shown = False
+            self.fill_table_widget(6)
+
+            if self.tabWidget.currentWidget() == self.regionTab:
+                # Find row matching name and select it.
+                table_widget = self.regionTable
+                name = dialog.get_name()
+                match = table_widget.findItems(name, QtCore.Qt.MatchExactly)
+                row = match[0].row()
+                table_widget.clearSelection()
+                table_widget.selectRow(row)
+
+            #self.update_region_combo_box()
+            self.update_controls()
+
+        dialog = NewRegionDialog(self._project, parent=self)
+        dialog.finished.connect(finished)
+        dialog.show()
+
+        self._new_region_shown = True
+        self.update_controls()
+
     def open_project(self, filename):
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
 
@@ -619,6 +651,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.fill_table_widget(3)  # Ratios.
                 self.fill_table_widget(4)  # Clustering.
                 self.fill_table_widget(5)  # Phases.
+                self.fill_table_widget(6)  # Regions.
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, 'Error', str(e))
 
@@ -652,10 +685,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.actionClustering.setEnabled(valid_project and
                                          self._project.state == State.H_FACTOR)
         self.actionDisplayOptions.setEnabled(not self._display_options_shown)
+        self.actionNewRegion.setEnabled(valid_project and
+                                        not self._new_region_shown)
 
         # Tab widget controls.
         self.deleteRatioButton.setEnabled(self.ratioTable.currentItem() is not None)
         self.deletePhaseButton.setEnabled(self.phaseTable.currentItem() is not None)
+        self.deleteRegionButton.setEnabled(self.regionTable.currentItem() is not None)
         self.newPhaseClusterButton.setEnabled(self.clusterTable.currentItem() is not None)
 
         # Matplotlib toolbar controls.
@@ -684,6 +720,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             elif current.array_type == ArrayType.PHASE:
                 title = current.name + ' phase'
                 plot_type = PlotType.MAP  # Don't want histogram.
+            elif current.array_type == ArrayType.REGION:
+                title = current.name + ' region'
+                plot_type = PlotType.MAP  # Don't want histogram.
             else:
                 if current.name == 'Total':
                     name = 'total'
@@ -692,7 +731,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 type_string = string.capwords(current.array_type.name.lower())
                 title = '{} {} element'.format(type_string, name)
 
-            if current.array_type != ArrayType.PHASE and current.phase is not None:
+            if (current.array_type != ArrayType.PHASE and
+                current.array_type != ArrayType.REGION and
+                current.phase is not None):
                 # May want to cache this instead of recalculating it each time.
                 array = np.ma.masked_where(current.phase, current.selected_array)
                 array_stats = {}

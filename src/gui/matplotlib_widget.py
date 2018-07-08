@@ -97,7 +97,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self.clear()
 
     def create_colormap(self):
-        if self._array_type == ArrayType.PHASE:
+        if self._array_type in (ArrayType.PHASE, ArrayType.REGION):
             return self._create_black_colormap()
         if self._cmap_int_max is None:
             return cm.get_cmap(self.get_colormap_name())
@@ -182,7 +182,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
             self._map_axes.set_ylim(ys)
             self._redraw()
 
-    def set_mode_type(self, mode_type):
+    def set_mode_type(self, mode_type, listener=None):
         if mode_type != self._mode_type:
             self._mode_type = mode_type
 
@@ -192,11 +192,11 @@ class MatplotlibWidget(QtWidgets.QWidget):
             if mode_type == ModeType.ZOOM:
                 self._mode_handler = ZoomHandler(self)
             elif mode_type == ModeType.REGION_RECTANGLE:
-                self._mode_handler = RectangleRegionHandler(self)
+                self._mode_handler = RectangleRegionHandler(self, listener)
             elif mode_type == ModeType.REGION_ELLIPSE:
-                self._mode_handler = EllipseRegionHandler(self)
+                self._mode_handler = EllipseRegionHandler(self, listener)
             elif mode_type == ModeType.REGION_POLYGON:
-                self._mode_handler = PolygonRegionHandler(self)
+                self._mode_handler = PolygonRegionHandler(self, listener)
             else:
                 self._mode_handler = None
 
@@ -206,7 +206,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
         cmap_int_max = None
         if array_type == ArrayType.CLUSTER:
             cmap_int_max = array_stats['max'] + 1
-        elif array_type == ArrayType.PHASE:
+        elif array_type in (ArrayType.PHASE, ArrayType.REGION):
             show_colorbar = False
             cmap_int_max = 2
 

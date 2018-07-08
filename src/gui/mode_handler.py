@@ -31,17 +31,32 @@ class ModeHandler:
 
 # Abstract base class for all region handlers.
 class RegionHandler(ModeHandler):
-    def __init__(self, matplotlib_widget):
+    def __init__(self, matplotlib_widget, listener):
         super().__init__(matplotlib_widget)
+        self._listener = listener
         self._line_colour = 'k'
         self._shadow_colour = 'w'
         self._shadow_alpha = 0.75
         self._region_alpha = 0.75
+        self._region = None        # Boolean array.
+        self._region_image = None  # Image showing region.
 
     def _get_path_effects(self):
         return [Stroke(linewidth=3, foreground=self._shadow_colour,
                        alpha=self._shadow_alpha),
                 Normal()]
+
+    def clear_region(self):
+        if self._region is not None:
+            self._region = None
+            self._region_image.remove()
+            self._region_image = None
+
+    def get_region(self):
+        return self._region
+
+    def has_region(self):
+        return self._region is not None
 
     def on_axes_enter(self, event):
         if (event.inaxes is not None and
@@ -55,15 +70,18 @@ class RegionHandler(ModeHandler):
 
             QtWidgets.QApplication.restoreOverrideCursor()
 
+    def update_listener(self):
+        if self._listener:
+            self._listener.update_from_mode_handler()
+
 
 # Abstract base class for region handlers that are controlled by a single drag
 # of the mouse.
 class MouseDragRegionHandler(RegionHandler):
-    def __init__(self, matplotlib_widget):
-        super().__init__(matplotlib_widget)
+    def __init__(self, matplotlib_widget, listener):
+        super().__init__(matplotlib_widget, listener)
         self._editing = False
         self._patch = None         # Outline patch used for editing.
-        self._region_image = None  # Image showing region.
 
     def clear(self, redraw=True):
         if self.matplotlib_widget._map_axes is not None:
@@ -71,13 +89,13 @@ class MouseDragRegionHandler(RegionHandler):
                 self._patch.remove()
                 self._patch = None
 
-            if self._region_image:
-                self._region_image.remove()
-                self._region_image = None
+            self.clear_region()
 
             self._editing = False
             if redraw:
                 self.matplotlib_widget._redraw()
+
+            self.update_listener()
 
     def on_mouse_down(self, event):
         if (not self._editing and
@@ -107,19 +125,21 @@ class MouseDragRegionHandler(RegionHandler):
             event.button == 1 and event.dblclick == False):
 
             self._editing = False
-            region = self._calculate_region()
-            if region is not None:
-                masked = np.ma.masked_equal(region, True)
+            self._region = self._calculate_region()
+            if self._region is not None:
+                masked = np.ma.masked_equal(self._region, True)
 
                 cmap = self.matplotlib_widget._create_white_colormap()
                 self._region_image = self.matplotlib_widget._map_axes.imshow( \
                     masked, alpha=self._region_alpha, cmap=cmap)
                 self.matplotlib_widget._redraw()
 
+            self.update_listener()
+
 
 class EllipseRegionHandler(MouseDragRegionHandler):
-    def __init__(self, matplotlib_widget):
-        super().__init__(matplotlib_widget)
+    def __init__(self, matplotlib_widget, listener):
+        super().__init__(matplotlib_widget, listener)
         self._start_xy = None
 
     def _calculate_region(self):
@@ -145,10 +165,13 @@ class EllipseRegionHandler(MouseDragRegionHandler):
                               0.5*(point[1] + self._start_xy[1]))
         self._patch.stale = True
 
+    def get_shape_string(self):
+        return 'ellipse'
+
 
 class RectangleRegionHandler(MouseDragRegionHandler):
-    def __init__(self, matplotlib_widget):
-        super().__init__(matplotlib_widget)
+    def __init__(self, matplotlib_widget, listener):
+        super().__init__(matplotlib_widget, listener)
 
     def _calculate_region(self):
         project = self.matplotlib_widget._owning_window._project
@@ -169,14 +192,18 @@ class RectangleRegionHandler(MouseDragRegionHandler):
         self._patch.set_width( point[0] - self._patch.get_x())
         self._patch.set_height(point[1] - self._patch.get_y())
 
+    def get_shape_string(self):
+        return 'rectangle'
+
 
 class PolygonRegionHandler(RegionHandler):
-    def __init__(self, matplotlib_widget):
-        super().__init__(matplotlib_widget)
+    def __init__(self, matplotlib_widget, listener):
+        super().__init__(matplotlib_widget, listener)
         self._editing = False
         self._points = np.empty((0, 2))
-        self._markers_and_line = None
-        self._region_image = None
+        self._lines = None
+        self._markers = None
+        self._highlight_marker = None
 
     def _add_point(self, point):
         # Add point to end of self._points, but only if it is not the same as
@@ -184,15 +211,19 @@ class PolygonRegionHandler(RegionHandler):
         if len(self._points) == 0 or not np.allclose(point, self._points[-1]):
             self._points = np.vstack((self._points, point))
 
-            if self._markers_and_line is None:
+            if self._lines is None:
+                colour = self._line_colour
+                self._lines = self.matplotlib_widget._map_axes.plot(\
+                    self._points[:, 0], self._points[:, 1], '-', c=colour)[0]
+                self._markers = self.matplotlib_widget._map_axes.plot(\
+                    self._points[:, 0], self._points[:, 1], 'o', c=colour)[0]
+
                 path_effects = self._get_path_effects()
-                self._markers_and_line = self.matplotlib_widget._map_axes.plot(\
-                    self._points[:, 0], self._points[:, 1], 'o-',
-                    c=self._line_colour)[0]
-                self._markers_and_line.set_path_effects(self._get_path_effects())
+                self._lines.set_path_effects(path_effects)
+                self._markers.set_path_effects(path_effects)
             else:
-                self._markers_and_line.set_data(self._points[:, 0],
-                                                self._points[:, 1])
+                self._lines.set_data(self._points[:, 0], self._points[:, 1])
+                self._markers.set_data(self._points[:, 0], self._points[:, 1])
             self.matplotlib_widget._redraw()
 
     def _calculate_region(self):
@@ -202,38 +233,52 @@ class PolygonRegionHandler(RegionHandler):
         else:
             return None
 
-    def _close_polygon(self, point):
-        if self._markers_and_line:
+    def _close_polygon(self):
+        if self._lines:
             self._editing = False
             self._points = np.vstack((self._points, self._points[0]))
-            self._markers_and_line.set_data(self._points[:, 0],
-                                            self._points[:, 1])
+            x = self._points[:, 0]
+            y = self._points[:, 1]
+            self._lines.set_data(x, y)
+            self._markers.set_data(x, y)
 
-            region = self._calculate_region()
-            if region is not None:
-                masked = np.ma.masked_equal(region, True)
+            self._region = self._calculate_region()
+            if self._region is not None:
+                masked = np.ma.masked_equal(self._region, True)
 
                 cmap = self.matplotlib_widget._create_white_colormap()
                 self._region_image = self.matplotlib_widget._map_axes.imshow( \
                     masked, alpha=self._region_alpha, cmap=cmap)
 
             self.matplotlib_widget._redraw()
+            self.update_listener()
 
     def clear(self, redraw=True):
         if self.matplotlib_widget._map_axes is not None:
             self._points = np.empty((0, 2))
 
-            if self._markers_and_line:
-                self._markers_and_line.remove()
-                self._markers_and_line = None
+            if self._lines:
+                self._lines.remove()
+                self._lines = None
 
-            if self._region_image:
-                self._region_image.remove()
-                self._region_image = None
+            if self._markers:
+                self._markers.remove()
+                self._markers = None
+
+            if self._highlight_marker:
+                self._highlight_marker.remove()
+                self._highlight_marker = None
+
+            self.clear_region()
 
             self._editing = False
             if redraw:
                 self.matplotlib_widget._redraw()
+
+            self.update_listener()
+
+    def get_shape_string(self):
+        return 'polygon'
 
     def on_mouse_down(self, event):
         if (event.button == 1 and event.inaxes is not None and
@@ -243,10 +288,23 @@ class PolygonRegionHandler(RegionHandler):
                 self.clear()
                 self._editing = True
 
-            if event.dblclick:
-                self._close_polygon((event.xdata, event.ydata))
+            if event.dblclick or self._highlight_marker:
+                self._close_polygon()
             else:
                 self._add_point((event.xdata, event.ydata))
+
+    def on_mouse_move(self, event):
+        if self._markers is not None and len(self._markers.get_xdata()) > 1:
+            inside, matches = self._markers.contains(event)
+            if inside:
+                if self._highlight_marker is None and 0 in matches['ind']:
+                    self._highlight_marker = self.matplotlib_widget._map_axes.plot(\
+                        self._points[0, 0], self._points[0, 1], 'o', c='yellow')[0]
+                    self.matplotlib_widget._redraw()
+            elif self._highlight_marker:
+                self._highlight_marker.remove()
+                self._highlight_marker = None
+                self.matplotlib_widget._redraw()
 
 
 class ZoomHandler(ModeHandler):
@@ -258,7 +316,7 @@ class ZoomHandler(ModeHandler):
         if (self._zoom_rectangle is not None and
             self.matplotlib_widget._map_axes is not None):
 
-            self.matplotlib_widget.remove_patch(self._zoom_rectangle)
+            self._zoom_rectangle.remove()
             self._zoom_rectangle = None
 
             if redraw:
@@ -284,7 +342,8 @@ class ZoomHandler(ModeHandler):
 
             rectangle = Rectangle((event.xdata, event.ydata), width=0, height=0,
                                   fc='none', ec='k', ls='--')
-            self._zoom_rectangle = self.matplotlib_widget.add_patch(rectangle)
+            self._zoom_rectangle = \
+                self.matplotlib_widget._map_axes.add_patch(rectangle)
             self.matplotlib_widget._redraw()
 
     def on_mouse_move(self, event):

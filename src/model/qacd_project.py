@@ -36,6 +36,7 @@ class QACDProject:
                            #   (formula, correction_model, preset)
         self._phases = {}  # dict of name -> tuple of (source, ...).  Extra
                            # items depend on source, see create_phase_*
+        self._regions = {}  # dict of name -> shape string.
 
         # Regular expression to match input CSV filenames.
         self._csv_file_re = re.compile('^([A-Z][a-z]?) K series.csv$')
@@ -412,6 +413,38 @@ class QACDProject:
 
         self._ratios[name] = (formula, correction_model, preset)
 
+    def create_region(self, name, shape_string, region):
+        # region is a boolean array.
+        if self._state < State.FILTERED:
+            raise RuntimeError('Cannot create region, no filtered data present')
+        if name in self._regions:
+            raise RuntimeError('Region name {} already used'.format(name))
+        if shape_string not in ('ellipse', 'polygon', 'rectangle'):
+            raise RuntimeError('Unrecognised region shape string {}'.format(shape_string))
+        if region is None:
+            raise RuntimeError('No region boolean array specified')
+
+        # Check region shape and dtype.
+        if region.dtype != np.bool:
+            raise RuntimeError('Incorrect dtype for region {}'.format(name))
+        raw_total = self.get_raw_total(masked=False)
+        if region.shape != raw_total.shape:
+            raise RuntimeError('Incorrect shape for region {}'.format(name))
+
+        # Store region.
+        with self._h5file() as h5file:
+            if '/region' in h5file:
+                all_regions = h5file.get_node('/region')
+            else:
+                all_regions = h5file.create_group('/', 'region', 'Region maps')
+
+            region_group = h5file.create_group(all_regions, name)
+            region_data = h5file.create_carray(region_group, 'data', obj=region)
+            self._add_array_stats(region_group, region, mask=None)
+            region_group._v_attrs.shape = shape_string
+
+        self._regions[name] = shape_string
+
     def delete_all_clusters(self):
         with self._h5file() as h5file:
             if '/cluster' in h5file:
@@ -432,6 +465,14 @@ class QACDProject:
         ratio = self._ratios.pop(name)
         with self._h5file() as h5file:
             node = h5file.get_node('/ratio', name)
+            node._f_remove(recursive=True)
+
+    def delete_region(self, name):
+        if name not in self.regions:
+            raise RuntimeError('No such region {}'.format(name))
+        self._regions.pop(name)
+        with self._h5file() as h5file:
+            node = h5file.get_node('/region', name)
             node._f_remove(recursive=True)
 
     @property
@@ -687,6 +728,14 @@ class QACDProject:
 
         return self._get_array('/raw/total', masked, want_stats)
 
+    def get_region(self, name, masked=True, want_stats=False, h5file=None):
+        # Return region which is an unmasked boolean array.
+        if name not in self._regions:
+            raise RuntimeError('No such region: {}'.format(name))
+
+        return self._get_array('/region/' + name, masked=masked,
+                               want_stats=want_stats, h5file=h5file)
+
     def get_valid_preset_ratios(self):
         if self._state <= State.EMPTY:
             raise RuntimeError('No raw data present')
@@ -930,6 +979,7 @@ class QACDProject:
             all_stats = indices_stats + ['mean', 'median', 'std']
             ratio_stats = all_stats + ['formula', 'correction_model', 'preset']
             phase_stats = ['valid', 'invalid', 'source']
+            region_stats = ['valid', 'invalid', 'shape']
 
             if self._state < State.RAW:
                 if '/raw' in h5file:
@@ -1211,6 +1261,32 @@ class QACDProject:
                                   phase_node._v_attrs.original_values)
                     self._phases[name] = tuple_
 
+            if '/region' in h5file:
+                if self._state < State.FILTERED:
+                    raise RuntimeError('Unexpected node /region')
+
+                group_node = h5file.get_node('/region')
+                for region_node in group_node._f_list_nodes():
+                    name = region_node._v_name
+
+                    # Check attributes.
+                    attrs = region_node._v_attrs._v_attrnames
+                    if not all([name in attrs for name in region_stats]):
+                        raise RuntimeError('Missing stats in region {}'.format(name))
+
+                    shape_string = region_node._v_attrs.shape
+                    if shape_string not in ['ellipse', 'polygon', 'rectangle']:
+                        raise RuntimeError('Incorrect shape {} for region {}'.format(shape_string, name))
+
+                    # Check array.
+                    node = h5file.get_node(region_node, 'data')
+                    if node.dtype != np.bool:
+                        raise RuntimeError('Incorrect dtype for region {}'.format(name))
+                    if node.shape != shape:
+                        raise RuntimeError('Incorrect shape for region {}'.format(name))
+
+                    self._regions[name] = shape_string
+
     def normalise(self, progress_callback=None):
         if self._state != State.FILTERED:
             raise RuntimeError('Project does not contain filtered data')
@@ -1253,6 +1329,11 @@ class QACDProject:
     def ratios(self):
         # Read-only property.
         return self._ratios
+
+    @property
+    def regions(self):
+        # Read-only property.
+        return self._regions
 
     def rename_phase(self, old_name, name):
         old_tuple = self._phases.pop(old_name)

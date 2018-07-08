@@ -10,6 +10,7 @@ class ArrayType(Enum):
     RATIO      =  3
     CLUSTER    =  4
     PHASE      =  5
+    REGION     =  6
 
 
 @unique
