@@ -213,9 +213,6 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._array_type = array_type
         self._cmap_int_max = cmap_int_max
 
-        if self._mode_handler:
-            self._mode_handler.clear(redraw=False)
-
         figure = self._canvas.figure
         figure.clear()
 
@@ -295,4 +292,8 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
         self._map_axes = map_axes
         self._adjust_layout()
+
+        if self._mode_handler:
+            self._mode_handler.move_to_new_axes()
+
         self._redraw()
