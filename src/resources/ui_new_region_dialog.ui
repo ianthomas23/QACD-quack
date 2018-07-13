@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>392</width>
-    <height>221</height>
+    <height>452</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,7 +17,17 @@
    <item row="0" column="0" colspan="2">
     <widget class="QLabel" name="label_2">
      <property name="text">
-      <string>To create a new region, select the area of interest using the mouse, enter a name, and click the OK button.</string>
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;To create a new region:
+&lt;ol&gt;
+&lt;li&gt;Choose a shape below.&lt;/li&gt;
+&lt;li&gt;Select the region using the mouse.&lt;/li&gt;
+&lt;li&gt;Enter a name.&lt;/li&gt;
+&lt;li&gt;Click the OK button.&lt;/li&gt;
+&lt;/ol&gt;
+For an ellipse or rectangle region, click and hold the mouse button down, drag to enclose the are of interest, then release the mouse button.&lt;/p&gt;
+&lt;p&gt;For a polygon region, click the mouse button to add each point. To close the polygon either double-click the mouse button or place the mouse over the first point (the point will turn yellow) and click the mouse button once.
+&lt;/p&gt;
+&lt;/body&gt;&lt;/html&gt;</string>
      </property>
      <property name="wordWrap">
       <bool>true</bool>

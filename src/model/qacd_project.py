@@ -1336,18 +1336,36 @@ class QACDProject:
         return self._regions
 
     def rename_phase(self, old_name, name):
+        if name in self.phases:
+            raise RuntimeError('There is already a phase with name {}'.format(name))
+
+        print('before', self._phases)
         old_tuple = self._phases.pop(old_name)
         self._phases[name] = old_tuple
+        print('after', self._phases)
 
         with self._h5file() as h5file:
             h5file.rename_node('/phase', name, old_name)
 
     def rename_ratio(self, old_name, name):
+        if name in self.ratios:
+            raise RuntimeError('There is already a ratio with name {}'.format(name))
+
         old_tuple = self._ratios.pop(old_name)
         self._ratios[name] = old_tuple
 
         with self._h5file() as h5file:
             h5file.rename_node('/ratio', name, old_name)
+
+    def rename_region(self, old_name, name):
+        if name in self.regions:
+            raise RuntimeError('There is already a region with name {}'.format(name))
+
+        old_tuple = self._regions.pop(old_name)
+        self._regions[name] = old_tuple
+
+        with self._h5file() as h5file:
+            h5file.rename_node('/region', name, old_name)
 
     def set_filename(self, filename):
         if self._state != State.INVALID:

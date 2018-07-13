@@ -37,9 +37,23 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.displayed_array_stats = None
 
             self.array_type = ArrayType.INVALID
-            self.name = None   # e.g. element name, or 'total', etc.
-            self.phase = None
+            self.name = None    # e.g. element name, or 'total', etc.
+            self.phase = None   # None or phase boolean array.
+            self.region = None  # None or region boolean array.
+            self.mask = None    # None or combined phase & region boolean array.
 
+        def create_mask(self):
+            have_phase = self.phase is not None
+            have_region = self.region is not None
+
+            if have_phase and have_region:
+                self.mask = np.logical_or(self.phase, self.region)
+            elif have_phase:
+                self.mask = self.phase
+            elif have_region:
+                self.mask = self.region
+            else:
+                self.mask = None
 
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
@@ -70,6 +84,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Matplotlib toolbar controls.
         self.plotTypeComboBox.currentIndexChanged.connect(self.change_plot_type)
         self.phaseComboBox.currentIndexChanged.connect(self.change_phase)
+        self.regionComboBox.currentIndexChanged.connect(self.change_region)
         self.undoButton.clicked.connect(self.zoom_undo)
         self.redoButton.clicked.connect(self.zoom_redo)
 
@@ -108,10 +123,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             checkbox.setFocusPolicy(QtCore.Qt.NoFocus)
             checkbox.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents, True)
 
-        # Hide unwanted region controls until regions implemented.
-        self.regionLabel.setVisible(False)
-        self.regionComboBox.setVisible(False)
-
         # Member variables.
         self._project = None
 
@@ -140,8 +151,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         table_widget = item.tableWidget()
         if table_widget == self.ratioTable:
             all_items = self._project.ratios
-        else:  # table_widget == self.phaseTable:
+        elif table_widget == self.phaseTable:
             all_items = self._project.phases
+        elif table_widget == self.regionTable:
+            all_items = self._project.regions
 
         if name in all_items:
             QtWidgets.QMessageBox.warning(self, 'Warning',
@@ -151,11 +164,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.ignore_change_name = False
         else:
             self._current.name = name
+            item.setData(QtCore.Qt.UserRole, name)
             if table_widget == self.ratioTable:
                 self._project.rename_ratio(old_name, name)
-            else:  # table_widget == self.phaseTable:
+            elif table_widget == self.phaseTable:
                 self._project.rename_phase(old_name, name)
                 self.update_phase_combo_box()
+            elif table_widget == self.regionTable:
+                self._project.rename_region(old_name, name)
+                self.update_region_combo_box()
 
             self.update_matplotlib_widget()
 
@@ -165,6 +182,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self._current.phase = None
         else:
             self._current.phase = ~self._project.get_phase(text, masked=False)
+        self._current.create_mask()
 
         if self._project is not None:
             self.update_matplotlib_widget()
@@ -172,6 +190,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def change_plot_type(self):
         self.update_matplotlib_widget()
+
+    def change_region(self):
+        text = self.regionComboBox.currentText()
+        if text == '':
+            self._current.region = None
+        else:
+            self._current.region = ~self._project.get_region(text, masked=False)
+        self._current.create_mask()
+
+        if self._project is not None:
+            self.update_matplotlib_widget()
+            self.update_status_bar()
 
     def change_table_item(self):
         if self._ignore_change_selection:
@@ -264,6 +294,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.matplotlibWidget.clear_all()
             self.update_controls()
             self.update_phase_combo_box()
+            self.update_region_combo_box()
             self.update_status_bar()
             self.update_title()
 
@@ -350,7 +381,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             self._project.delete_region(name)
 
-            #self.update_region_combo_box()
+            self.update_region_combo_box()
             self.update_controls()
             self._current.clear()
             self.update_matplotlib_widget()
@@ -475,15 +506,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             label = label or name
             value = stats.get(name)
             if value is None:
-                return ''
+                ret = ''
             elif isinstance(value, np.float):
                 if int(value) == value:
                     value = int(value)
                 else:
                     value = float('{:.5g}'.format(value))
-                return ', {}={}'.format(label, value)
+                ret = ', {}={}'.format(label, value)
             else:
-                return ', {}={}'.format(label, value)
+                ret = ', {}={}'.format(label, value)
+            if name in ('valid', 'invalid'):
+                ret += ' ({}%)'.format(int(round(100*value/array.size)))
+            return ret
 
         if array is not None:
             ny, nx = array.shape
@@ -609,11 +643,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 table_widget = self.regionTable
                 name = dialog.get_name()
                 match = table_widget.findItems(name, QtCore.Qt.MatchExactly)
-                row = match[0].row()
-                table_widget.clearSelection()
-                table_widget.selectRow(row)
+                if match is not None and len(match) > 0:
+                    row = match[0].row()
+                    table_widget.clearSelection()
+                    table_widget.selectRow(row)
 
-            #self.update_region_combo_box()
+            self.update_region_combo_box()
             self.update_controls()
 
         dialog = NewRegionDialog(self._project, parent=self)
@@ -658,6 +693,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.update_controls()
         self.update_matplotlib_widget()
         self.update_phase_combo_box()
+        self.update_region_combo_box()
         self.update_status_bar()
         self.update_title()
         QtWidgets.QApplication.restoreOverrideCursor()
@@ -676,7 +712,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def update_controls(self):
         valid_project = self._project is not None
-        showing_phase = self._current.array_type == ArrayType.PHASE
+        showing_phase_or_region = self._current.array_type in \
+            (ArrayType.PHASE, ArrayType.REGION)
 
         # Menu items.
         self.actionProjectClose.setEnabled(valid_project)
@@ -695,12 +732,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.newPhaseClusterButton.setEnabled(self.clusterTable.currentItem() is not None)
 
         # Matplotlib toolbar controls.
-        self.plotTypeComboBox.setEnabled(not showing_phase)
-        self.plotTypeLabel.setEnabled(not showing_phase)
-        self.phaseComboBox.setEnabled(not showing_phase)
-        self.phaseLabel.setEnabled(not showing_phase)
-        self.regionComboBox.setEnabled(not showing_phase)
-        self.regionLabel.setEnabled(not showing_phase)
+        self.plotTypeComboBox.setEnabled(not showing_phase_or_region)
+        self.plotTypeLabel.setEnabled(not showing_phase_or_region)
+        self.phaseComboBox.setEnabled(not showing_phase_or_region)
+        self.phaseLabel.setEnabled(not showing_phase_or_region)
+        self.regionComboBox.setEnabled(not showing_phase_or_region)
+        self.regionLabel.setEnabled(not showing_phase_or_region)
         self.undoButton.setEnabled(self._zoom_history.has_undo())
         self.redoButton.setEnabled(self._zoom_history.has_redo())
 
@@ -731,11 +768,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 type_string = string.capwords(current.array_type.name.lower())
                 title = '{} {} element'.format(type_string, name)
 
-            if (current.array_type != ArrayType.PHASE and
-                current.array_type != ArrayType.REGION and
-                current.phase is not None):
+            if (current.array_type not in (ArrayType.PHASE, ArrayType.REGION)
+                and current.mask is not None):
                 # May want to cache this instead of recalculating it each time.
-                array = np.ma.masked_where(current.phase, current.selected_array)
+                array = np.ma.masked_where(current.mask, current.selected_array)
                 array_stats = {}
                 if 'valid' in current.selected_array_stats:
                     number_invalid = np.ma.count_masked(array)
@@ -766,6 +802,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         combo_box.addItem('')
         if self._project is not None:
             for name in sorted(self._project.phases.keys()):
+                combo_box.addItem(name)
+
+    def update_region_combo_box(self):
+        combo_box = self.regionComboBox
+        combo_box.clear()
+        combo_box.addItem('')
+        if self._project is not None:
+            for name in sorted(self._project.regions.keys()):
                 combo_box.addItem(name)
 
     def update_status_bar(self):

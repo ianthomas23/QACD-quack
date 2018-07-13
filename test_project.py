@@ -142,6 +142,14 @@ def test_sequence():
     with pytest.raises(RuntimeError):
         p.create_phase_map_from_cluster('no original values', phase_map, k_min, [])
 
+    # Regions.
+    region = p.calculate_region_ellipse((100, 60), (40, 20))
+    p.create_region('an_ellipse', 'ellipse', region)
+    assert len(p.regions) == 1
+    assert 'an_ellipse' in p.regions
+    with pytest.raises(RuntimeError):
+        p.create_region('an_ellipse', 'ellipse', region)  # Same name
+
     # Cleanup.
     if os.path.isfile(temp_filename):
         os.remove(temp_filename)
@@ -307,6 +315,19 @@ def consistency_impl(directory, pixel_totals, median):
     mask = phase == False
     check_masked_array(phase, (ny, nx), np.bool, mask, False)
     check_stats(phase, phase_stats, 'invalid valid')
+
+    # Region.
+    region = p.calculate_region_ellipse((100, 60), (40, 20))
+    name = 'ellipse1'
+    shape_string = 'ellipse'
+    p.create_region(name, shape_string, region)
+    region, region_stats = p.get_region(name, want_stats=True)
+    shape = region_stats.pop('shape')
+    assert shape == shape_string
+
+    mask = region == False
+    check_masked_array(region, (ny, nx), np.bool, mask, False)
+    check_stats(region, region_stats, 'invalid valid')
 
     # Cleanup.
     if os.path.isfile(temp_filename):

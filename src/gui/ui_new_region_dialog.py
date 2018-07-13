@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_NewRegionDialog(object):
     def setupUi(self, NewRegionDialog):
         NewRegionDialog.setObjectName("NewRegionDialog")
-        NewRegionDialog.resize(392, 221)
+        NewRegionDialog.resize(392, 452)
         self.formLayout = QtWidgets.QFormLayout(NewRegionDialog)
         self.formLayout.setObjectName("formLayout")
         self.label_2 = QtWidgets.QLabel(NewRegionDialog)
@@ -55,7 +55,17 @@ class Ui_NewRegionDialog(object):
     def retranslateUi(self, NewRegionDialog):
         _translate = QtCore.QCoreApplication.translate
         NewRegionDialog.setWindowTitle(_translate("NewRegionDialog", "Create new region"))
-        self.label_2.setText(_translate("NewRegionDialog", "To create a new region, select the area of interest using the mouse, enter a name, and click the OK button."))
+        self.label_2.setText(_translate("NewRegionDialog", "<html><head/><body><p>To create a new region:\n"
+"<ol>\n"
+"<li>Choose a shape below.</li>\n"
+"<li>Select the region using the mouse.</li>\n"
+"<li>Enter a name.</li>\n"
+"<li>Click the OK button.</li>\n"
+"</ol>\n"
+"For an ellipse or rectangle region, click and hold the mouse button down, drag to enclose the are of interest, then release the mouse button.</p>\n"
+"<p>For a polygon region, click the mouse button to add each point. To close the polygon either double-click the mouse button or place the mouse over the first point (the point will turn yellow) and click the mouse button once.\n"
+"</p>\n"
+"</body></html>"))
         self.groupBox.setTitle(_translate("NewRegionDialog", "Shape of region to create"))
         self.ellipseRadioButton.setText(_translate("NewRegionDialog", "Ellipse"))
         self.polygonRadioButton.setText(_translate("NewRegionDialog", "Polygon"))

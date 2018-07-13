@@ -174,6 +174,9 @@ class EllipseRegionHandler(MouseDragRegionHandler):
             return None
 
     def _create_artists(self):
+        if len(self._points) < 2:
+            return []
+
         centre, size = self._get_centre_and_size()
         ellipse = Ellipse(centre, width=size[0], height=size[1],
                           fc='none', ec=self._line_colour)
@@ -187,7 +190,6 @@ class EllipseRegionHandler(MouseDragRegionHandler):
         centre = (start + end)*0.5
         size = end - start
         return centre, size
-
 
     def _move_artists(self):
         centre, size = self._get_centre_and_size()
@@ -215,6 +217,9 @@ class RectangleRegionHandler(MouseDragRegionHandler):
             return None
 
     def _create_artists(self):
+        if len(self._points) < 2:
+            return []
+
         start = self._points[0]
         size = self._points[1] - start
         rectangle = Rectangle(start, width=size[0], height=size[1],
