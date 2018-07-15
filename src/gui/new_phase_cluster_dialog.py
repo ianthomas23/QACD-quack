@@ -43,12 +43,14 @@ class NewPhaseClusterDialog(QtWidgets.QDialog, Ui_NewPhaseClusterDialog):
                               return_counts=True)
         self.cache = [[None, pixels[value], [value]] for value in range(self.nvalues)]
 
-        self.matplotlibWidget.initialise(owning_window=self, zoom_enabled=False)
+        self.matplotlibWidget.initialise( \
+            owning_window=self, display_options=self.project.display_options,
+            zoom_enabled=False)
 
         self.clear_selections()
         self.update_status_label()
         self.update_matplotlib_widget()
-        self.fill_table_widget()  # After mpl widget as uses its colormap.
+        self.fill_table_widget()  # After mpl widget as uses its colourmap.
         self.update_buttons()
 
     def accept(self):
@@ -128,14 +130,14 @@ class NewPhaseClusterDialog(QtWidgets.QDialog, Ui_NewPhaseClusterDialog):
         self.update_status_label()
         self.update_matplotlib_widget()
         self.clear_selections()
-        self.fill_table_widget()  # After mpl widget as uses its colormap.
+        self.fill_table_widget()  # After mpl widget as uses its colourmap.
         self.update_buttons()
 
     def fill_table_widget(self, select_value=None):
         self.ignore_change_name = True
         table_widget = self.tableWidget
 
-        cmap = self.matplotlibWidget.create_colormap()
+        cmap = self.matplotlibWidget.create_colourmap()
         pixmap_size = \
             (40, self.tableWidget.verticalHeader().minimumSectionSize()-1)
 
@@ -211,7 +213,7 @@ class NewPhaseClusterDialog(QtWidgets.QDialog, Ui_NewPhaseClusterDialog):
         self.update_status_label()
         self.update_matplotlib_widget()
         self.clear_selections()
-        self.fill_table_widget(select_value=target_value)  # After mpl widget as uses its colormap.
+        self.fill_table_widget(select_value=target_value)  # After mpl widget as uses its colourmap.
         self.update_buttons()
 
     def set_table_widget_cell(self, table_widget, row, column, contents):

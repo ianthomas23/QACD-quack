@@ -60,7 +60,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.setupUi(self)
 
-        self.matplotlibWidget.initialise(owning_window=self)
+        self.matplotlibWidget.initialise(owning_window=self,
+                                         display_options=None)
 
         self.statusbar.messageChanged.connect(self.status_bar_change)
 
@@ -290,6 +291,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             for i in range(self.tabWidget.count()-1, 0, -1):
                 self.tabWidget.removeTab(i)
 
+            self.matplotlibWidget.set_display_options(None)
+
             self.update_matplotlib_widget()
             self.matplotlibWidget.clear_all()
             self.update_controls()
@@ -391,10 +394,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self._display_options_shown = False
             self.update_controls()
 
-        colormap_name = self.matplotlibWidget.get_colormap_name()
-        valid_colormap_names = self.matplotlibWidget.get_valid_colormap_names()
-
-        dialog = DisplayOptionsDialog(colormap_name, valid_colormap_names,
+        dialog = DisplayOptionsDialog(self._project.display_options,
                                       parent=self)
         dialog.finished.connect(finished)
         dialog.show()
@@ -572,6 +572,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             ProgressDialog.worker_thread( \
                 self, 'New project ' + os.path.basename(filename), thread_func,
                 args=[self._project, csv_directory, csv_files])
+
+            self.matplotlibWidget.set_display_options(project.display_options)
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, 'Error', str(e))
 
@@ -687,6 +689,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.fill_table_widget(4)  # Clustering.
                 self.fill_table_widget(5)  # Phases.
                 self.fill_table_widget(6)  # Regions.
+
+            self.matplotlibWidget.set_display_options(project.display_options)
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, 'Error', str(e))
 
@@ -697,10 +701,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.update_status_bar()
         self.update_title()
         QtWidgets.QApplication.restoreOverrideCursor()
-
-    def set_colormap_name(self, colormap_name):
-        if self.matplotlibWidget is not None:
-            self.matplotlibWidget.set_colormap_name(colormap_name)
 
     def short_wait(self):
         time.sleep(0.1)

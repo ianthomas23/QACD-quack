@@ -6,9 +6,11 @@ from .ui_display_options_dialog import Ui_DisplayOptionsDialog
 
 
 class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
-    def __init__(self, colormap_name, valid_colormap_names, parent=None):
+    def __init__(self, display_options, parent=None):
         QtWidgets.QDialog.__init__(self, parent)
         self.setupUi(self)
+
+        self._display_options = display_options
 
         self.applyButton = self.buttonBox.button(QtWidgets.QDialogButtonBox.Apply)
 
@@ -17,26 +19,25 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         self.listWidget.itemSelectionChanged.connect(self.update_buttons)
         self.reverseCheckBox.stateChanged.connect(self.update_buttons)
 
-        self.current_colormap_name = colormap_name
-
-        is_reversed = colormap_name.endswith('_r')
+        colourmap_name = display_options.colourmap_name
+        is_reversed = colourmap_name.endswith('_r')
         if is_reversed:
-            colormap_name = colormap_name[:-2]
+            colourmap_name = colourmap_name[:-2]
         self.reverseCheckBox.setChecked(is_reversed)
 
         self._image_size = (255, self.listWidget.font().pointSize()*4 // 3)
         self._images = []  # Need to keep these in scope.
 
-        # Fill list widget with colormap names.
+        # Fill list widget with colourmap names.
         selected_item = None
-        for index, name in enumerate(valid_colormap_names):
+        for index, name in enumerate(self._display_options.valid_colourmap_names):
             item = QtWidgets.QListWidgetItem(name, parent=self.listWidget)
             item.setData(QtCore.Qt.DecorationRole, self.create_pixmap(name))
-            if name == colormap_name:
+            if name == colourmap_name:
                 selected_item = item
 
         if selected_item is not None:
-            # Selects current colormap, and scrolls so that it is visible.
+            # Selects current colourmap, and scrolls so that it is visible.
             self.listWidget.setCurrentItem(selected_item)
 
         self.update_buttons()
@@ -46,10 +47,11 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         self.close()
 
     def apply(self):
-        selected_name = self.get_selected_colormap_name()
+        selected_name = self.get_selected_colourmap_name()
         if selected_name is not None:
-            self.parent().set_colormap_name(selected_name)
-            self.current_colormap_name = selected_name
+            # The following line will update any visible matplotlib_widget
+            # objects.
+            self._display_options.colourmap_name = selected_name
             self.update_buttons()
 
     def create_pixmap(self, name):
@@ -67,7 +69,7 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
 
         return QtGui.QPixmap.fromImage(image)
 
-    def get_selected_colormap_name(self):
+    def get_selected_colourmap_name(self):
         item = self.listWidget.currentItem()
         if item is not None:
             name = item.text()
@@ -78,5 +80,6 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         return name
 
     def update_buttons(self):
-        selected_name = self.get_selected_colormap_name()
-        self.applyButton.setEnabled(selected_name != self.current_colormap_name)
+        selected_name = self.get_selected_colourmap_name()
+        self.applyButton.setEnabled( \
+            selected_name != self._display_options.colourmap_name)

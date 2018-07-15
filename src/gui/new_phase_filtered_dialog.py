@@ -13,10 +13,12 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
         self.setWindowFlags(QtCore.Qt.Window)
 
         self.project = project
-        self.elementMatplotlibWidget.initialise(owning_window=self,
-                                                zoom_enabled=False)
-        self.phaseMatplotlibWidget.initialise(owning_window=self,
-                                              zoom_enabled=False)
+        self.elementMatplotlibWidget.initialise( \
+            owning_window=self, display_options=self.project.display_options,
+            zoom_enabled=False)
+        self.phaseMatplotlibWidget.initialise( \
+            owning_window=self, display_options=self.project.display_options,
+            zoom_enabled=False)
 
         self.fill_element_table()
         self.elementTable.itemSelectionChanged.connect(self.change_element)
@@ -234,7 +236,7 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
     def update_element_map(self):
         lower = self.lowerSlider.value()
         upper = self.upperSlider.value()
-        self.elementMatplotlibWidget.set_colormap_limits(lower, upper)
+        self.elementMatplotlibWidget.set_colourmap_limits(lower, upper)
         self.update_buttons()
 
     def update_ok_button(self):

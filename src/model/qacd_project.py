@@ -9,6 +9,7 @@ import tables
 import warnings
 
 from .correction_models import correction_models
+from .display_options import DisplayOptions
 from .elements import element_properties
 from .preset_ratios import preset_ratios
 from . import utils
@@ -28,6 +29,7 @@ class QACDProject:
     def __init__(self):
         self._state = State.INVALID
         self._filename = None
+        self._display_options = None
 
         # Cached data to avoid recalculating/re-reading from file.
         self._elements = None
@@ -474,6 +476,12 @@ class QACDProject:
         with self._h5file() as h5file:
             node = h5file.get_node('/region', name)
             node._f_remove(recursive=True)
+
+    @property
+    def display_options(self):
+        if self._display_options is None:
+            self._display_options = DisplayOptions()
+        return self._display_options
 
     @property
     def elements(self):

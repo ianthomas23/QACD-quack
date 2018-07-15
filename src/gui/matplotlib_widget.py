@@ -19,6 +19,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._layout.addWidget(self._canvas)
         self.setLayout(self._layout)
 
+        self._display_options = None
         self._map_axes = None
 
         self._image = None       # Image used for element map.
@@ -27,9 +28,6 @@ class MatplotlibWidget(QtWidgets.QWidget):
                                  #   in range 0 (= min) to 1.0 (= max value).
         self._array_type = ArrayType.INVALID
         self._cmap_int_max = None  # One beyond end, as in numpy slicing.
-
-        self._valid_colormap_names = self._determine_valid_colormap_names()
-        self._colormap_name = 'rainbow'
 
         # Initialised in initialise().
         self._owning_window = None
@@ -40,38 +38,29 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._map_ylim = None
 
         # Created when first needed.
-        self._black_colormap = None
-        self._white_colormap = None
+        self._black_colourmap = None
+        self._white_colourmap = None
+
+    def __del__(self):
+        self.set_display_options(None)
 
     def _adjust_layout(self):
         #self._canvas.figure.tight_layout(pad=1.5)
         pass
 
-    def _create_black_colormap(self):
-        if self._black_colormap == None:
-            colors = [(0, 0, 0), (0, 0, 0)]
-            self._black_colormap = \
-                LinearSegmentedColormap.from_list('black', colors, N=1)
-        return self._black_colormap
+    def _create_black_colourmap(self):
+        if self._black_colourmap == None:
+            colours = [(0, 0, 0), (0, 0, 0)]
+            self._black_colourmap = \
+                LinearSegmentedColormap.from_list('black', colours, N=1)
+        return self._black_colourmap
 
-    def _create_white_colormap(self):
-        if self._white_colormap == None:
-            colors = [(1, 1, 1), (1, 1, 1)]
-            self._white_colormap = \
-                LinearSegmentedColormap.from_list('white', colors, N=1)
-        return self._white_colormap
-
-    def _determine_valid_colormap_names(self):
-        # Exclude reversed cmaps which have names ending with '_r'.
-        all_ = set(filter(lambda s: not s.endswith('_r'), cm.cmap_d.keys()))
-
-        # Exclude qualitative and repeating cmaps, and the deprecated
-        # 'spectral' which has been replaced with 'nipy_spectral'.
-        exclude = set(['Accent', 'Dark2', 'Paired', 'Pastel1', 'Pastel2',
-                       'Set1', 'Set2', 'Set3', 'Vega10', 'Vega20', 'Vega20b',
-                       'Vega20c', 'flag', 'prism', 'spectral', 'tab10',
-                       'tab20', 'tab20b', 'tab20c'])
-        return sorted(all_.difference(exclude))
+    def _create_white_colourmap(self):
+        if self._white_colourmap == None:
+            colours = [(1, 1, 1), (1, 1, 1)]
+            self._white_colourmap = \
+                LinearSegmentedColormap.from_list('white', colours, N=1)
+        return self._white_colourmap
 
     def _redraw(self):
         self._canvas.draw()
@@ -96,22 +85,18 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._map_ylim = None
         self.clear()
 
-    def create_colormap(self):
+    def create_colourmap(self):
         if self._array_type in (ArrayType.PHASE, ArrayType.REGION):
-            return self._create_black_colormap()
+            return self._create_black_colourmap()
         if self._cmap_int_max is None:
-            return cm.get_cmap(self.get_colormap_name())
+            return cm.get_cmap(self._display_options.colourmap_name)
         else:
-            return cm.get_cmap(self.get_colormap_name(), self._cmap_int_max)
+            return cm.get_cmap(self._display_options.colourmap_name,
+                               self._cmap_int_max)
 
-    def get_colormap_name(self):
-        return self._colormap_name
-
-    def get_valid_colormap_names(self):
-        return self._valid_colormap_names
-
-    def initialise(self, owning_window, zoom_enabled=True):
+    def initialise(self, owning_window, display_options, zoom_enabled=True):
         self._owning_window = owning_window
+        self.set_display_options(display_options)
         if zoom_enabled:
             self._canvas.mpl_connect('axes_enter_event', self.on_axes_enter)
             self._canvas.mpl_connect('axes_leave_event', self.on_axes_leave)
@@ -148,7 +133,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
     def on_resize(self, event):
         self._adjust_layout()
 
-    def set_colormap_limits(self, lower, upper):
+    def set_colourmap_limits(self, lower, upper):
         if self._image is not None:
             self._image.set_clim(lower, upper)
             cmap = self._image.get_cmap()
@@ -156,22 +141,12 @@ class MatplotlibWidget(QtWidgets.QWidget):
             cmap.set_under('w')
             self._redraw()
 
-    def set_colormap_name(self, colormap_name):
-        self._colormap_name = colormap_name
-        cmap = self.create_colormap()
-
-        if self._array_type == ArrayType.PHASE:
-            return
-
-        if self._image is not None:
-            self._image.set_cmap(cmap)
-
-        if self._bar is not None:
-            colors = cmap(self._bar_norm_x)
-            for index, item in enumerate(self._bar):
-                item.set_color(colors[index])
-
-        self._redraw()
+    def set_display_options(self, display_options):
+        if self._display_options is not None:
+            self._display_options.remove_listener(self)
+        self._display_options = display_options
+        if self._display_options is not None:
+            self._display_options.add_listener(self)
 
     def set_map_zoom(self, xs, ys):
         if self._map_axes is not None:
@@ -202,12 +177,12 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
     def update(self, plot_type, array_type, array, array_stats, title):
         # Derived quantities.
-        show_colorbar = True
+        show_colourbar = True
         cmap_int_max = None
         if array_type == ArrayType.CLUSTER:
             cmap_int_max = array_stats['max'] + 1
         elif array_type in (ArrayType.PHASE, ArrayType.REGION):
-            show_colorbar = False
+            show_colourbar = False
             cmap_int_max = 2
 
         self._array_type = array_type
@@ -228,7 +203,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
         else:
             raise RuntimeError('Invalid plot type')
 
-        cmap = self.create_colormap()
+        cmap = self.create_colourmap()
 
         if cmap_int_max is None:
             show_stats = True
@@ -245,9 +220,9 @@ class MatplotlibWidget(QtWidgets.QWidget):
             self._image = None
         else:
             self._image = map_axes.imshow(array, cmap=cmap, norm=norm)
-            if show_colorbar:
-                colorbar = figure.colorbar(self._image, ax=map_axes,
-                                           ticks=cmap_ticks)
+            if show_colourbar:
+                colourbar = figure.colorbar(self._image, ax=map_axes,
+                                            ticks=cmap_ticks)
             if title is not None:
                 map_axes.set_title(title + ' map')
             if self._map_xlim is not None:
@@ -266,9 +241,9 @@ class MatplotlibWidget(QtWidgets.QWidget):
             width = bin_edges[1] - bin_edges[0]
             bin_centres = bin_edges[:-1] + 0.5*width
             self._bar_norm_x = norm(bin_centres)
-            colors = cmap(self._bar_norm_x)
+            colours = cmap(self._bar_norm_x)
             self._bar = histogram_axes.bar(bin_centres, hist, width,
-                                           color=colors)
+                                           color=colours)
             if cmap_ticks is not None:
                 histogram_axes.set_xticks(cmap_ticks)
 
@@ -295,5 +270,22 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
         if self._mode_handler:
             self._mode_handler.move_to_new_axes()
+
+        self._redraw()
+
+    def update_colourmap_name(self):
+        colourmap_name = self._display_options.colourmap_name
+        cmap = self.create_colourmap()
+
+        if self._array_type == ArrayType.PHASE:
+            return
+
+        if self._image is not None:
+            self._image.set_cmap(cmap)
+
+        if self._bar is not None:
+            colours = cmap(self._bar_norm_x)
+            for index, item in enumerate(self._bar):
+                item.set_color(colours[index])
 
         self._redraw()

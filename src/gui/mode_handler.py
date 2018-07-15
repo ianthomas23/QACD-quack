@@ -53,7 +53,7 @@ class RegionHandler(ModeHandler):
         if self._region is not None:
             masked = np.ma.masked_equal(self._region, True)
 
-            cmap = self.matplotlib_widget._create_white_colormap()
+            cmap = self.matplotlib_widget._create_white_colourmap()
             return self.matplotlib_widget._map_axes.imshow( \
                 masked, alpha=self._region_alpha, cmap=cmap)
         else:
