@@ -228,6 +228,8 @@ class MatplotlibWidget(QtWidgets.QWidget):
             if self._map_xlim is not None:
                 map_axes.set_xlim(self._map_xlim)
                 map_axes.set_ylim(self._map_ylim)
+            #map_axes.set_xlabel('pixels')
+            #map_axes.set_ylabel('pixels')
 
         if histogram_axes is None:
             self._bar = None
