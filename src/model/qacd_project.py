@@ -127,6 +127,11 @@ class QACDProject:
         mask = node.read()
         return mask
 
+    def _get_pixel_grid(self):
+        shape = self.shape
+        x, y = np.meshgrid(np.arange(shape[1]) + 0.5, np.arange(shape[0]) + 0.5)
+        return x, y
+
     @contextmanager
     def _h5file(self):
         # All writing to h5 file is done in a 'with self._h5file() as f' block.
@@ -159,22 +164,19 @@ class QACDProject:
     def calculate_region_ellipse(self, centre, size):
         # Calculate and return boolean array corresponding to ellipse region.
         # Does not store the region.  centre and size are 2-tuples.
-        shape = self.shape
-        x, y = np.meshgrid(np.arange(shape[1]), np.arange(shape[0]))
+        x, y = self._get_pixel_grid()
         return utils.calculate_region_ellipse(x, y, centre, size)
 
     def calculate_region_polygon(self, points):
         # Calculate and return boolean array corresponding to polygon region.
         # Does not store the region.  points is a numpy array of shape (n, 2).
-        shape = self.shape
-        x, y = np.meshgrid(np.arange(shape[1]), np.arange(shape[0]))
+        x, y = self._get_pixel_grid()
         return utils.calculate_region_polygon(x, y, points)
 
     def calculate_region_rectangle(self, corner0, corner1):
         # Calculate and return boolean array corresponding to rectangle region.
         # Does not store the region.  corner0 and corner1 are 2-tuples.
-        shape = self.shape
-        x, y = np.meshgrid(np.arange(shape[1]), np.arange(shape[0]))
+        x, y = self._get_pixel_grid()
         return utils.calculate_region_rectangle(x, y, corner0, corner1)
 
     def create_h_factor(self, progress_callback=None):

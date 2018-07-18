@@ -8,6 +8,7 @@ from PyQt5 import QtCore, QtWidgets
 
 from .enums import ArrayType, ModeType, PlotType
 from .mode_handler import *
+from .scale_bar import ScaleBar
 
 
 class MatplotlibWidget(QtWidgets.QWidget):
@@ -22,11 +23,17 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._display_options = None
         self._map_axes = None
 
+        # Variables set by call to update()
+        self._plot_type = PlotType.INVALID
+        self._array_type = ArrayType.INVALID
+        self._array = None
+        self._array_stats = None
+        self._title = None
+
         self._image = None       # Image used for element map.
         self._bar = None         # Bar used for histogram.
         self._bar_norm_x = None  # Normalised x-positions of centres of bars
                                  #   in range 0 (= min) to 1.0 (= max value).
-        self._array_type = ArrayType.INVALID
         self._cmap_int_max = None  # One beyond end, as in numpy slicing.
 
         # Initialised in initialise().
@@ -66,15 +73,139 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._canvas.draw()
         #self._canvas.draw_idle()
 
+    def _update_draw(self):
+        # Draw using cached variables.
+        # Derived quantities.
+        show_colourbar = True
+        cmap_int_max = None
+        if self._array_type == ArrayType.CLUSTER:
+            cmap_int_max = self._array_stats['max'] + 1
+        elif self._array_type in (ArrayType.PHASE, ArrayType.REGION):
+            show_colourbar = False
+            cmap_int_max = 2
+
+        self._cmap_int_max = cmap_int_max
+
+        figure = self._canvas.figure
+        figure.clear()
+
+        options = self._display_options
+        map_axes = None
+        histogram_axes = None
+        if self._plot_type == PlotType.MAP:
+            map_axes = figure.subplots()
+        elif self._plot_type == PlotType.HISTOGRAM:
+            histogram_axes = figure.subplots()
+        elif self._plot_type == PlotType.BOTH:
+            map_axes, histogram_axes = figure.subplots( \
+                nrows=2, gridspec_kw={'height_ratios': (3,1)})
+        else:
+            raise RuntimeError('Invalid plot type')
+
+        cmap = self.create_colourmap()
+
+        if cmap_int_max is None:
+            show_stats = True
+            norm = Normalize(self._array_stats['min'], self._array_stats['max'])
+            cmap_ticks = None
+        else:
+            show_stats = False
+            norm = Normalize(-0.5, cmap_int_max-0.5)
+            cmap_ticks = np.arange(0, cmap_int_max)
+            if cmap_int_max >= 15:
+                cmap_ticks = cmap_ticks[::2]
+
+        if map_axes is None:
+            self._image = None
+        else:
+            ny, nx = self._array.shape
+            extent = np.array([0.0, nx, ny, 0.0])
+            if options.use_scale:
+                units = options.units
+                extent *= options.scale
+                if extent.max() >= 1000.0:
+                    units = options.get_next_larger_units(units)
+                    extent /= 1000.0
+            else:
+                units = 'pixels'
+            self._image = map_axes.imshow(self._array, cmap=cmap, norm=norm,
+                                          extent=extent)
+            map_axes.set_xlabel(units)
+            map_axes.set_ylabel(units)
+
+            if show_colourbar:
+                colourbar = figure.colorbar(self._image, ax=map_axes,
+                                            ticks=cmap_ticks)
+            if self._title is not None:
+                map_axes.set_title(self._title + ' map')
+            if self._map_xlim is not None:
+                scale = self._display_options.scale
+                map_axes.set_xlim(self._map_xlim*scale)
+                map_axes.set_ylim(self._map_ylim*scale)
+
+            # Trying out scale bar.
+            #sb = ScaleBar(ax=map_axes, size=30, label='1 mm', loc=3,
+            #              frameon=False, pad=0.6, sep=4)
+            #map_axes.add_artist(sb)
+
+        if histogram_axes is None:
+            self._bar = None
+            self._bar_norm_x = None
+        else:
+            if cmap_int_max is None:
+                bins = 100
+            else:
+                bins = np.arange(0, cmap_int_max+1)-0.5
+            hist, bin_edges = np.histogram(np.ma.compressed(self._array),
+                                           bins=bins)
+            width = bin_edges[1] - bin_edges[0]
+            bin_centres = bin_edges[:-1] + 0.5*width
+            self._bar_norm_x = norm(bin_centres)
+            colours = cmap(self._bar_norm_x)
+            self._bar = histogram_axes.bar(bin_centres, hist, width,
+                                           color=colours)
+            if cmap_ticks is not None:
+                histogram_axes.set_xticks(cmap_ticks)
+
+            if show_stats:
+                mean = self._array_stats.get('mean')
+                median = self._array_stats.get('median')
+                std = self._array_stats.get('std')
+                if mean is not None:
+                    histogram_axes.axvline(mean, c='k', ls='-', label='mean')
+                    if std is not None:
+                        histogram_axes.axvline(mean-std, c='k', ls='-.',
+                                               label='mean \u00b1 std')
+                        histogram_axes.axvline(mean+std, c='k', ls='-.')
+                if median is not None:
+                    histogram_axes.axvline(median, c='k', ls='--',
+                                           label='median')
+                histogram_axes.legend()
+
+            if map_axes is None and self._title is not None:
+                histogram_axes.set_title(self._title + ' histogram')
+
+        self._map_axes = map_axes
+        self._adjust_layout()
+
+        if self._mode_handler:
+            self._mode_handler.move_to_new_axes()
+
+        self._redraw()
+
     def clear(self):
         # Clear current plots.
         self._zoom_rectangle = None
         self._canvas.figure.clear()
         self._map_axes = None
+        self._plot_type = PlotType.INVALID
+        self._array_type = ArrayType.INVALID
+        self._array = None
+        self._array_stats = None
+        self._title = None
         self._image = None
         self._bar = None
         self._bar_norm_x = None
-        self._array_type = ArrayType.INVALID
         self._cmap_int_max = None  # One beyond end, as in numpy slicing.
 
         self._redraw()
@@ -143,18 +274,26 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
     def set_display_options(self, display_options):
         if self._display_options is not None:
-            self._display_options.remove_listener(self)
+            self._display_options.unregister_listener(self)
         self._display_options = display_options
         if self._display_options is not None:
-            self._display_options.add_listener(self)
+            self._display_options.register_listener(self)
+
+        if self._mode_handler is not None:
+            self._mode_handler.set_display_options(display_options)
 
     def set_map_zoom(self, xs, ys):
         if self._map_axes is not None:
+            scale = self._display_options.scale
+
+            xs = np.asarray(xs)
+            ys = np.asarray(ys)
+
             self._map_xlim = xs
             self._map_ylim = ys
 
-            self._map_axes.set_xlim(xs)
-            self._map_axes.set_ylim(ys)
+            self._map_axes.set_xlim(xs*scale)
+            self._map_axes.set_ylim(ys*scale)
             self._redraw()
 
     def set_mode_type(self, mode_type, listener=None):
@@ -164,116 +303,27 @@ class MatplotlibWidget(QtWidgets.QWidget):
             if self._mode_handler:
                 self._mode_handler.clear()
 
+            options = self._display_options
+
             if mode_type == ModeType.ZOOM:
-                self._mode_handler = ZoomHandler(self)
+                self._mode_handler = ZoomHandler(self, options)
             elif mode_type == ModeType.REGION_RECTANGLE:
-                self._mode_handler = RectangleRegionHandler(self, listener)
+                self._mode_handler = RectangleRegionHandler(self, options, listener)
             elif mode_type == ModeType.REGION_ELLIPSE:
-                self._mode_handler = EllipseRegionHandler(self, listener)
+                self._mode_handler = EllipseRegionHandler(self, options, listener)
             elif mode_type == ModeType.REGION_POLYGON:
-                self._mode_handler = PolygonRegionHandler(self, listener)
+                self._mode_handler = PolygonRegionHandler(self, options, listener)
             else:
                 self._mode_handler = None
 
     def update(self, plot_type, array_type, array, array_stats, title):
-        # Derived quantities.
-        show_colourbar = True
-        cmap_int_max = None
-        if array_type == ArrayType.CLUSTER:
-            cmap_int_max = array_stats['max'] + 1
-        elif array_type in (ArrayType.PHASE, ArrayType.REGION):
-            show_colourbar = False
-            cmap_int_max = 2
-
+        self._plot_type = plot_type
         self._array_type = array_type
-        self._cmap_int_max = cmap_int_max
+        self._array = array
+        self._array_stats = array_stats
+        self._title = title
 
-        figure = self._canvas.figure
-        figure.clear()
-
-        map_axes = None
-        histogram_axes = None
-        if plot_type == PlotType.MAP:
-            map_axes = figure.subplots()
-        elif plot_type == PlotType.HISTOGRAM:
-            histogram_axes = figure.subplots()
-        elif plot_type == PlotType.BOTH:
-            map_axes, histogram_axes = figure.subplots( \
-                nrows=2, gridspec_kw={'height_ratios': (3,1)})
-        else:
-            raise RuntimeError('Invalid plot type')
-
-        cmap = self.create_colourmap()
-
-        if cmap_int_max is None:
-            show_stats = True
-            norm = Normalize(array_stats['min'], array_stats['max'])
-            cmap_ticks = None
-        else:
-            show_stats = False
-            norm = Normalize(-0.5, cmap_int_max-0.5)
-            cmap_ticks = np.arange(0, cmap_int_max)
-            if cmap_int_max >= 15:
-                cmap_ticks = cmap_ticks[::2]
-
-        if map_axes is None:
-            self._image = None
-        else:
-            self._image = map_axes.imshow(array, cmap=cmap, norm=norm)
-            if show_colourbar:
-                colourbar = figure.colorbar(self._image, ax=map_axes,
-                                            ticks=cmap_ticks)
-            if title is not None:
-                map_axes.set_title(title + ' map')
-            if self._map_xlim is not None:
-                map_axes.set_xlim(self._map_xlim)
-                map_axes.set_ylim(self._map_ylim)
-            #map_axes.set_xlabel('pixels')
-            #map_axes.set_ylabel('pixels')
-
-        if histogram_axes is None:
-            self._bar = None
-            self._bar_norm_x = None
-        else:
-            if cmap_int_max is None:
-                bins = 100
-            else:
-                bins = np.arange(0, cmap_int_max+1)-0.5
-            hist, bin_edges = np.histogram(np.ma.compressed(array), bins=bins)
-            width = bin_edges[1] - bin_edges[0]
-            bin_centres = bin_edges[:-1] + 0.5*width
-            self._bar_norm_x = norm(bin_centres)
-            colours = cmap(self._bar_norm_x)
-            self._bar = histogram_axes.bar(bin_centres, hist, width,
-                                           color=colours)
-            if cmap_ticks is not None:
-                histogram_axes.set_xticks(cmap_ticks)
-
-            if show_stats:
-                mean = array_stats.get('mean')
-                median = array_stats.get('median')
-                std = array_stats.get('std')
-                if mean is not None:
-                    histogram_axes.axvline(mean, c='k', ls='-', label='mean')
-                    if std is not None:
-                        histogram_axes.axvline(mean-std, c='k', ls='-.',
-                                               label='mean \u00b1 std')
-                        histogram_axes.axvline(mean+std, c='k', ls='-.')
-                if median is not None:
-                    histogram_axes.axvline(median, c='k', ls='--',
-                                           label='median')
-                histogram_axes.legend()
-
-            if map_axes is None and title is not None:
-                histogram_axes.set_title(title + ' histogram')
-
-        self._map_axes = map_axes
-        self._adjust_layout()
-
-        if self._mode_handler:
-            self._mode_handler.move_to_new_axes()
-
-        self._redraw()
+        self._update_draw()
 
     def update_colourmap_name(self):
         colourmap_name = self._display_options.colourmap_name
@@ -291,3 +341,6 @@ class MatplotlibWidget(QtWidgets.QWidget):
                 item.set_color(colours[index])
 
         self._redraw()
+
+    def update_scale(self):
+        self._update_draw()

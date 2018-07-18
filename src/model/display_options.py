@@ -1,4 +1,5 @@
 import matplotlib.cm as cm
+import weakref
 
 
 class DisplayOptions:
@@ -14,7 +15,7 @@ class DisplayOptions:
         self._units = self._valid_units[1]
         self._show_scale_bar = True
 
-        self._listeners = []
+        self._listeners = weakref.WeakSet()
 
     def _determine_valid_colourmap_names(self):
         # Exclude reversed cmaps which have names ending with '_r'.
@@ -27,10 +28,6 @@ class DisplayOptions:
                        'Vega20c', 'flag', 'prism', 'spectral', 'tab10',
                        'tab20', 'tab20b', 'tab20c'])
         return sorted(all_.difference(exclude))
-
-    def add_listener(self, listener):
-        if listener is not None and listener not in self._listeners:
-            self._listeners.append(listener)
 
     @property
     def colourmap_name(self):
@@ -48,15 +45,27 @@ class DisplayOptions:
         for listener in self._listeners:
             listener.update_colourmap_name()
 
+    def get_next_larger_units(self, units):
+        index = self._valid_units.index(units)
+        if index == 0:
+            return 'm'
+        else:
+            return self._valid_units[index-1]
+
     @property
     def pixel_size(self):
         return self._pixel_size
 
-    def remove_listener(self, listener):
-        try:
-            self._listeners.remove(listener)
-        except ValueError:
-            pass  # listener may not be in list.
+    def register_listener(self, listener):
+        if listener is not None and listener not in self._listeners:
+            self._listeners.add(listener)
+
+    @property
+    def scale(self):
+        if self._use_scale:
+            return self._pixel_size
+        else:
+            return 1.0
 
     def set_scale(self, use_scale, pixel_size, units, show_scale_bar):
         if units not in self.valid_units:
@@ -67,12 +76,15 @@ class DisplayOptions:
         self._units = units
         self._show_scale_bar = show_scale_bar
 
-       # for listener in self._listeners:
-       #     listener.update_scale()
+        for listener in self._listeners:
+            listener.update_scale()
 
     @property
     def show_scale_bar(self):
         return self._show_scale_bar
+
+    def unregister_listener(self, listener):
+        self._listeners.discard(listener)
 
     @property
     def use_scale(self):

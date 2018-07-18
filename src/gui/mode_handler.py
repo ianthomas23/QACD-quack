@@ -8,8 +8,9 @@ from PyQt5 import QtCore, QtWidgets
 # Classes to handle different interactive modes in matplotlib_widget.
 
 class ModeHandler:
-    def __init__(self, matplotlib_widget):
+    def __init__(self, matplotlib_widget, display_options):
         self.matplotlib_widget = matplotlib_widget
+        self.display_options = display_options
 
     def clear(self):
         pass
@@ -32,11 +33,14 @@ class ModeHandler:
     def on_mouse_move(self, event):
         pass
 
+    def set_display_options(self, display_options):
+        self.display_options = display_options
+
 
 # Abstract base class for all region handlers.
 class RegionHandler(ModeHandler):
-    def __init__(self, matplotlib_widget, listener):
-        super().__init__(matplotlib_widget)
+    def __init__(self, matplotlib_widget, display_options, listener):
+        super().__init__(matplotlib_widget, display_options)
         self._listener = listener
         self._line_colour = 'k'
         self._shadow_colour = 'w'
@@ -54,8 +58,11 @@ class RegionHandler(ModeHandler):
             masked = np.ma.masked_equal(self._region, True)
 
             cmap = self.matplotlib_widget._create_white_colourmap()
+
+            ny, nx = masked.shape
+            extent = np.array([0.0, nx, ny, 0.0])*self.display_options.scale
             return self.matplotlib_widget._map_axes.imshow( \
-                masked, alpha=self._region_alpha, cmap=cmap)
+                masked, alpha=self._region_alpha, cmap=cmap, extent=extent)
         else:
             return None
 
@@ -127,8 +134,8 @@ class RegionHandler(ModeHandler):
 # Abstract base class for region handlers that are controlled by a single drag
 # of the mouse.
 class MouseDragRegionHandler(RegionHandler):
-    def __init__(self, matplotlib_widget, listener):
-        super().__init__(matplotlib_widget, listener)
+    def __init__(self, matplotlib_widget, display_options, listener):
+        super().__init__(matplotlib_widget, display_options, listener)
 
     def on_mouse_down(self, event):
         if (not self._editing and
@@ -142,6 +149,7 @@ class MouseDragRegionHandler(RegionHandler):
             self._editing = True
             self._points = np.asarray([[event.xdata, event.ydata],
                                        [event.xdata, event.ydata]])
+            self._points /= self.display_options.scale
             self._artists = self._create_artists()
             self.matplotlib_widget._redraw()
 
@@ -150,6 +158,7 @@ class MouseDragRegionHandler(RegionHandler):
             event.inaxes == self.matplotlib_widget._map_axes):
 
             self._points[1] = (event.xdata, event.ydata)
+            self._points[1] /= self.display_options.scale
             self._move_artists()
             self.matplotlib_widget._redraw()
 
@@ -161,14 +170,13 @@ class MouseDragRegionHandler(RegionHandler):
 
 
 class EllipseRegionHandler(MouseDragRegionHandler):
-    def __init__(self, matplotlib_widget, listener):
-        super().__init__(matplotlib_widget, listener)
+    def __init__(self, matplotlib_widget, display_options, listener):
+        super().__init__(matplotlib_widget, display_options, listener)
 
     def _calculate_region(self):
         project = self.matplotlib_widget._owning_window._project
         if project is not None:
-            centre = self._artists[0].center
-            size = (self._artists[0].width, self._artists[0].height)
+            centre, size = self._get_centre_and_size(False)
             return project.calculate_region_ellipse(centre, size)
         else:
             return None
@@ -177,22 +185,26 @@ class EllipseRegionHandler(MouseDragRegionHandler):
         if len(self._points) < 2:
             return []
 
-        centre, size = self._get_centre_and_size()
+        scale = self.display_options.scale
+        centre, size = self._get_centre_and_size(True)
         ellipse = Ellipse(centre, width=size[0], height=size[1],
                           fc='none', ec=self._line_colour)
         ellipse = self.matplotlib_widget._map_axes.add_patch(ellipse)
         ellipse.set_path_effects(self._get_path_effects())
         return [ellipse]
 
-    def _get_centre_and_size(self):
+    def _get_centre_and_size(self, scaled):
         start = self._points[0]
         end = self._points[1]
         centre = (start + end)*0.5
         size = end - start
+        if scaled:
+            centre *= self.display_options.scale
+            size *= self.display_options.scale
         return centre, size
 
     def _move_artists(self):
-        centre, size = self._get_centre_and_size()
+        centre, size = self._get_centre_and_size(True)
         self._artists[0].center = centre
         self._artists[0].width  = size[0]
         self._artists[0].height = size[1]
@@ -203,15 +215,14 @@ class EllipseRegionHandler(MouseDragRegionHandler):
 
 
 class RectangleRegionHandler(MouseDragRegionHandler):
-    def __init__(self, matplotlib_widget, listener):
-        super().__init__(matplotlib_widget, listener)
+    def __init__(self, matplotlib_widget, display_options, listener):
+        super().__init__(matplotlib_widget, display_options, listener)
 
     def _calculate_region(self):
         project = self.matplotlib_widget._owning_window._project
         if project is not None:
-            corner0 = self._artists[0].get_xy()
-            corner1 = (corner0[0] + self._artists[0].get_width(),
-                       corner0[1] + self._artists[0].get_height())
+            corner0 = self._points[0]
+            corner1 = self._points[1]
             return project.calculate_region_rectangle(corner0, corner1)
         else:
             return None
@@ -220,8 +231,8 @@ class RectangleRegionHandler(MouseDragRegionHandler):
         if len(self._points) < 2:
             return []
 
-        start = self._points[0]
-        size = self._points[1] - start
+        start = self._points[0]*self.display_options.scale
+        size  = self._points[1]*self.display_options.scale - start
         rectangle = Rectangle(start, width=size[0], height=size[1],
                               fc='none', ec=self._line_colour)
         rectangle = self.matplotlib_widget._map_axes.add_patch(rectangle)
@@ -229,8 +240,8 @@ class RectangleRegionHandler(MouseDragRegionHandler):
         return [rectangle]
 
     def _move_artists(self):
-        start = self._points[0]
-        end = self._points[1]
+        start = self._points[0]*self.display_options.scale
+        end   = self._points[1]*self.display_options.scale
         self._artists[0].set_width( end[0] - start[0])
         self._artists[0].set_height(end[1] - start[1])
 
@@ -240,8 +251,8 @@ class RectangleRegionHandler(MouseDragRegionHandler):
 
 class PolygonRegionHandler(RegionHandler):
     # 3 artists: lines, markers and highlight marker.
-    def __init__(self, matplotlib_widget, listener):
-        super().__init__(matplotlib_widget, listener)
+    def __init__(self, matplotlib_widget, display_options, listener):
+        super().__init__(matplotlib_widget, display_options, listener)
 
     def _add_point(self, point):
         # Add point to end of self._points, but only if it is not the same as
@@ -252,8 +263,11 @@ class PolygonRegionHandler(RegionHandler):
             if not self._artists:
                 self._artists = self._create_artists()
             else:
-                self._artists[0].set_data(self._points[:, 0], self._points[:, 1])
-                self._artists[1].set_data(self._points[:, 0], self._points[:, 1])
+                scale = self.display_options.scale
+                self._artists[0].set_data(self._points[:, 0]*scale,
+                                          self._points[:, 1]*scale)
+                self._artists[1].set_data(self._points[:, 0]*scale,
+                                          self._points[:, 1]*scale)
             self.matplotlib_widget._redraw()
 
     def _calculate_region(self):
@@ -266,8 +280,8 @@ class PolygonRegionHandler(RegionHandler):
     def _close_polygon(self):
         if self._artists:
             self._points = np.vstack((self._points, self._points[0]))
-            x = self._points[:, 0]
-            y = self._points[:, 1]
+            x = self._points[:, 0]*self.display_options.scale
+            y = self._points[:, 1]*self.display_options.scale
             self._artists[0].set_data(x, y)
             self._artists[1].set_data(x, y)
 
@@ -275,10 +289,11 @@ class PolygonRegionHandler(RegionHandler):
 
     def _create_artists(self):
         colour = self._line_colour
+        scale = self.display_options.scale
         lines = self.matplotlib_widget._map_axes.plot( \
-            self._points[:, 0], self._points[:, 1], '-', c=colour)[0]
+            self._points[:, 0]*scale, self._points[:, 1]*scale, '-', c=colour)[0]
         markers = self.matplotlib_widget._map_axes.plot(\
-            self._points[:, 0], self._points[:, 1], 'o', c=colour)[0]
+            self._points[:, 0]*scale, self._points[:, 1]*scale, 'o', c=colour)[0]
 
         path_effects = self._get_path_effects()
         lines.set_path_effects(path_effects)
@@ -299,7 +314,9 @@ class PolygonRegionHandler(RegionHandler):
             if event.dblclick or (self._artists and self._artists[2]):
                 self._close_polygon()
             else:
-                self._add_point((event.xdata, event.ydata))
+                scale = self.display_options.scale
+                point = np.asarray((event.xdata, event.ydata)) / scale
+                self._add_point(point)
 
     def on_mouse_move(self, event):
         if (self._artists and self._artists[0] is not None and
@@ -308,8 +325,10 @@ class PolygonRegionHandler(RegionHandler):
             inside, matches = self._artists[1].contains(event)
             if inside:
                 if self._artists[2] is None and 0 in matches['ind']:
+                    scale = self.display_options.scale
                     self._artists[2] = self.matplotlib_widget._map_axes.plot(\
-                        self._points[0, 0], self._points[0, 1], 'o', c='yellow')[0]
+                        self._points[0, 0]*scale, self._points[0, 1]*scale,
+                        'o', c='yellow')[0]
                     self.matplotlib_widget._redraw()
             elif self._artists[2]:
                 self._artists[2].remove()
@@ -318,8 +337,8 @@ class PolygonRegionHandler(RegionHandler):
 
 
 class ZoomHandler(ModeHandler):
-    def __init__(self, matplotlib_widget):
-        super().__init__(matplotlib_widget)
+    def __init__(self, matplotlib_widget, display_options):
+        super().__init__(matplotlib_widget, display_options)
         self._zoom_rectangle = None  # Only set when zooming.
 
     def clear(self):
@@ -377,10 +396,11 @@ class ZoomHandler(ModeHandler):
                 zoom_xs = sorted([x, x+width])
                 zoom_ys = sorted([y, y+height], reverse=True)
 
-                from_ = (self.matplotlib_widget._map_axes.get_xlim(),
-                         self.matplotlib_widget._map_axes.get_ylim())
+                scale = self.display_options.scale
+                from_ = np.asarray((self.matplotlib_widget._map_axes.get_xlim(),
+                                    self.matplotlib_widget._map_axes.get_ylim())) / scale
+                to = np.asarray((zoom_xs, zoom_ys)) / scale
 
-                self.matplotlib_widget._owning_window.zoom_append( \
-                    from_=from_, to=(zoom_xs, zoom_ys))
+                self.matplotlib_widget._owning_window.zoom_append(from_=from_, to=to)
 
             self.clear()
