@@ -8,12 +8,18 @@ class DisplayOptions:
         self._valid_colourmap_names = self._determine_valid_colourmap_names()
         self._colourmap_name = 'rainbow'
 
+        # Label options.
+        self._valid_scale_bar_locations = \
+            ['upper left', 'upper right', 'lower left', 'lower right']
+        self._show_ticks_and_labels = True
+
         # Scale options.
         self._valid_units = ['mm', '\u03BCm', 'nm']
         self._use_scale = False
-        self._pixel_size = 10.0
+        self._pixel_size = 1.0
         self._units = self._valid_units[1]
         self._show_scale_bar = True
+        self._scale_bar_location = 'lower left'
 
         self._listeners = weakref.WeakSet()
 
@@ -67,21 +73,38 @@ class DisplayOptions:
         else:
             return 1.0
 
-    def set_scale(self, use_scale, pixel_size, units, show_scale_bar):
+    @property
+    def scale_bar_location(self):
+        return self._scale_bar_location
+
+    def set_labels_and_scale(self, show_ticks_and_labels, use_scale, pixel_size,
+                             units, show_scale_bar, scale_bar_location):
+        # Validation.
         if units not in self.valid_units:
             raise RuntimeError('Unrecognised units {}'.format(units))
+        if scale_bar_location not in self._valid_scale_bar_locations:
+            raise RuntimeError('Unrecognised scale bar location {}'.format(scale_bar_location))
 
+        # Labels.
+        self._show_ticks_and_labels = show_ticks_and_labels
+
+        # Scale.
         self._use_scale = use_scale
         self._pixel_size = pixel_size
         self._units = units
         self._show_scale_bar = show_scale_bar
+        self._scale_bar_location = scale_bar_location
 
         for listener in self._listeners:
-            listener.update_scale()
+            listener.update_labels_and_scale()
 
     @property
     def show_scale_bar(self):
         return self._show_scale_bar
+
+    @property
+    def show_ticks_and_labels(self):
+        return self._show_ticks_and_labels
 
     def unregister_listener(self, listener):
         self._listeners.discard(listener)

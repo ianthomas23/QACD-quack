@@ -12,6 +12,15 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
 
         self._display_options = display_options
 
+        self._locations_lookup = {'upper left': self.upperLeftRadioButton,
+                                  'upper right': self.upperRightRadioButton,
+                                  'lower left': self.lowerLeftRadioButton,
+                                  'lower right': self.lowerRightRadioButton}
+
+        self._locations_button_group = QtWidgets.QButtonGroup()
+        for button in self._locations_lookup.values():
+            self._locations_button_group.addButton(button)
+
         self.applyButton = self.buttonBox.button(QtWidgets.QDialogButtonBox.Apply)
         self.applyButton.clicked.connect(self.apply)
 
@@ -23,22 +32,29 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         self.reverseCheckBox.stateChanged.connect(self.update_buttons)
 
         # Scale tab controls.
-        self.useScaleCheckBox.stateChanged.connect(self.use_scale)
+        self.useScaleCheckBox.stateChanged.connect(self.update_controls)
+        self.showScaleBarCheckBox.stateChanged.connect(self.update_controls)
 
         self.init_colourmap_tab()
-        self.init_scale_tab()
+        self.init_labels_and_scale_tab()
         self.tabWidget.setCurrentIndex(0)
 
         self.update_controls()
 
     def accept(self):
-        for index in range(2):
-            self.apply_tab(index)
-        self.close()
+        try:
+            for index in range(2):
+                self.apply_tab(index)
+            self.close()
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, 'Error', str(e))
 
     def apply(self):
-        # Apply the current tab.
-        self.apply_tab(self.tabWidget.currentIndex())
+        try:
+            # Apply the current tab.
+            self.apply_tab(self.tabWidget.currentIndex())
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, 'Error', str(e))
 
     def apply_tab(self, tab_index):
         if tab_index == 0:
@@ -50,16 +66,25 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
                 self._display_options.colourmap_name = selected_name
                 self.update_buttons()
         else:
-            # Scale tab.
+            # Labels and scale tab.
+            show_ticks_and_labels = self.showTicksAndLabelsCheckBox.isChecked()
+
             use_scale = self.useScaleCheckBox.isChecked()
-            ############## ignoring validation - returns ok below #################
-            locale = QtCore.QLocale()
-            pixel_size, ok = locale.toDouble(self.pixelSizeLineEdit.text())
+            pixel_size, ok = QtCore.QLocale().toDouble(self.pixelSizeLineEdit.text())
+            if not ok or pixel_size == 0.0:
+                validator = self.pixelSizeLineEdit.validator()
+                raise RuntimeError('Pixel size should be a number between {} and {}'.format( \
+                    validator.bottom(), validator.top()))
             units = self.unitsComboBox.currentText()
             show_scale_bar = self.showScaleBarCheckBox.isChecked()
 
-            self._display_options.set_scale(use_scale, pixel_size, units,
-                                            show_scale_bar)
+            button = self._locations_button_group.checkedButton()
+            scale_bar_location = \
+                [k for k,v in self._locations_lookup.items() if v == button][0]
+
+            self._display_options.set_labels_and_scale( \
+                show_ticks_and_labels, use_scale, pixel_size, units,
+                show_scale_bar, scale_bar_location)
             self.update_buttons()
 
     def change_tab(self):
@@ -114,12 +139,17 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
             # Selects current colourmap, and scrolls so that it is visible.
             self.colourmapListWidget.setCurrentItem(selected_item)
 
-    def init_scale_tab(self):
+    def init_labels_and_scale_tab(self):
         options = self._display_options
 
+        # Labels.
+        self.showTicksAndLabelsCheckBox.setChecked(options.show_ticks_and_labels)
+
+        # Scale.
         self.useScaleCheckBox.setChecked(options.use_scale)
 
         validator = QtGui.QDoubleValidator(0.01, 999.99, 2)
+        validator.setNotation(QtGui.QDoubleValidator.StandardNotation)
         self.pixelSizeLineEdit.setValidator(validator)
         self.pixelSizeLineEdit.setText(str(options.pixel_size))
 
@@ -134,6 +164,7 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
             self.unitsComboBox.setCurrentIndex(selected_index)
 
         self.showScaleBarCheckBox.setChecked(options.show_scale_bar)
+        self._locations_lookup[options.scale_bar_location].setChecked(True)
 
     def update_buttons(self):
         tab_index = self.tabWidget.currentIndex()
@@ -144,16 +175,14 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         else:
             self.applyButton.setEnabled(True)
 
-
-
     def update_controls(self):
         self.update_buttons()
 
+        # Scale.
         use_scale = self.useScaleCheckBox.isChecked()
         self.pixelSizeLabel.setEnabled(use_scale)
         self.pixelSizeLineEdit.setEnabled(use_scale)
         self.unitsComboBox.setEnabled(use_scale)
         self.showScaleBarCheckBox.setEnabled(use_scale)
-
-    def use_scale(self):
-        self.update_controls()
+        self.scaleBarLocationGroupBox.setEnabled( \
+            use_scale and self.showScaleBarCheckBox.isChecked())

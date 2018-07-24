@@ -128,10 +128,16 @@ class MatplotlibWidget(QtWidgets.QWidget):
                     extent /= 1000.0
             else:
                 units = 'pixels'
+
             self._image = map_axes.imshow(self._array, cmap=cmap, norm=norm,
                                           extent=extent)
-            map_axes.set_xlabel(units)
-            map_axes.set_ylabel(units)
+
+            if options.show_ticks_and_labels:
+                map_axes.set_xlabel(units)
+                map_axes.set_ylabel(units)
+            else:
+                map_axes.set_xticks([])
+                map_axes.set_yticks([])
 
             if show_colourbar:
                 colourbar = figure.colorbar(self._image, ax=map_axes,
@@ -143,10 +149,10 @@ class MatplotlibWidget(QtWidgets.QWidget):
                 map_axes.set_xlim(self._map_xlim*scale)
                 map_axes.set_ylim(self._map_ylim*scale)
 
-            # Trying out scale bar.
-            #sb = ScaleBar(ax=map_axes, size=30, label='1 mm', loc=3,
-            #              frameon=False, pad=0.6, sep=4)
-            #map_axes.add_artist(sb)
+            if options.use_scale and options.show_scale_bar:
+                scale_bar = ScaleBar(ax=map_axes, size=30, label='1 mm',
+                                     loc=options.scale_bar_location)
+                map_axes.add_artist(scale_bar)
 
         if histogram_axes is None:
             self._bar = None
@@ -342,5 +348,5 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
         self._redraw()
 
-    def update_scale(self):
+    def update_labels_and_scale(self):
         self._update_draw()
