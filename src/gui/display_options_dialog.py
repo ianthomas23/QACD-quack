@@ -24,6 +24,11 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         self.applyButton = self.buttonBox.button(QtWidgets.QDialogButtonBox.Apply)
         self.applyButton.clicked.connect(self.apply)
 
+        self.init_colourmap_tab()
+        self.init_labels_and_scale_tab()
+        self.tabWidget.setCurrentIndex(0)
+        self.update_controls()
+
         self.tabWidget.currentChanged.connect(self.change_tab)
 
         # Colourmap tab controls.
@@ -31,15 +36,14 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         self.colourmapListWidget.itemSelectionChanged.connect(self.update_buttons)
         self.reverseCheckBox.stateChanged.connect(self.update_buttons)
 
-        # Scale tab controls.
+        # Scale tab controls - call update_buttons to enable/disable apply
+        # button, and update_controls if need to enable other controls too.
+        self.showTicksAndLabelsCheckBox.stateChanged.connect(self.update_buttons)
         self.useScaleCheckBox.stateChanged.connect(self.update_controls)
+        self.pixelSizeLineEdit.textChanged.connect(self.update_buttons)
+        self.unitsComboBox.currentIndexChanged.connect(self.update_buttons)
         self.showScaleBarCheckBox.stateChanged.connect(self.update_controls)
-
-        self.init_colourmap_tab()
-        self.init_labels_and_scale_tab()
-        self.tabWidget.setCurrentIndex(0)
-
-        self.update_controls()
+        self._locations_button_group.buttonClicked.connect(self.update_buttons)
 
     def accept(self):
         try:
@@ -77,10 +81,7 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
                     validator.bottom(), validator.top()))
             units = self.unitsComboBox.currentText()
             show_scale_bar = self.showScaleBarCheckBox.isChecked()
-
-            button = self._locations_button_group.checkedButton()
-            scale_bar_location = \
-                [k for k,v in self._locations_lookup.items() if v == button][0]
+            scale_bar_location = self.get_scale_bar_location()
 
             self._display_options.set_labels_and_scale( \
                 show_ticks_and_labels, use_scale, pixel_size, units,
@@ -104,6 +105,14 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         self._images.append(image)
 
         return QtGui.QPixmap.fromImage(image)
+
+    def get_scale_bar_location(self):
+        button = self._locations_button_group.checkedButton()
+        matches = [k for k,v in self._locations_lookup.items() if v == button]
+        if matches:
+            return matches[0]
+        else:
+            return None
 
     def get_selected_colourmap_name(self):
         item = self.colourmapListWidget.currentItem()
@@ -167,13 +176,22 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         self._locations_lookup[options.scale_bar_location].setChecked(True)
 
     def update_buttons(self):
+        options = self._display_options
+
         tab_index = self.tabWidget.currentIndex()
         if tab_index == 0:
             selected_name = self.get_selected_colourmap_name()
-            self.applyButton.setEnabled( \
-                selected_name != self._display_options.colourmap_name)
+            self.applyButton.setEnabled(selected_name != options.colourmap_name)
         else:
-            self.applyButton.setEnabled(True)
+            enabled = \
+                self.showTicksAndLabelsCheckBox.isChecked() != options.show_ticks_and_labels or \
+                self.useScaleCheckBox.isChecked() != options.use_scale or \
+                QtCore.QLocale().toDouble(self.pixelSizeLineEdit.text())[0] != options.pixel_size or \
+                self.unitsComboBox.currentText() != options.units or \
+                self.showScaleBarCheckBox.isChecked() != options.show_scale_bar or \
+                self.get_scale_bar_location() != options.scale_bar_location
+
+            self.applyButton.setEnabled(enabled)
 
     def update_controls(self):
         self.update_buttons()

@@ -75,6 +75,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
     def _update_draw(self):
         # Draw using cached variables.
+
         # Derived quantities.
         show_colourbar = True
         cmap_int_max = None
@@ -92,7 +93,9 @@ class MatplotlibWidget(QtWidgets.QWidget):
         options = self._display_options
         map_axes = None
         histogram_axes = None
-        if self._plot_type == PlotType.MAP:
+        if self._plot_type == PlotType.INVALID:
+            return
+        elif self._plot_type == PlotType.MAP:
             map_axes = figure.subplots()
         elif self._plot_type == PlotType.HISTOGRAM:
             histogram_axes = figure.subplots()
@@ -132,27 +135,33 @@ class MatplotlibWidget(QtWidgets.QWidget):
             self._image = map_axes.imshow(self._array, cmap=cmap, norm=norm,
                                           extent=extent)
 
-            if options.show_ticks_and_labels:
-                map_axes.set_xlabel(units)
-                map_axes.set_ylabel(units)
-            else:
-                map_axes.set_xticks([])
-                map_axes.set_yticks([])
-
             if show_colourbar:
                 colourbar = figure.colorbar(self._image, ax=map_axes,
                                             ticks=cmap_ticks)
             if self._title is not None:
                 map_axes.set_title(self._title + ' map')
+
             if self._map_xlim is not None:
                 scale = self._display_options.scale
                 map_axes.set_xlim(self._map_xlim*scale)
                 map_axes.set_ylim(self._map_ylim*scale)
 
             if options.use_scale and options.show_scale_bar:
-                scale_bar = ScaleBar(ax=map_axes, size=30, label='1 mm',
+                xticks = map_axes.get_xticks()
+                size = xticks[1] - xticks[0]
+                label = '{:g} {}'.format(size, units)
+                scale_bar = ScaleBar(ax=map_axes, size=size, label=label,
                                      loc=options.scale_bar_location)
                 map_axes.add_artist(scale_bar)
+
+            # Hide ticks only after creating scale bar as use tick locations
+            # to determine scale bar size.
+            if options.show_ticks_and_labels:
+                map_axes.set_xlabel(units)
+                map_axes.set_ylabel(units)
+            else:
+                map_axes.set_xticks([])
+                map_axes.set_yticks([])
 
         if histogram_axes is None:
             self._bar = None

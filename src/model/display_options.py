@@ -3,7 +3,9 @@ import weakref
 
 
 class DisplayOptions:
-    def __init__(self):
+    def __init__(self, project):
+        self._project = weakref.ref(project)
+
         # Colourmap options.
         self._valid_colourmap_names = self._determine_valid_colourmap_names()
         self._colourmap_name = 'rainbow'
@@ -47,6 +49,8 @@ class DisplayOptions:
         if name_to_check not in self._valid_colourmap_names:
             raise RuntimeError('Not such colourmap: {}'.format(name_to_check))
         self._colourmap_name = colourmap_name
+
+        self._project().save_display_options()
 
         for listener in self._listeners:
             listener.update_colourmap_name()
@@ -94,6 +98,8 @@ class DisplayOptions:
         self._units = units
         self._show_scale_bar = show_scale_bar
         self._scale_bar_location = scale_bar_location
+
+        self._project().save_display_options()
 
         for listener in self._listeners:
             listener.update_labels_and_scale()

@@ -482,7 +482,8 @@ class QACDProject:
     @property
     def display_options(self):
         if self._display_options is None:
-            self._display_options = DisplayOptions()
+            self._display_options = DisplayOptions(self)
+            self.load_display_options()
         return self._display_options
 
     @property
@@ -970,6 +971,26 @@ class QACDProject:
             if progress_callback:
                 progress_callback(1.0, 'Finished')
 
+    def load_display_options(self):
+        options = self.display_options
+        with self._h5file_ro() as h5file:
+            if '/display_options' not in h5file:
+                return
+
+            group_node = h5file.get_node('/display_options')
+
+            def read_and_set_option(name):
+                if name in group_node._v_attrs:
+                    attr_name = '_' + name
+                    if not hasattr(options, attr_name):
+                        raise RuntimeError('No such attribute: '+attr_name)
+                    setattr(options, attr_name, group_node._v_attrs[name])
+
+            for name in ['colourmap_name', 'show_ticks_and_labels', 'use_scale',
+                         'pixel_size', 'units', 'show_scale_bar',
+                         'scale_bar_location']:
+                read_and_set_option(name)
+
     def load_file(self, filename):
         if self._state != State.INVALID:
             raise RuntimeError('Cannot load into existing project')
@@ -1376,6 +1397,19 @@ class QACDProject:
 
         with self._h5file() as h5file:
             h5file.rename_node('/region', name, old_name)
+
+    def save_display_options(self):
+        options = self.display_options
+        with self._h5file() as h5file:
+            if '/display_options' in h5file:
+                group_node = h5file.get_node('/display_options')
+            else:
+                group_node = h5file.create_group('/', 'display_options')
+
+            for name in ['colourmap_name', 'show_ticks_and_labels', 'use_scale',
+                         'pixel_size', 'units', 'show_scale_bar',
+                         'scale_bar_location']:
+                group_node._v_attrs[name] = getattr(options, '_' + name)
 
     def set_filename(self, filename):
         if self._state != State.INVALID:
