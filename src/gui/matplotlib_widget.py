@@ -30,19 +30,24 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._array_stats = None
         self._title = None
 
-        self._image = None       # Image used for element map.
-        self._bar = None         # Bar used for histogram.
-        self._bar_norm_x = None  # Normalised x-positions of centres of bars
-                                 #   in range 0 (= min) to 1.0 (= max value).
+        self._image = None         # Image used for element map.
+        self._bar = None           # Bar used for histogram.
+        self._bar_norm_x = None    # Normalised x-positions of centres of bars
+                                   #   in range 0 (= min) to 1.0 (= max value).
         self._cmap_int_max = None  # One beyond end, as in numpy slicing.
+
+        # Scale and units initially from display options, but may need to
+        # change them if distances are too large, e.g. 1000 mm goes to 1 m.
+        self._scale = None
+        self._units = None
 
         # Initialised in initialise().
         self._owning_window = None
         self._mode_type = ModeType.INVALID
         self._mode_handler = None
 
-        self._map_xlim = None        # Zoom to this when create new map.
-        self._map_ylim = None
+        # Zoom to this when create new map, is [left, right, bottom, top].
+        self._zoom_rectangle = None
 
         # Created when first needed.
         self._black_colourmap = None
@@ -120,20 +125,30 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
         if map_axes is None:
             self._image = None
+            self._scale = None
+            self._units = None
         else:
             ny, nx = self._array.shape
             extent = np.array([0.0, nx, ny, 0.0])
             if options.use_scale:
-                units = options.units
-                extent *= options.scale
-                if extent.max() >= 1000.0:
-                    units = options.get_next_larger_units(units)
+                self._scale = options.scale
+                self._units = options.units
+                extent *= self._scale
+                max_dx_or_dy = np.absolute(np.diff(extent.reshape((2,2)))).max()
+                if max_dx_or_dy >= 1000.0:
+                    self._scale /= 1000.0
+                    self._units = options.get_next_larger_units(self._units)
                     extent /= 1000.0
             else:
-                units = 'pixels'
+                self._scale = 1.0
+                self._units = 'pixels'
 
             self._image = map_axes.imshow(self._array, cmap=cmap, norm=norm,
                                           extent=extent)
+
+            if self._zoom_rectangle is not None:
+                map_axes.set_xlim(self._zoom_rectangle[:2]*self._scale)
+                map_axes.set_ylim(self._zoom_rectangle[2:]*self._scale)
 
             if show_colourbar:
                 colourbar = figure.colorbar(self._image, ax=map_axes,
@@ -141,15 +156,10 @@ class MatplotlibWidget(QtWidgets.QWidget):
             if self._title is not None:
                 map_axes.set_title(self._title + ' map')
 
-            if self._map_xlim is not None:
-                scale = self._display_options.scale
-                map_axes.set_xlim(self._map_xlim*scale)
-                map_axes.set_ylim(self._map_ylim*scale)
-
             if options.use_scale and options.show_scale_bar:
                 xticks = map_axes.get_xticks()
                 size = xticks[1] - xticks[0]
-                label = '{:g} {}'.format(size, units)
+                label = '{:g} {}'.format(size, self._units)
                 scale_bar = ScaleBar(ax=map_axes, size=size, label=label,
                                      loc=options.scale_bar_location)
                 map_axes.add_artist(scale_bar)
@@ -157,8 +167,8 @@ class MatplotlibWidget(QtWidgets.QWidget):
             # Hide ticks only after creating scale bar as use tick locations
             # to determine scale bar size.
             if options.show_ticks_and_labels:
-                map_axes.set_xlabel(units)
-                map_axes.set_ylabel(units)
+                map_axes.set_xlabel(self._units)
+                map_axes.set_ylabel(self._units)
             else:
                 map_axes.set_xticks([])
                 map_axes.set_yticks([])
@@ -210,7 +220,6 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
     def clear(self):
         # Clear current plots.
-        self._zoom_rectangle = None
         self._canvas.figure.clear()
         self._map_axes = None
         self._plot_type = PlotType.INVALID
@@ -222,13 +231,14 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._bar = None
         self._bar_norm_x = None
         self._cmap_int_max = None  # One beyond end, as in numpy slicing.
+        self._scale = None
+        self._units = None
 
         self._redraw()
 
     def clear_all(self):
-        # Clear everything, including cached zoom limits, etc.
-        self._map_xlim = None
-        self._map_ylim = None
+        # Clear everything, including cached zoom extent, etc.
+        self._zoom_rectangle = None
         self.clear()
 
     def create_colourmap(self):
@@ -299,16 +309,13 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
     def set_map_zoom(self, xs, ys):
         if self._map_axes is not None:
-            scale = self._display_options.scale
-
             xs = np.asarray(xs)
             ys = np.asarray(ys)
 
-            self._map_xlim = xs
-            self._map_ylim = ys
+            self._zoom_rectangle = np.concatenate((xs, ys))
 
-            self._map_axes.set_xlim(xs*scale)
-            self._map_axes.set_ylim(ys*scale)
+            self._map_axes.set_xlim(xs*self._scale)
+            self._map_axes.set_ylim(ys*self._scale)
             self._redraw()
 
     def set_mode_type(self, mode_type, listener=None):

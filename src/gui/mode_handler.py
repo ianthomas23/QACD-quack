@@ -396,7 +396,7 @@ class ZoomHandler(ModeHandler):
                 zoom_xs = sorted([x, x+width])
                 zoom_ys = sorted([y, y+height], reverse=True)
 
-                scale = self.display_options.scale
+                scale = self.matplotlib_widget._scale
                 from_ = np.asarray((self.matplotlib_widget._map_axes.get_xlim(),
                                     self.matplotlib_widget._map_axes.get_ylim())) / scale
                 to = np.asarray((zoom_xs, zoom_ys)) / scale
