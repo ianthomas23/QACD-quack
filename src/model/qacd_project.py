@@ -988,7 +988,7 @@ class QACDProject:
 
             for name in ['colourmap_name', 'show_ticks_and_labels', 'use_scale',
                          'pixel_size', 'units', 'show_scale_bar',
-                         'scale_bar_location']:
+                         'scale_bar_location', 'scale_bar_colour']:
                 read_and_set_option(name)
 
     def load_file(self, filename):
@@ -1317,6 +1317,8 @@ class QACDProject:
                         raise RuntimeError('Incorrect shape for region {}'.format(name))
 
                     self._regions[name] = shape_string
+
+            self.load_display_options()
 
     def normalise(self, progress_callback=None):
         if self._state != State.FILTERED:

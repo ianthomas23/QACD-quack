@@ -17,9 +17,16 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
                                   'lower left': self.lowerLeftRadioButton,
                                   'lower right': self.lowerRightRadioButton}
 
+        self._colours_lookup = {'black': self.blackRadioButton,
+                                'white': self.whiteRadioButton}
+
         self._locations_button_group = QtWidgets.QButtonGroup()
         for button in self._locations_lookup.values():
             self._locations_button_group.addButton(button)
+
+        self._colours_button_group = QtWidgets.QButtonGroup()
+        for button in self._colours_lookup.values():
+            self._colours_button_group.addButton(button)
 
         self.applyButton = self.buttonBox.button(QtWidgets.QDialogButtonBox.Apply)
         self.applyButton.clicked.connect(self.apply)
@@ -44,6 +51,7 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         self.unitsComboBox.currentIndexChanged.connect(self.update_buttons)
         self.showScaleBarCheckBox.stateChanged.connect(self.update_controls)
         self._locations_button_group.buttonClicked.connect(self.update_buttons)
+        self._colours_button_group.buttonClicked.connect(self.update_buttons)
 
     def accept(self):
         try:
@@ -82,10 +90,11 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
             units = self.unitsComboBox.currentText()
             show_scale_bar = self.showScaleBarCheckBox.isChecked()
             scale_bar_location = self.get_scale_bar_location()
+            scale_bar_colour = self.get_scale_bar_colour()
 
             self._display_options.set_labels_and_scale( \
                 show_ticks_and_labels, use_scale, pixel_size, units,
-                show_scale_bar, scale_bar_location)
+                show_scale_bar, scale_bar_location, scale_bar_colour)
             self.update_buttons()
 
     def change_tab(self):
@@ -105,6 +114,14 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         self._images.append(image)
 
         return QtGui.QPixmap.fromImage(image)
+
+    def get_scale_bar_colour(self):
+        button = self._colours_button_group.checkedButton()
+        matches = [k for k,v in self._colours_lookup.items() if v == button]
+        if matches:
+            return matches[0]
+        else:
+            return None
 
     def get_scale_bar_location(self):
         button = self._locations_button_group.checkedButton()
@@ -174,6 +191,7 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
 
         self.showScaleBarCheckBox.setChecked(options.show_scale_bar)
         self._locations_lookup[options.scale_bar_location].setChecked(True)
+        self._colours_lookup[options.scale_bar_colour].setChecked(True)
 
     def update_buttons(self):
         options = self._display_options
@@ -189,7 +207,8 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
                 QtCore.QLocale().toDouble(self.pixelSizeLineEdit.text())[0] != options.pixel_size or \
                 self.unitsComboBox.currentText() != options.units or \
                 self.showScaleBarCheckBox.isChecked() != options.show_scale_bar or \
-                self.get_scale_bar_location() != options.scale_bar_location
+                self.get_scale_bar_location() != options.scale_bar_location or \
+                self.get_scale_bar_colour() != options.scale_bar_colour
 
             self.applyButton.setEnabled(enabled)
 
@@ -198,9 +217,11 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
 
         # Scale.
         use_scale = self.useScaleCheckBox.isChecked()
+        show_scale_bar = self.showScaleBarCheckBox.isChecked()
+
         self.pixelSizeLabel.setEnabled(use_scale)
         self.pixelSizeLineEdit.setEnabled(use_scale)
         self.unitsComboBox.setEnabled(use_scale)
         self.showScaleBarCheckBox.setEnabled(use_scale)
-        self.scaleBarLocationGroupBox.setEnabled( \
-            use_scale and self.showScaleBarCheckBox.isChecked())
+        self.scaleBarLocationGroupBox.setEnabled(use_scale and show_scale_bar)
+        self.scaleBarColourGroupBox.setEnabled(use_scale and show_scale_bar)

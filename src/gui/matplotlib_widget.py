@@ -76,11 +76,13 @@ class MatplotlibWidget(QtWidgets.QWidget):
             self._scale_bar = None
 
         if self._map_axes is not None:
+            options = self._display_options
             xticks = self._map_axes.get_xticks()
             size = xticks[1] - xticks[0]
             label = '{:g} {}'.format(size, self._units)
-            self._scale_bar = ScaleBar(ax=self._map_axes, size=size, label=label,
-                                       loc=self._display_options.scale_bar_location)
+            self._scale_bar = ScaleBar( \
+                ax=self._map_axes, size=size, label=label,
+                loc=options.scale_bar_location, colour=options.scale_bar_colour)
             self._map_axes.add_artist(self._scale_bar)
 
     def _create_white_colourmap(self):

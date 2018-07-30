@@ -573,7 +573,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self, 'New project ' + os.path.basename(filename), thread_func,
                 args=[self._project, csv_directory, csv_files])
 
-            self.matplotlibWidget.set_display_options(project.display_options)
+            self.matplotlibWidget.set_display_options( \
+                self._project.display_options)
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, 'Error', str(e))
 

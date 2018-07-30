@@ -52,7 +52,7 @@
       <attribute name="title">
        <string>Labels and scale</string>
       </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,0,0,0,0,1">
+      <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,0,0,0,0,0,1">
        <item>
         <widget class="QCheckBox" name="showTicksAndLabelsCheckBox">
          <property name="text">
@@ -122,6 +122,29 @@
            <widget class="QRadioButton" name="lowerRightRadioButton">
             <property name="text">
              <string>Lower right</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="scaleBarColourGroupBox">
+         <property name="title">
+          <string>Scale bar colour</string>
+         </property>
+         <layout class="QVBoxLayout" name="scaleBarColourLayout">
+          <item>
+           <widget class="QRadioButton" name="blackRadioButton">
+            <property name="text">
+             <string>Black</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="whiteRadioButton">
+            <property name="text">
+             <string>White</string>
             </property>
            </widget>
           </item>

@@ -7,7 +7,7 @@ from matplotlib.patheffects import Normal, Stroke
 class ScaleBar(matplotlib.offsetbox.AnchoredOffsetbox):
     def __init__(self, size=1, extent=0.025, label="", loc=2, ax=None,
                  pad=0.6, borderpad=0.5, ppad=0, sep=4, prop=None,
-                 frameon=False, **kwargs):
+                 frameon=False, colour='black', **kwargs):
         # size: length of bar in data units.
         # extent: height of bar ends in axes units.
         if loc == 'upper right':
@@ -19,8 +19,12 @@ class ScaleBar(matplotlib.offsetbox.AnchoredOffsetbox):
         elif loc == 'lower right':
             loc = 4
 
-        fc = 'w'  # Foreground colour.
-        ec = 'k'  # Edge colour.
+        if colour in ['w', 'white']:
+            fc = 'w'  # Foreground colour.
+            ec = 'k'  # Edge colour.
+        else:
+            fc = 'k'
+            ec = 'w'
 
         trans = ax.get_xaxis_transform()
         size_bar = matplotlib.offsetbox.AuxTransformBox(trans)

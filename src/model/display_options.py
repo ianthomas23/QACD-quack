@@ -17,11 +17,13 @@ class DisplayOptions:
 
         # Scale options.
         self._valid_units = ['mm', '\u03BCm', 'nm']
+        self._valid_scale_bar_colours = ['black', 'white']
         self._use_scale = False
         self._pixel_size = 1.0
         self._units = self._valid_units[1]
         self._show_scale_bar = True
         self._scale_bar_location = 'lower left'
+        self._scale_bar_colour = self._valid_scale_bar_colours[0]
 
         self._listeners = weakref.WeakSet()
 
@@ -78,16 +80,25 @@ class DisplayOptions:
             return 1.0
 
     @property
+    def scale_bar_colour(self):
+        return self._scale_bar_colour
+
+    @property
     def scale_bar_location(self):
         return self._scale_bar_location
 
     def set_labels_and_scale(self, show_ticks_and_labels, use_scale, pixel_size,
-                             units, show_scale_bar, scale_bar_location):
+                             units, show_scale_bar, scale_bar_location,
+                             scale_bar_colour):
         # Validation.
+        if pixel_size <= 0.0:
+            raise RuntimeError('Pixel size must be positive')
         if units not in self.valid_units:
             raise RuntimeError('Unrecognised units {}'.format(units))
         if scale_bar_location not in self._valid_scale_bar_locations:
             raise RuntimeError('Unrecognised scale bar location {}'.format(scale_bar_location))
+        if scale_bar_colour not in self._valid_scale_bar_colours:
+            raise RuntimeError('Unrecognised scale bar colour {}'.format(scale_bar_colour))
 
         # Labels.
         self._show_ticks_and_labels = show_ticks_and_labels
@@ -98,6 +109,7 @@ class DisplayOptions:
         self._units = units
         self._show_scale_bar = show_scale_bar
         self._scale_bar_location = scale_bar_location
+        self._scale_bar_colour = scale_bar_colour
 
         self._project().save_display_options()
 
