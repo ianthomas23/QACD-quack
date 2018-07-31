@@ -435,12 +435,15 @@ class Ui_MainWindow(object):
         self.actionModeRegionPolygon.setObjectName("actionModeRegionPolygon")
         self.actionNewRegion = QtWidgets.QAction(MainWindow)
         self.actionNewRegion.setObjectName("actionNewRegion")
+        self.actionExportImage = QtWidgets.QAction(MainWindow)
+        self.actionExportImage.setObjectName("actionExportImage")
         self.menuProject.addAction(self.actionProjectNew)
         self.menuProject.addAction(self.actionProjectOpen)
         self.menuProject.addAction(self.actionProjectClose)
         self.menuAction.addAction(self.actionFilter)
         self.menuAction.addAction(self.actionClustering)
         self.menuAction.addAction(self.actionNewRegion)
+        self.menuAction.addAction(self.actionExportImage)
         self.menuOptions.addAction(self.actionDisplayOptions)
         self.menubar.addAction(self.menuProject.menuAction())
         self.menubar.addAction(self.menuAction.menuAction())
@@ -535,6 +538,7 @@ class Ui_MainWindow(object):
         self.actionModeRegionEllipse.setText(_translate("MainWindow", "Ellipse Region"))
         self.actionModeRegionPolygon.setText(_translate("MainWindow", "Polygon Region"))
         self.actionNewRegion.setText(_translate("MainWindow", "New Region ..."))
+        self.actionExportImage.setText(_translate("MainWindow", "Export Image to File ..."))
 
 from .matplotlib_widget import MatplotlibWidget
 

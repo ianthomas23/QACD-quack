@@ -280,6 +280,13 @@ class MatplotlibWidget(QtWidgets.QWidget):
             return cm.get_cmap(self._display_options.colourmap_name,
                                self._cmap_int_max)
 
+    def export_to_file(self, filename):
+        figure = self._canvas.figure
+        figure.savefig(filename)
+
+    def has_content(self):
+        return self._plot_type != PlotType.INVALID
+
     def initialise(self, owning_window, display_options, zoom_enabled=True):
         self._owning_window = owning_window
         self.set_display_options(display_options)

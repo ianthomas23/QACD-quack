@@ -869,6 +869,7 @@
     <addaction name="actionFilter"/>
     <addaction name="actionClustering"/>
     <addaction name="actionNewRegion"/>
+    <addaction name="actionExportImage"/>
    </widget>
    <widget class="QMenu" name="menuOptions">
     <property name="title">
@@ -946,6 +947,11 @@
   <action name="actionNewRegion">
    <property name="text">
     <string>New Region ...</string>
+   </property>
+  </action>
+  <action name="actionExportImage">
+   <property name="text">
+    <string>Export Image to File ...</string>
    </property>
   </action>
  </widget>

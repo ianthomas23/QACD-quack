@@ -72,6 +72,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.actionFilter.triggered.connect(self.filter)
         self.actionClustering.triggered.connect(self.clustering)
         self.actionNewRegion.triggered.connect(self.new_region)
+        self.actionExportImage.triggered.connect(self.export_image)
         self.actionDisplayOptions.triggered.connect(self.display_options)
 
         # Tab widget controls.
@@ -402,6 +403,31 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self._display_options_shown = True
         self.update_controls()
 
+    def export_image(self):
+        file_types = ['Joint Photographic ExpertsGroup (*.jpg)',
+                      'Portable Document Format (*.pdf)',
+                      'Portable Network Graphics (*.png)',
+                      'Scalable Vector Graphics (*.svg)']
+
+        options = QtWidgets.QFileDialog.Options()
+        options |= QtWidgets.QFileDialog.DontUseNativeDialog
+        filename, file_type = QtWidgets.QFileDialog.getSaveFileName( \
+            self, 'Select filename to export to', '',
+            ';;'.join(file_types),  # Filter.
+            file_types[2],          # Initial selected filter.
+            options=options)
+        if filename:
+            correct_extension = file_type[-5:-1]
+            file_extension = os.path.splitext(filename)[1]
+            if not file_extension:
+                filename = filename + correct_extension
+            elif file_extension != correct_extension:
+                QtWidgets.QMessageBox.critical(self, 'Error',
+                    'Incorrect file extension {}\nShould be {} or leave it empty.'.format(file_extension, correct_extension))
+                return
+
+            self.matplotlibWidget.export_to_file(filename)
+
     def fill_table_widget(self, index):
         array_type, tab_widget, table_widget, tab_title, editable_name = \
             self._tabs_and_tables[index]
@@ -723,6 +749,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.actionClustering.setEnabled(valid_project and
                                          self._project.state == State.H_FACTOR)
         self.actionDisplayOptions.setEnabled(not self._display_options_shown)
+        # actionExportImage is also updated in update_matplotlib_widget.
+        self.actionExportImage.setEnabled(self.matplotlibWidget.has_content())
         self.actionNewRegion.setEnabled(valid_project and
                                         not self._new_region_shown)
 
@@ -796,6 +824,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             self.matplotlibWidget.update(plot_type, current.array_type,
                 current.displayed_array, current.displayed_array_stats, title)
+
+        # Update controls that depend on mpl widget displaying valid data.
+        self.actionExportImage.setEnabled(self.matplotlibWidget.has_content())
 
     def update_phase_combo_box(self):
         combo_box = self.phaseComboBox
