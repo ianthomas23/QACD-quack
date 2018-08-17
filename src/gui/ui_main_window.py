@@ -465,7 +465,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "QACD quack"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "QACD-quack"))
         self.rawTable.setSortingEnabled(True)
         item = self.rawTable.horizontalHeaderItem(0)
         item.setText(_translate("MainWindow", "Element"))

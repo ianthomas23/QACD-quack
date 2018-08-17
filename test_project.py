@@ -334,6 +334,9 @@ def consistency_impl(directory, pixel_totals, median):
     # Check defaults.
     assert options.colourmap_name == 'rainbow'
     assert options.show_ticks_and_labels == True
+    assert options.overall_title == ''
+    assert options.show_project_filename == False
+    assert options.show_date == False
     assert options.use_scale == False
     assert options.pixel_size == 1.0
     assert options.units == '\u03BCm'
@@ -343,31 +346,34 @@ def consistency_impl(directory, pixel_totals, median):
     # Set options and check can read them back OK.
     options.colourmap_name = 'viridis'
     assert options.colourmap_name == 'viridis'
-    options.set_labels_and_scale(False, True, 23.2, 'mm', False, 'upper right', 'white')
+    options.set_labels_and_scale(False, 'Title', True, True, True, 23.2, 'mm', False, 'upper right', 'white')
     assert options.show_ticks_and_labels == False
+    assert options.overall_title == 'Title'
+    assert options.show_project_filename == True
+    assert options.show_date == True
     assert options.use_scale == True
     assert options.pixel_size == 23.2
     assert options.units == 'mm'
     assert options.show_scale_bar == False
     assert options.scale_bar_location == 'upper right'
     assert options.scale_bar_colour == 'white'
-    options.set_labels_and_scale(False, True, 23.2, 'nm', False, 'upper left', 'white')
+    options.set_labels_and_scale(False, 'Title', True, True, True, 23.2, 'nm', False, 'upper left', 'white')
     assert options.units == 'nm'
     assert options.scale_bar_location == 'upper left'
-    options.set_labels_and_scale(False, True, 23.2, 'nm', False, 'lower right', 'white')
+    options.set_labels_and_scale(False, 'Title', True, True, True, 23.2, 'nm', False, 'lower right', 'white')
     assert options.scale_bar_location == 'lower right'
     with pytest.raises(RuntimeError):  # Invalid colourmap name.
         options.colourmap_name = 'unknown colourmap'
     with pytest.raises(RuntimeError):  # Zero pixel size.
-        options.set_labels_and_scale(False, True, 0.0, 'mm', False, 'lower left', 'white')
+        options.set_labels_and_scale(False, 'Title', True, True, True, 0.0, 'mm', False, 'lower left', 'white')
     with pytest.raises(RuntimeError):  # Negative pixel size.
-        options.set_labels_and_scale(False, True, -0.1, 'mm', False, 'lower left', 'white')
+        options.set_labels_and_scale(False, 'Title', True, True, True, -0.1, 'mm', False, 'lower left', 'white')
     with pytest.raises(RuntimeError):  # Invalid units.
-        options.set_labels_and_scale(False, True, 23.2, 'pm', False, 'lower left', 'white')
+        options.set_labels_and_scale(False, 'Title', True, True, True, 23.2, 'pm', False, 'lower left', 'white')
     with pytest.raises(RuntimeError):  # Invalid scale bar location.
-        options.set_labels_and_scale(False, True, 23.2, 'mm', False, 'centre', 'white')
+        options.set_labels_and_scale(False, 'Title', True, True, True, 23.2, 'mm', False, 'centre', 'white')
     with pytest.raises(RuntimeError):  # Invalid scale bar colour.
-        options.set_labels_and_scale(False, True, 23.2, 'mm', False, 'lower left', 'purple')
+        options.set_labels_and_scale(False, 'Title', True, True, True, 23.2, 'mm', False, 'lower left', 'purple')
 
     # Cleanup.
     if os.path.isfile(temp_filename):

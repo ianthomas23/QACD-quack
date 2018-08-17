@@ -1,3 +1,4 @@
+import datetime as dt
 import matplotlib.cm as cm
 import weakref
 
@@ -14,6 +15,9 @@ class DisplayOptions:
         self._valid_scale_bar_locations = \
             ['upper left', 'upper right', 'lower left', 'lower right']
         self._show_ticks_and_labels = True
+        self._overall_title = ''
+        self._show_project_filename = False
+        self._show_date = False
 
         # Scale options.
         self._valid_units = ['mm', '\u03BCm', 'nm']
@@ -57,12 +61,24 @@ class DisplayOptions:
         for listener in self._listeners:
             listener.update_colourmap_name()
 
+    @property
+    def date(self):
+        return dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
     def get_next_larger_units(self, units):
         index = self._valid_units.index(units)
         if index == 0:
             return 'm'
         else:
             return self._valid_units[index-1]
+
+    @property
+    def overall_title(self):
+        return self._overall_title
+
+    @property
+    def project_filename(self):
+        return self._project().filename
 
     @property
     def pixel_size(self):
@@ -87,9 +103,10 @@ class DisplayOptions:
     def scale_bar_location(self):
         return self._scale_bar_location
 
-    def set_labels_and_scale(self, show_ticks_and_labels, use_scale, pixel_size,
-                             units, show_scale_bar, scale_bar_location,
-                             scale_bar_colour):
+    def set_labels_and_scale(self, show_ticks_and_labels, overall_title,
+                             show_project_filename, show_date, use_scale,
+                             pixel_size, units, show_scale_bar,
+                             scale_bar_location, scale_bar_colour):
         # Validation.
         if pixel_size <= 0.0:
             raise RuntimeError('Pixel size must be positive')
@@ -102,6 +119,9 @@ class DisplayOptions:
 
         # Labels.
         self._show_ticks_and_labels = show_ticks_and_labels
+        self._overall_title = overall_title
+        self._show_project_filename = show_project_filename
+        self._show_date = show_date
 
         # Scale.
         self._use_scale = use_scale
@@ -115,6 +135,14 @@ class DisplayOptions:
 
         for listener in self._listeners:
             listener.update_labels_and_scale()
+
+    @property
+    def show_date(self):
+        return self._show_date
+
+    @property
+    def show_project_filename(self):
+        return self._show_project_filename
 
     @property
     def show_scale_bar(self):

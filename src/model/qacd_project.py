@@ -986,8 +986,9 @@ class QACDProject:
                         raise RuntimeError('No such attribute: '+attr_name)
                     setattr(options, attr_name, group_node._v_attrs[name])
 
-            for name in ['colourmap_name', 'show_ticks_and_labels', 'use_scale',
-                         'pixel_size', 'units', 'show_scale_bar',
+            for name in ['colourmap_name', 'show_ticks_and_labels',
+                         'overall_title', 'show_project_filename', 'show_date',
+                         'use_scale', 'pixel_size', 'units', 'show_scale_bar',
                          'scale_bar_location', 'scale_bar_colour']:
                 read_and_set_option(name)
 
@@ -1408,8 +1409,9 @@ class QACDProject:
             else:
                 group_node = h5file.create_group('/', 'display_options')
 
-            for name in ['colourmap_name', 'show_ticks_and_labels', 'use_scale',
-                         'pixel_size', 'units', 'show_scale_bar',
+            for name in ['colourmap_name', 'show_ticks_and_labels',
+                         'overall_title', 'show_project_filename', 'show_date',
+                         'use_scale', 'pixel_size', 'units', 'show_scale_bar',
                          'scale_bar_location']:
                 group_node._v_attrs[name] = getattr(options, '_' + name)
 

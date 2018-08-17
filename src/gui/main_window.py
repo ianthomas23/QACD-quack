@@ -863,7 +863,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.statusbar.showMessage(msg)
 
     def update_title(self):
-        title = 'QACD quack'
+        title = 'QACD-quack'
         if self._project is not None:
             title += ' - ' + self._project.filename
         self.setWindowTitle(title)

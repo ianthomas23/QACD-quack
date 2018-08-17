@@ -232,6 +232,12 @@ class MatplotlibWidget(QtWidgets.QWidget):
             if self._map_axes is None and self._title is not None:
                 histogram_axes.set_title(self._title + ' histogram')
 
+        figure.suptitle(options.overall_title)
+        if options.show_project_filename:
+            figure.text(0.01, 0.01, options.project_filename)
+        if options.show_date:
+            figure.text(0.99, 0.01, options.date, ha='right')
+
         self._adjust_layout()
 
         if self._mode_handler:

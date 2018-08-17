@@ -46,6 +46,9 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         # Scale tab controls - call update_buttons to enable/disable apply
         # button, and update_controls if need to enable other controls too.
         self.showTicksAndLabelsCheckBox.stateChanged.connect(self.update_buttons)
+        self.overallTitleLineEdit.textChanged.connect(self.update_buttons)
+        self.showProjectFilenameCheckBox.stateChanged.connect(self.update_buttons)
+        self.showDateCheckBox.stateChanged.connect(self.update_buttons)
         self.useScaleCheckBox.stateChanged.connect(self.update_controls)
         self.pixelSizeLineEdit.textChanged.connect(self.update_buttons)
         self.unitsComboBox.currentIndexChanged.connect(self.update_buttons)
@@ -80,6 +83,9 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         else:
             # Labels and scale tab.
             show_ticks_and_labels = self.showTicksAndLabelsCheckBox.isChecked()
+            overall_title = self.overallTitleLineEdit.text()
+            show_project_filename = self.showProjectFilenameCheckBox.isChecked()
+            show_date = self.showDateCheckBox.isChecked()
 
             use_scale = self.useScaleCheckBox.isChecked()
             pixel_size, ok = QtCore.QLocale().toDouble(self.pixelSizeLineEdit.text())
@@ -93,8 +99,9 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
             scale_bar_colour = self.get_scale_bar_colour()
 
             self._display_options.set_labels_and_scale( \
-                show_ticks_and_labels, use_scale, pixel_size, units,
-                show_scale_bar, scale_bar_location, scale_bar_colour)
+                show_ticks_and_labels, overall_title, show_project_filename,
+                show_date, use_scale, pixel_size, units, show_scale_bar,
+                scale_bar_location, scale_bar_colour)
             self.update_buttons()
 
     def change_tab(self):
@@ -170,6 +177,9 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
 
         # Labels.
         self.showTicksAndLabelsCheckBox.setChecked(options.show_ticks_and_labels)
+        self.overallTitleLineEdit.setText(options.overall_title)
+        self.showProjectFilenameCheckBox.setChecked(options.show_project_filename)
+        self.showDateCheckBox.setChecked(options.show_date)
 
         # Scale.
         self.useScaleCheckBox.setChecked(options.use_scale)
@@ -203,6 +213,9 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         else:
             enabled = \
                 self.showTicksAndLabelsCheckBox.isChecked() != options.show_ticks_and_labels or \
+                self.overallTitleLineEdit.text() != options.overall_title or \
+                self.showProjectFilenameCheckBox.isChecked() != options.show_project_filename or \
+                self.showDateCheckBox.isChecked() != options.show_date or \
                 self.useScaleCheckBox.isChecked() != options.use_scale or \
                 QtCore.QLocale().toDouble(self.pixelSizeLineEdit.text())[0] != options.pixel_size or \
                 self.unitsComboBox.currentText() != options.units or \
