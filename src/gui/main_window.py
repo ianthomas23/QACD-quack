@@ -92,9 +92,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.undoButton.clicked.connect(self.zoom_undo)
         self.redoButton.clicked.connect(self.zoom_redo)
 
-        # Set initial width of tabWidget.  Needs improvement.
-        #self.splitter.setSizes([50, 100])
-
         # Hide all but the first tab.
         for i in range(self.tabWidget.count()-1, 0, -1):
             self.tabWidget.removeTab(i)
