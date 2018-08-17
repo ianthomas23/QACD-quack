@@ -287,6 +287,9 @@ class MatplotlibWidget(QtWidgets.QWidget):
     def has_content(self):
         return self._plot_type != PlotType.INVALID
 
+    def has_map_axes(self):
+        return self._map_axes is not None
+
     def initialise(self, owning_window, display_options, zoom_enabled=True):
         self._owning_window = owning_window
         self.set_display_options(display_options)

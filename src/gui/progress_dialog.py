@@ -27,9 +27,10 @@ class ProgressDialog(QtWidgets.QDialog, Ui_ProgressDialog):
     # Note args excludes the callback; it is appended herein.
     @staticmethod
     def worker_thread(parent, title, thread_func, args):
-
         def local_callback(fraction, text=''):
             progress.callback_signal.emit(int(100*fraction), text)
+
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
 
         progress = ProgressDialog(title, parent=parent)
         thread = threading.Thread(target=thread_func,
@@ -38,3 +39,5 @@ class ProgressDialog(QtWidgets.QDialog, Ui_ProgressDialog):
         thread.start()
         progress.exec_()
         thread.join()  # Wait for thread (in case dialog closed early).
+
+        QtWidgets.QApplication.restoreOverrideCursor()

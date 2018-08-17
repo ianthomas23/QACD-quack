@@ -371,6 +371,9 @@
           <layout class="QHBoxLayout" name="horizontalLayout">
            <item>
             <widget class="QPushButton" name="newRatioButton">
+             <property name="toolTip">
+              <string>Create a new ratio map</string>
+             </property>
              <property name="text">
               <string>New ratio</string>
              </property>
@@ -378,6 +381,9 @@
            </item>
            <item>
             <widget class="QPushButton" name="deleteRatioButton">
+             <property name="toolTip">
+              <string>Delete the selected ratio map</string>
+             </property>
              <property name="text">
               <string>Delete ratio</string>
              </property>
@@ -588,6 +594,9 @@
            </item>
            <item>
             <widget class="QPushButton" name="deletePhaseButton">
+             <property name="toolTip">
+              <string>Delete the selected phase map</string>
+             </property>
              <property name="text">
               <string>Delete phase</string>
              </property>
@@ -685,6 +694,9 @@
           <layout class="QHBoxLayout" name="horizontalLayout">
            <item>
             <widget class="QPushButton" name="deleteRegionButton">
+             <property name="toolTip">
+              <string>Delete the selected region</string>
+             </property>
              <property name="text">
               <string>Delete region</string>
              </property>
@@ -768,6 +780,9 @@
                 <verstretch>0</verstretch>
                </sizepolicy>
               </property>
+              <property name="toolTip">
+               <string>Type of plot displayed below</string>
+              </property>
               <property name="currentIndex">
                <number>2</number>
               </property>
@@ -796,6 +811,9 @@
                 <verstretch>0</verstretch>
                </sizepolicy>
               </property>
+              <property name="toolTip">
+               <string>Phase map used in plot below</string>
+              </property>
              </widget>
             </item>
             <item row="1" column="2">
@@ -806,10 +824,16 @@
                 <verstretch>0</verstretch>
                </sizepolicy>
               </property>
+              <property name="toolTip">
+               <string>Region used in plot below</string>
+              </property>
              </widget>
             </item>
             <item row="1" column="3">
              <widget class="QToolButton" name="undoButton">
+              <property name="toolTip">
+               <string>Undo previous zoom</string>
+              </property>
               <property name="text">
                <string>Undo</string>
               </property>
@@ -817,6 +841,9 @@
             </item>
             <item row="1" column="4">
              <widget class="QToolButton" name="redoButton">
+              <property name="toolTip">
+               <string>Redo next zoom</string>
+              </property>
               <property name="text">
                <string>Redo</string>
               </property>
@@ -897,30 +924,48 @@
    <property name="text">
     <string>New...</string>
    </property>
+   <property name="toolTip">
+    <string>Create a new project</string>
+   </property>
   </action>
   <action name="actionProjectOpen">
    <property name="text">
     <string>Open</string>
+   </property>
+   <property name="toolTip">
+    <string>Open an existing project</string>
    </property>
   </action>
   <action name="actionProjectClose">
    <property name="text">
     <string>Close</string>
    </property>
+   <property name="toolTip">
+    <string>Close the current project</string>
+   </property>
   </action>
   <action name="actionFilter">
    <property name="text">
     <string>Filter and Normalise ...</string>
+   </property>
+   <property name="toolTip">
+    <string>Filter and normalise the raw element maps</string>
    </property>
   </action>
   <action name="actionDisplayOptions">
    <property name="text">
     <string>Display...</string>
    </property>
+   <property name="toolTip">
+    <string>Change display options</string>
+   </property>
   </action>
   <action name="actionClustering">
    <property name="text">
     <string>k-means Clustering</string>
+   </property>
+   <property name="toolTip">
+    <string>Perform k-means clustering on the filtered element maps</string>
    </property>
   </action>
   <action name="actionModeZoom">
@@ -959,15 +1004,24 @@
    <property name="text">
     <string>New Region ...</string>
    </property>
+   <property name="toolTip">
+    <string>Create a new region</string>
+   </property>
   </action>
   <action name="actionExportImage">
    <property name="text">
     <string>Export Image to File ...</string>
    </property>
+   <property name="toolTip">
+    <string>Export image to file</string>
+   </property>
   </action>
   <action name="actionAbout">
    <property name="text">
     <string>About</string>
+   </property>
+   <property name="toolTip">
+    <string>About QACD-quack</string>
    </property>
   </action>
  </widget>

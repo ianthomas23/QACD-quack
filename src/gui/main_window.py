@@ -198,6 +198,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def change_plot_type(self):
         self.update_matplotlib_widget()
+        self.update_controls()
 
     def change_region(self):
         text = self.regionComboBox.currentText()
@@ -774,8 +775,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.phaseLabel.setEnabled(not showing_phase_or_region)
         self.regionComboBox.setEnabled(not showing_phase_or_region)
         self.regionLabel.setEnabled(not showing_phase_or_region)
-        self.undoButton.setEnabled(self._zoom_history.has_undo())
-        self.redoButton.setEnabled(self._zoom_history.has_redo())
+        self.undoButton.setEnabled(self._zoom_history.has_undo() and
+                                   self.matplotlibWidget.has_map_axes())
+        self.redoButton.setEnabled(self._zoom_history.has_redo() and
+                                   self.matplotlibWidget.has_map_axes())
 
     def update_matplotlib_widget(self):
         current = self._current
