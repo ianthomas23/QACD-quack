@@ -13,6 +13,10 @@
   <property name="windowTitle">
    <string>QACD quack</string>
   </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>resources/application_icon.png</normaloff>resources/application_icon.png</iconset>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout_2">
     <item>
@@ -877,9 +881,16 @@
     </property>
     <addaction name="actionDisplayOptions"/>
    </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionAbout"/>
+   </widget>
    <addaction name="menuProject"/>
    <addaction name="menuAction"/>
    <addaction name="menuOptions"/>
+   <addaction name="menuHelp"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionProjectNew">
@@ -952,6 +963,11 @@
   <action name="actionExportImage">
    <property name="text">
     <string>Export Image to File ...</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About</string>
    </property>
   </action>
  </widget>

@@ -6,6 +6,7 @@ import time
 
 from src.model.elements import element_properties
 from src.model.qacd_project import QACDProject, State
+from .about_dialog import AboutDialog
 from .clustering_dialog import ClusteringDialog
 from .enums import ArrayType, ModeType, PlotType
 from .display_options_dialog import DisplayOptionsDialog
@@ -74,6 +75,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.actionNewRegion.triggered.connect(self.new_region)
         self.actionExportImage.triggered.connect(self.export_image)
         self.actionDisplayOptions.triggered.connect(self.display_options)
+        self.actionAbout.triggered.connect(self.about)
 
         # Tab widget controls.
         self.newRatioButton.clicked.connect(self.new_ratio)
@@ -139,6 +141,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.update_controls()
         self.update_title()
+
+    def about(self):
+        dialog = AboutDialog(parent=self)
+        dialog.exec_()
 
     def change_name(self, item):
         if self._ignore_change_name or item is None:
@@ -748,7 +754,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                                      self._project.state == State.RAW)
         self.actionClustering.setEnabled(valid_project and
                                          self._project.state == State.H_FACTOR)
-        self.actionDisplayOptions.setEnabled(not self._display_options_shown)
+        self.actionDisplayOptions.setEnabled(valid_project and
+                                             not self._display_options_shown)
         # actionExportImage is also updated in update_matplotlib_widget.
         self.actionExportImage.setEnabled(self.matplotlibWidget.has_content())
         self.actionNewRegion.setEnabled(valid_project and

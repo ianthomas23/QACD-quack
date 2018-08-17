@@ -12,6 +12,9 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(800, 600)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap("resources/application_icon.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        MainWindow.setWindowIcon(icon)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.centralwidget)
@@ -405,6 +408,8 @@ class Ui_MainWindow(object):
         self.menuAction.setObjectName("menuAction")
         self.menuOptions = QtWidgets.QMenu(self.menubar)
         self.menuOptions.setObjectName("menuOptions")
+        self.menuHelp = QtWidgets.QMenu(self.menubar)
+        self.menuHelp.setObjectName("menuHelp")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
@@ -437,6 +442,8 @@ class Ui_MainWindow(object):
         self.actionNewRegion.setObjectName("actionNewRegion")
         self.actionExportImage = QtWidgets.QAction(MainWindow)
         self.actionExportImage.setObjectName("actionExportImage")
+        self.actionAbout = QtWidgets.QAction(MainWindow)
+        self.actionAbout.setObjectName("actionAbout")
         self.menuProject.addAction(self.actionProjectNew)
         self.menuProject.addAction(self.actionProjectOpen)
         self.menuProject.addAction(self.actionProjectClose)
@@ -445,9 +452,11 @@ class Ui_MainWindow(object):
         self.menuAction.addAction(self.actionNewRegion)
         self.menuAction.addAction(self.actionExportImage)
         self.menuOptions.addAction(self.actionDisplayOptions)
+        self.menuHelp.addAction(self.actionAbout)
         self.menubar.addAction(self.menuProject.menuAction())
         self.menubar.addAction(self.menuAction.menuAction())
         self.menubar.addAction(self.menuOptions.menuAction())
+        self.menubar.addAction(self.menuHelp.menuAction())
 
         self.retranslateUi(MainWindow)
         self.tabWidget.setCurrentIndex(6)
@@ -527,6 +536,7 @@ class Ui_MainWindow(object):
         self.menuProject.setTitle(_translate("MainWindow", "Project"))
         self.menuAction.setTitle(_translate("MainWindow", "Action"))
         self.menuOptions.setTitle(_translate("MainWindow", "Options"))
+        self.menuHelp.setTitle(_translate("MainWindow", "Help"))
         self.actionProjectNew.setText(_translate("MainWindow", "New..."))
         self.actionProjectOpen.setText(_translate("MainWindow", "Open"))
         self.actionProjectClose.setText(_translate("MainWindow", "Close"))
@@ -539,6 +549,7 @@ class Ui_MainWindow(object):
         self.actionModeRegionPolygon.setText(_translate("MainWindow", "Polygon Region"))
         self.actionNewRegion.setText(_translate("MainWindow", "New Region ..."))
         self.actionExportImage.setText(_translate("MainWindow", "Export Image to File ..."))
+        self.actionAbout.setText(_translate("MainWindow", "About"))
 
 from .matplotlib_widget import MatplotlibWidget
 
