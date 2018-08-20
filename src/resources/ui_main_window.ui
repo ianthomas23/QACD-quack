@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>801</width>
+    <width>951</width>
     <height>600</height>
    </rect>
   </property>
@@ -707,9 +707,9 @@
       <item>
        <layout class="QVBoxLayout" name="rightVerticalLayout">
         <item>
-         <layout class="QHBoxLayout" name="topRightHorizontalLayout">
+         <layout class="QHBoxLayout" name="topRightHorizontalLayout" stretch="0,1">
           <item>
-           <layout class="QGridLayout" name="gridLayout" columnstretch="0,0,0,0,0">
+           <layout class="QGridLayout" name="gridLayout" columnstretch="0,0,0,0,0,0,0">
             <item row="0" column="0">
              <widget class="QLabel" name="plotTypeLabel">
               <property name="sizePolicy">
@@ -759,6 +759,19 @@
               </property>
               <property name="text">
                <string>Zoom</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="5" colspan="2">
+             <widget class="QLabel" name="zoom2Label">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string>Colourmap zoom</string>
               </property>
              </widget>
             </item>
@@ -839,6 +852,26 @@
               </property>
              </widget>
             </item>
+            <item row="1" column="5">
+             <widget class="QToolButton" name="undoColourmapButton">
+              <property name="toolTip">
+               <string>Undo previous colourmap zoom</string>
+              </property>
+              <property name="text">
+               <string>Undo</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="6">
+             <widget class="QToolButton" name="redoColourmapButton">
+              <property name="toolTip">
+               <string>Redo next colourmap zoom</string>
+              </property>
+              <property name="text">
+               <string>Redo</string>
+              </property>
+             </widget>
+            </item>
            </layout>
           </item>
           <item>
@@ -871,7 +904,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>801</width>
+     <width>951</width>
      <height>22</height>
     </rect>
    </property>

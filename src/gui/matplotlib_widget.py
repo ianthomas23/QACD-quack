@@ -22,6 +22,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
         self._display_options = None
         self._map_axes = None
+        self._histogram_axes = None
 
         # Variables set by call to update()
         self._plot_type = PlotType.INVALID
@@ -29,6 +30,8 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._array = None
         self._array_stats = None
         self._title = None
+        self._name = None
+        self._colourmap_limits = None
 
         self._image = None         # Image used for element map.
         self._bar = None           # Bar used for histogram.
@@ -36,6 +39,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
                                    #   in range 0 (= min) to 1.0 (= max value).
         self._cmap_int_max = None  # One beyond end, as in numpy slicing.
         self._scale_bar = None
+        self._colourbar = None
 
         # Scale and units initially from display options, but may need to
         # change them if distances are too large, e.g. 1000 mm goes to 1 m.
@@ -143,15 +147,15 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
         options = self._display_options
         self._map_axes = None
-        histogram_axes = None
+        self._histogram_axes = None
         if self._plot_type == PlotType.INVALID:
             return
         elif self._plot_type == PlotType.MAP:
             self._map_axes = figure.subplots()
         elif self._plot_type == PlotType.HISTOGRAM:
-            histogram_axes = figure.subplots()
+            self._histogram_axes = figure.subplots()
         elif self._plot_type == PlotType.BOTH:
-            self._map_axes, histogram_axes = figure.subplots( \
+            self._map_axes, self._histogram_axes = figure.subplots( \
                 nrows=2, gridspec_kw={'height_ratios': (3,1)})
         else:
             raise RuntimeError('Invalid plot type')
@@ -173,6 +177,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
             self._image = None
             self._scale = None
             self._units = None
+            self._colourbar = None
         else:
             extent = self._get_scaled_extent()
             self._image = self._map_axes.imshow(self._array, cmap=cmap,
@@ -183,8 +188,9 @@ class MatplotlibWidget(QtWidgets.QWidget):
                 self._map_axes.set_ylim(self._zoom_rectangle[2:]*self._scale)
 
             if show_colourbar:
-                colourbar = figure.colorbar(self._image, ax=self._map_axes,
-                                            ticks=cmap_ticks)
+                self._colourbar = figure.colorbar(self._image, ax=self._map_axes,
+                                                  ticks=cmap_ticks)
+
             if self._title is not None:
                 self._map_axes.set_title(self._title + ' map')
 
@@ -195,7 +201,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
             # to determine scale bar size.
             self._update_map_axes_ticks_and_labels()
 
-        if histogram_axes is None:
+        if self._histogram_axes is None:
             self._bar = None
             self._bar_norm_x = None
         else:
@@ -209,28 +215,30 @@ class MatplotlibWidget(QtWidgets.QWidget):
             bin_centres = bin_edges[:-1] + 0.5*width
             self._bar_norm_x = norm(bin_centres)
             colours = cmap(self._bar_norm_x)
-            self._bar = histogram_axes.bar(bin_centres, hist, width,
-                                           color=colours)
+            self._bar = self._histogram_axes.bar(bin_centres, hist, width,
+                                                 color=colours)
             if cmap_ticks is not None:
-                histogram_axes.set_xticks(cmap_ticks)
+                self._histogram_axes.set_xticks(cmap_ticks)
 
             if show_stats:
                 mean = self._array_stats.get('mean')
                 median = self._array_stats.get('median')
                 std = self._array_stats.get('std')
                 if mean is not None:
-                    histogram_axes.axvline(mean, c='k', ls='-', label='mean')
+                    self._histogram_axes.axvline(mean, c='k', ls='-', label='mean')
                     if std is not None:
-                        histogram_axes.axvline(mean-std, c='k', ls='-.',
-                                               label='mean \u00b1 std')
-                        histogram_axes.axvline(mean+std, c='k', ls='-.')
+                        self._histogram_axes.axvline(mean-std, c='k', ls='-.',
+                                                     label='mean \u00b1 std')
+                        self._histogram_axes.axvline(mean+std, c='k', ls='-.')
                 if median is not None:
-                    histogram_axes.axvline(median, c='k', ls='--',
-                                           label='median')
-                histogram_axes.legend()
+                    self._histogram_axes.axvline(median, c='k', ls='--',
+                                                 label='median')
+
+                if mean is not None or median is not None:
+                    self._histogram_axes.legend()
 
             if self._map_axes is None and self._title is not None:
-                histogram_axes.set_title(self._title + ' histogram')
+                self._histogram_axes.set_title(self._title + ' histogram')
 
         figure.suptitle(options.overall_title)
         if options.show_project_filename:
@@ -257,11 +265,14 @@ class MatplotlibWidget(QtWidgets.QWidget):
         # Clear current plots.
         self._canvas.figure.clear()
         self._map_axes = None
+        self._histogram_axes = None
         self._plot_type = PlotType.INVALID
         self._array_type = ArrayType.INVALID
         self._array = None
         self._array_stats = None
         self._title = None
+        self._name = None
+        self._colourmap_limits = None
         self._image = None
         self._bar = None
         self._bar_norm_x = None
@@ -269,6 +280,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._scale_bar = None
         self._scale = None
         self._units = None
+        self._colourbar = None
 
         self._redraw()
 
@@ -289,6 +301,12 @@ class MatplotlibWidget(QtWidgets.QWidget):
     def export_to_file(self, filename):
         figure = self._canvas.figure
         figure.savefig(filename)
+
+    def get_colourbar_axes(self):
+        if self._colourbar is None:
+            return None
+        else:
+            return self._colourbar.ax
 
     def has_content(self):
         return self._plot_type != PlotType.INVALID
@@ -340,6 +358,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._adjust_layout()
 
     def set_colourmap_limits(self, lower, upper):
+        # Needed for new_phase_filtered_dialog only.
         if self._image is not None:
             self._image.set_clim(lower, upper)
             cmap = self._image.get_cmap()
@@ -403,12 +422,15 @@ class MatplotlibWidget(QtWidgets.QWidget):
             else:
                 self._mode_handler = None
 
-    def update(self, plot_type, array_type, array, array_stats, title):
+    def update(self, plot_type, array_type, array, array_stats, title, name,
+               colourmap_limits=None):
         self._plot_type = plot_type
         self._array_type = array_type
         self._array = array
         self._array_stats = array_stats
         self._title = title
+        self._name = name
+        self._colourmap_limits = colourmap_limits
 
         self._update_draw()
 

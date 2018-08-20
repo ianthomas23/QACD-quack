@@ -157,7 +157,8 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
             title = 'Filtered {} element'.format(self.element)
 
             self.elementMatplotlibWidget.update(PlotType.MAP,
-                ArrayType.FILTERED, self.array, self.array_stats, title)
+                ArrayType.FILTERED, self.array, self.array_stats, title,
+                self.element)
 
             for control in (self.lowerSlider, self.upperSlider,
                             self.lowerLineEdit, self.upperLineEdit,
@@ -256,7 +257,7 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
         else:
             self.phase_map = np.ma.masked_equal(self.phase_map, 0)
             self.phaseMatplotlibWidget.update(PlotType.MAP, ArrayType.PHASE,
-                self.phase_map, None, None)
+                self.phase_map, None, None, None)
 
     def update_thresholds(self):
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)

@@ -41,9 +41,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.name = None    # e.g. element name, or 'total', etc.
             self.phase = None   # None or phase boolean array.
             self.region = None  # None or region boolean array.
+            self.colourmap_limits = None  # None or tuple of (lower, upper).
             self.mask = None    # None or combined phase & region boolean array.
 
         def create_mask(self):
+            # Mask excludes colourmap limits as these have a different effect
+            # on each element map.
             have_phase = self.phase is not None
             have_region = self.region is not None
 
@@ -91,6 +94,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.regionComboBox.currentIndexChanged.connect(self.change_region)
         self.undoButton.clicked.connect(self.zoom_undo)
         self.redoButton.clicked.connect(self.zoom_redo)
+        self.undoColourmapButton.clicked.connect(self.zoom_colourmap_undo)
+        self.redoColourmapButton.clicked.connect(self.zoom_colourmap_redo)
 
         # Hide all but the first tab.
         for i in range(self.tabWidget.count()-1, 0, -1):
@@ -135,6 +140,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self._new_region_shown = False        # Modeless dialog.
 
         self._zoom_history = ZoomHistory()
+        self._zoom_colourmap_history = ZoomHistory()
 
         self.update_controls()
         self.update_title()
@@ -776,12 +782,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                                    self.matplotlibWidget.has_map_axes())
         self.redoButton.setEnabled(self._zoom_history.has_redo() and
                                    self.matplotlibWidget.has_map_axes())
+        self.undoColourmapButton.setEnabled(self._zoom_colourmap_history.has_undo())
+        self.redoColourmapButton.setEnabled(self._zoom_colourmap_history.has_redo())
 
     def update_matplotlib_widget(self):
         current = self._current
 
         if current.array_type is ArrayType.INVALID:
             self.matplotlibWidget.clear()
+            changed = True
         else:
             plot_type = PlotType(self.plotTypeComboBox.currentIndex())
             if current.name in ('h', 'h-factor'):
@@ -804,10 +813,30 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 type_string = string.capwords(current.array_type.name.lower())
                 title = '{} {} element'.format(type_string, name)
 
-            if (current.array_type not in (ArrayType.PHASE, ArrayType.REGION)
-                and current.mask is not None):
+            changed = (self.matplotlibWidget._name != current.name or
+                       self.matplotlibWidget._array_type != current.array_type)
+            if changed:
+                current.colourmap_limits = None
+
+            if (current.array_type in (ArrayType.PHASE, ArrayType.REGION) or
+                (current.mask is None and current.colourmap_limits is None)):
+                current.displayed_array = current.selected_array
+                current.displayed_array_stats = current.selected_array_stats
+            else:
+                clim_mask = None
+                if current.colourmap_limits is not None:
+                    clim_mask = np.logical_or( \
+                        np.ma.less(current.selected_array, current.colourmap_limits[0]),
+                        np.ma.greater(current.selected_array, current.colourmap_limits[1]))
+                if clim_mask is not None and current.mask is not None:
+                    mask = np.logical_or(clim_mask, current.mask)
+                elif clim_mask is not None:
+                    mask = clim_mask
+                else:  # current.mask is not None:
+                    mask = current.mask
+
                 # May want to cache this instead of recalculating it each time.
-                array = np.ma.masked_where(current.mask, current.selected_array)
+                array = np.ma.masked_where(mask, current.selected_array)
                 array_stats = {}
                 if 'valid' in current.selected_array_stats:
                     number_invalid = np.ma.count_masked(array)
@@ -816,24 +845,27 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 if 'min' in current.selected_array_stats:
                     array_stats['max'] = array.max()
                     array_stats['min'] = array.min()
-                if 'mean' in current.selected_array_stats:
+                if 'mean' in current.selected_array_stats and current.colourmap_limits is None:
                     array_stats['mean'] = array.mean()
-                if 'median' in current.selected_array_stats:
+                if 'median' in current.selected_array_stats and current.colourmap_limits is None:
                     array_stats['median'] = np.ma.median(array)
-                if 'std' in current.selected_array_stats:
+                if 'std' in current.selected_array_stats and current.colourmap_limits is None:
                     array_stats['std'] = array.std()
                 current.displayed_array = array
                 current.displayed_array_stats = array_stats
                 # Assuming update_status_bar will follow anyway.
-            else:
-                current.displayed_array = current.selected_array
-                current.displayed_array_stats = current.selected_array_stats
 
-            self.matplotlibWidget.update(plot_type, current.array_type,
-                current.displayed_array, current.displayed_array_stats, title)
+            self.matplotlibWidget.update( \
+                plot_type, current.array_type, current.displayed_array,
+                current.displayed_array_stats, title, current.name,
+                current.colourmap_limits)
 
         # Update controls that depend on mpl widget displaying valid data.
         self.actionExportImage.setEnabled(self.matplotlibWidget.has_content())
+
+        if changed and self._zoom_colourmap_history.has_any():
+            self._zoom_colourmap_history.clear()
+            self.update_controls()
 
     def update_phase_combo_box(self):
         combo_box = self.phaseComboBox
@@ -866,10 +898,30 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.setWindowTitle(title)
 
     def zoom_append(self, from_, to):
-        # Append zoom rectangle to zoom history, and apply it.
         self._zoom_history.append(from_, to)
         self.matplotlibWidget.set_map_zoom(to[0], to[1])
         self.update_controls()
+
+    def zoom_colourmap_append(self, from_, to):
+        self._zoom_colourmap_history.append(from_, to)
+        self._current.colourmap_limits = to
+        self.update_matplotlib_widget()
+        self.update_controls()
+        self.update_status_bar()
+
+    def zoom_colourmap_redo(self):
+        to = self._zoom_colourmap_history.redo()[1]
+        self._current.colourmap_limits = to
+        self.update_matplotlib_widget()
+        self.update_controls()
+        self.update_status_bar()
+
+    def zoom_colourmap_undo(self):
+        to = self._zoom_colourmap_history.undo()[0]
+        self._current.colourmap_limits = to
+        self.update_matplotlib_widget()
+        self.update_controls()
+        self.update_status_bar()
 
     def zoom_redo(self):
         zoom = self._zoom_history.redo()

@@ -17,6 +17,9 @@ class ZoomHistory:
         self._stack.clear()
         self._index = 0
 
+    def has_any(self):
+        return len(self._stack) > 0
+
     def redo(self):
         zoom = self._stack[self._index]
         self._index += 1

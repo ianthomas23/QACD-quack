@@ -239,7 +239,7 @@ class NewPhaseClusterDialog(QtWidgets.QDialog, Ui_NewPhaseClusterDialog):
     def update_matplotlib_widget(self):
         title = 'k={} cluster'.format(self.k)
         self.matplotlibWidget.update(PlotType.MAP, ArrayType.CLUSTER,
-            self.cluster_map, self.cluster_map_stats, title)
+            self.cluster_map, self.cluster_map_stats, title, None)
 
     def update_status_label(self):
         msg = self.parent().get_status_string(self.cluster_map,
