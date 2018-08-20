@@ -343,9 +343,11 @@ def consistency_impl(directory, pixel_totals, median):
     assert options.show_scale_bar == True
     assert options.scale_bar_location == 'lower left'
     assert options.scale_bar_colour == 'black'
+    assert options.histogram_bin_count = 100
     # Set options and check can read them back OK.
     options.colourmap_name = 'viridis'
     assert options.colourmap_name == 'viridis'
+
     options.set_labels_and_scale(False, 'Title', True, True, True, 23.2, 'mm', False, 'upper right', 'white')
     assert options.show_ticks_and_labels == False
     assert options.overall_title == 'Title'
@@ -374,6 +376,9 @@ def consistency_impl(directory, pixel_totals, median):
         options.set_labels_and_scale(False, 'Title', True, True, True, 23.2, 'mm', False, 'centre', 'white')
     with pytest.raises(RuntimeError):  # Invalid scale bar colour.
         options.set_labels_and_scale(False, 'Title', True, True, True, 23.2, 'mm', False, 'lower left', 'purple')
+
+    options.set_histogram(20)
+    assert options.histogram_bin_count = 20
 
     # Cleanup.
     if os.path.isfile(temp_filename):

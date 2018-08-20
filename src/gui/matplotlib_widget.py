@@ -200,7 +200,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
             self._bar_norm_x = None
         else:
             if cmap_int_max is None:
-                bins = 100
+                bins = options.histogram_bin_count
             else:
                 bins = np.arange(0, cmap_int_max+1)-0.5
             hist, bin_edges = np.histogram(np.ma.compressed(self._array),
@@ -428,6 +428,9 @@ class MatplotlibWidget(QtWidgets.QWidget):
                 item.set_color(colours[index])
 
         self._redraw()
+
+    def update_histogram_options(self):
+        self._update_draw()
 
     def update_labels_and_scale(self):
         self._update_draw()

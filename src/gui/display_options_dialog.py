@@ -33,6 +33,7 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
 
         self.init_colourmap_tab()
         self.init_labels_and_scale_tab()
+        self.init_histogram_tab()
         self.tabWidget.setCurrentIndex(0)
         self.update_controls()
 
@@ -56,9 +57,12 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         self._locations_button_group.buttonClicked.connect(self.update_buttons)
         self._colours_button_group.buttonClicked.connect(self.update_buttons)
 
+        # Histogram tab.
+        self.histogramBinCountComboBox.currentIndexChanged.connect(self.update_buttons)
+
     def accept(self):
         try:
-            for index in range(2):
+            for index in range(3):
                 self.apply_tab(index)
             self.close()
         except Exception as e:
@@ -80,7 +84,7 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
                 # objects.
                 self._display_options.colourmap_name = selected_name
                 self.update_buttons()
-        else:
+        elif tab_index == 1:
             # Labels and scale tab.
             show_ticks_and_labels = self.showTicksAndLabelsCheckBox.isChecked()
             overall_title = self.overallTitleLineEdit.text()
@@ -102,6 +106,11 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
                 show_ticks_and_labels, overall_title, show_project_filename,
                 show_date, use_scale, pixel_size, units, show_scale_bar,
                 scale_bar_location, scale_bar_colour)
+            self.update_buttons()
+        else:  # tab_index == 2
+            histogram_bin_count = int(self.histogramBinCountComboBox.currentText())
+
+            self._display_options.set_histogram(histogram_bin_count)
             self.update_buttons()
 
     def change_tab(self):
@@ -172,6 +181,20 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
             # Selects current colourmap, and scrolls so that it is visible.
             self.colourmapListWidget.setCurrentItem(selected_item)
 
+    def init_histogram_tab(self):
+        options = self._display_options
+
+        values = [20, 40, 60, 80, 100, 120, 140, 160, 180, 200]
+        combo_box = self.histogramBinCountComboBox
+        selected_index = None
+        for index, value in enumerate(values):
+            combo_box.addItem(str(value))
+            if value == options.histogram_bin_count:
+                selected_index = index
+
+        if selected_index is not None:
+            combo_box.setCurrentIndex(selected_index)
+
     def init_labels_and_scale_tab(self):
         options = self._display_options
 
@@ -221,7 +244,8 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
                 self.unitsComboBox.currentText() != options.units or \
                 self.showScaleBarCheckBox.isChecked() != options.show_scale_bar or \
                 self.get_scale_bar_location() != options.scale_bar_location or \
-                self.get_scale_bar_colour() != options.scale_bar_colour
+                self.get_scale_bar_colour() != options.scale_bar_colour or \
+                int(self.histogramBinCountComboBox.currentText()) != options.histogram_bin_count
 
             self.applyButton.setEnabled(enabled)
 

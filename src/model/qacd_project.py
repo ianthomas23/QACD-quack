@@ -989,7 +989,8 @@ class QACDProject:
             for name in ['colourmap_name', 'show_ticks_and_labels',
                          'overall_title', 'show_project_filename', 'show_date',
                          'use_scale', 'pixel_size', 'units', 'show_scale_bar',
-                         'scale_bar_location', 'scale_bar_colour']:
+                         'scale_bar_location', 'scale_bar_colour',
+                         'histogram_bin_count']:
                 read_and_set_option(name)
 
     def load_file(self, filename):
@@ -1412,7 +1413,7 @@ class QACDProject:
             for name in ['colourmap_name', 'show_ticks_and_labels',
                          'overall_title', 'show_project_filename', 'show_date',
                          'use_scale', 'pixel_size', 'units', 'show_scale_bar',
-                         'scale_bar_location']:
+                         'scale_bar_location', 'histogram_bin_count']:
                 group_node._v_attrs[name] = getattr(options, '_' + name)
 
     def set_filename(self, filename):

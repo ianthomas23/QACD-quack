@@ -17,7 +17,7 @@
    <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>1</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="colourmapTab">
       <attribute name="title">
@@ -195,6 +195,30 @@
           <string/>
          </property>
         </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="histogramTab">
+      <attribute name="title">
+       <string>Histogram</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="v" stretch="0,1">
+       <item>
+        <layout class="QHBoxLayout" name="h">
+         <item>
+          <widget class="QLabel" name="label_2">
+           <property name="text">
+            <string>Number of bins</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="histogramBinCountComboBox"/>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QLabel" name="dummy"/>
        </item>
       </layout>
      </widget>

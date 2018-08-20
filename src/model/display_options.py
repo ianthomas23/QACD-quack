@@ -29,6 +29,9 @@ class DisplayOptions:
         self._scale_bar_location = 'lower left'
         self._scale_bar_colour = self._valid_scale_bar_colours[0]
 
+        # Histogram options.
+        self._histogram_bin_count = 100
+
         self._listeners = weakref.WeakSet()
 
     def _determine_valid_colourmap_names(self):
@@ -73,6 +76,10 @@ class DisplayOptions:
             return self._valid_units[index-1]
 
     @property
+    def histogram_bin_count(self):
+        return self._histogram_bin_count
+
+    @property
     def overall_title(self):
         return self._overall_title
 
@@ -102,6 +109,14 @@ class DisplayOptions:
     @property
     def scale_bar_location(self):
         return self._scale_bar_location
+
+    def set_histogram(self, histogram_bin_count):
+        self._histogram_bin_count = histogram_bin_count
+
+        self._project().save_display_options()
+
+        for listener in self._listeners:
+            listener.update_histogram_options()
 
     def set_labels_and_scale(self, show_ticks_and_labels, overall_title,
                              show_project_filename, show_date, use_scale,
