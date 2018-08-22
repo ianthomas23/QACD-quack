@@ -38,12 +38,18 @@
      <property name="text">
       <string>Quantitative Assessment of Compositional Distribution</string>
      </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
     </widget>
    </item>
    <item>
     <widget class="QLabel" name="label">
      <property name="text">
       <string>This software is used for the processing of X-ray spectrum images or element maps collected by EDS (Energy Dispersive X-ray Spectroscopy) on scanning electron microscopes and electron microprobes.</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
      </property>
      <property name="wordWrap">
       <bool>true</bool>
