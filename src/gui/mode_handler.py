@@ -12,9 +12,10 @@ from .enums import ArrayType
 # Classes to handle different interactive modes in matplotlib_widget.
 
 class ModeHandler:
-    def __init__(self, matplotlib_widget, display_options):
+    def __init__(self, matplotlib_widget, display_options, status_callback):
         self.matplotlib_widget = matplotlib_widget
         self.display_options = display_options
+        self._status_callback = status_callback
 
     def clear(self):
         pass
@@ -37,14 +38,26 @@ class ModeHandler:
     def on_mouse_move(self, event):
         pass
 
+    def send_status_callback(self, event):
+        if self._status_callback is not None:
+            if (event is not None and event.inaxes is not None and
+                event.inaxes == self.matplotlib_widget._map_axes):
+                x = int(event.xdata)
+                y = int(event.ydata)
+                value = self.matplotlib_widget.get_value_at_position(x, y)
+                self._status_callback((x, y, value))
+            else:
+                self._status_callback(None)
+
     def set_display_options(self, display_options):
         self.display_options = display_options
 
 
 # Abstract base class for all region handlers.
 class RegionHandler(ModeHandler):
-    def __init__(self, matplotlib_widget, display_options, listener):
-        super().__init__(matplotlib_widget, display_options)
+    def __init__(self, matplotlib_widget, display_options, status_callback,
+                 listener):
+        super().__init__(matplotlib_widget, display_options, status_callback)
         self._listener = listener
         self._line_colour = 'k'
         self._shadow_colour = 'w'
@@ -103,6 +116,8 @@ class RegionHandler(ModeHandler):
             self.matplotlib_widget._redraw()
             self.update_listener()
 
+        self.send_status_callback(None)
+
     def get_region(self):
         return self._region
 
@@ -130,6 +145,8 @@ class RegionHandler(ModeHandler):
 
             QtWidgets.QApplication.restoreOverrideCursor()
 
+        self.send_status_callback(None)
+
     def update_listener(self):
         if self._listener:
             self._listener.update_from_mode_handler()
@@ -138,8 +155,10 @@ class RegionHandler(ModeHandler):
 # Abstract base class for region handlers that are controlled by a single drag
 # of the mouse.
 class MouseDragRegionHandler(RegionHandler):
-    def __init__(self, matplotlib_widget, display_options, listener):
-        super().__init__(matplotlib_widget, display_options, listener)
+    def __init__(self, matplotlib_widget, display_options, status_callback,
+                 listener):
+        super().__init__(matplotlib_widget, display_options, status_callback,
+                         listener)
 
     def on_mouse_down(self, event):
         if (not self._editing and
@@ -166,6 +185,8 @@ class MouseDragRegionHandler(RegionHandler):
             self._move_artists()
             self.matplotlib_widget._redraw()
 
+        self.send_status_callback(event)
+
     def on_mouse_up(self, event):
         if (self._editing and self._artists and
             event.button == 1 and event.dblclick == False):
@@ -174,8 +195,10 @@ class MouseDragRegionHandler(RegionHandler):
 
 
 class EllipseRegionHandler(MouseDragRegionHandler):
-    def __init__(self, matplotlib_widget, display_options, listener):
-        super().__init__(matplotlib_widget, display_options, listener)
+    def __init__(self, matplotlib_widget, display_options, status_callback,
+                 listener):
+        super().__init__(matplotlib_widget, display_options, status_callback,
+                         listener)
 
     def _calculate_region(self):
         project = self.matplotlib_widget._owning_window._project
@@ -219,8 +242,10 @@ class EllipseRegionHandler(MouseDragRegionHandler):
 
 
 class RectangleRegionHandler(MouseDragRegionHandler):
-    def __init__(self, matplotlib_widget, display_options, listener):
-        super().__init__(matplotlib_widget, display_options, listener)
+    def __init__(self, matplotlib_widget, display_options, status_callback,
+                 listener):
+        super().__init__(matplotlib_widget, display_options, status_callback,
+                         listener)
 
     def _calculate_region(self):
         project = self.matplotlib_widget._owning_window._project
@@ -255,8 +280,10 @@ class RectangleRegionHandler(MouseDragRegionHandler):
 
 class PolygonRegionHandler(RegionHandler):
     # 3 artists: lines, markers and highlight marker.
-    def __init__(self, matplotlib_widget, display_options, listener):
-        super().__init__(matplotlib_widget, display_options, listener)
+    def __init__(self, matplotlib_widget, display_options, status_callback,
+                 listener):
+        super().__init__(matplotlib_widget, display_options, status_callback,
+                         listener)
 
     def _add_point(self, point):
         # Add point to end of self._points, but only if it is not the same as
@@ -307,6 +334,9 @@ class PolygonRegionHandler(RegionHandler):
     def get_shape_string(self):
         return 'polygon'
 
+    def on_axes_leave(self, event):
+        self.send_status_callback(None)
+
     def on_mouse_down(self, event):
         if (event.button == 1 and event.inaxes is not None and
             event.inaxes == self.matplotlib_widget._map_axes):
@@ -339,6 +369,8 @@ class PolygonRegionHandler(RegionHandler):
                 self._artists[2] = None
                 self.matplotlib_widget._redraw()
 
+        self.send_status_callback(event)
+
 
 class ZoomHandler(ModeHandler):
     @unique
@@ -348,8 +380,8 @@ class ZoomHandler(ModeHandler):
         COLOURBAR =  1
         HISTOGRAM =  2
 
-    def __init__(self, matplotlib_widget, display_options):
-        super().__init__(matplotlib_widget, display_options)
+    def __init__(self, matplotlib_widget, display_options, status_callback):
+        super().__init__(matplotlib_widget, display_options, status_callback)
         self._zoom_rectangle = None  # Only set when zooming.
         self._type = self.Type.INVALID
 
@@ -362,6 +394,8 @@ class ZoomHandler(ModeHandler):
 
             self._type = self.Type.INVALID
             self.matplotlib_widget._redraw()
+
+        self.send_status_callback(None)
 
     def on_axes_enter(self, event):
         if (event.inaxes is not None and
@@ -379,6 +413,8 @@ class ZoomHandler(ModeHandler):
              event.inaxes == self.matplotlib_widget._histogram_axes)):
 
             QtWidgets.QApplication.restoreOverrideCursor()
+
+        self.send_status_callback(None)
 
     def on_mouse_down(self, event):
         if (self._zoom_rectangle is not None or event.button != 1 or
@@ -419,25 +455,25 @@ class ZoomHandler(ModeHandler):
         self.matplotlib_widget._redraw()
 
     def on_mouse_move(self, event):
-        if self._zoom_rectangle is None:
-            return
+        if self._zoom_rectangle is not None:  # Zooming
+            if (self._type == self.Type.MAP and
+                event.inaxes == self.matplotlib_widget._map_axes):
+                x = event.xdata
+                y = event.ydata
+                self._zoom_rectangle.set_width(x - self._zoom_rectangle.get_x())
+                self._zoom_rectangle.set_height(y - self._zoom_rectangle.get_y())
+            elif (self._type == self.Type.COLOURBAR and
+                  event.inaxes == self.matplotlib_widget.get_colourbar_axes()):
+                y = event.ydata
+                self._zoom_rectangle.set_height(y - self._zoom_rectangle.get_y())
+            elif (self._type == self.Type.HISTOGRAM and
+                  event.inaxes == self.matplotlib_widget._histogram_axes):
+                x = event.xdata
+                self._zoom_rectangle.set_width(x - self._zoom_rectangle.get_x())
 
-        if (self._type == self.Type.MAP and
-            event.inaxes == self.matplotlib_widget._map_axes):
-            x = event.xdata
-            y = event.ydata
-            self._zoom_rectangle.set_width(x - self._zoom_rectangle.get_x())
-            self._zoom_rectangle.set_height(y - self._zoom_rectangle.get_y())
-        elif (self._type == self.Type.COLOURBAR and
-              event.inaxes == self.matplotlib_widget.get_colourbar_axes()):
-            y = event.ydata
-            self._zoom_rectangle.set_height(y - self._zoom_rectangle.get_y())
-        elif (self._type == self.Type.HISTOGRAM and
-              event.inaxes == self.matplotlib_widget._histogram_axes):
-            x = event.xdata
-            self._zoom_rectangle.set_width(x - self._zoom_rectangle.get_x())
+            self.matplotlib_widget._redraw()
 
-        self.matplotlib_widget._redraw()
+        self.send_status_callback(event)
 
     def on_mouse_up(self, event):
         if self._zoom_rectangle is None or event.button != 1 or event.dblclick:

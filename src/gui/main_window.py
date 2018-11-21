@@ -65,7 +65,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.setupUi(self)
 
         self.matplotlibWidget.initialise(owning_window=self,
-                                         display_options=None)
+                                         display_options=None,
+                                         status_callback=self.status_callback)
 
         self.statusbar.messageChanged.connect(self.status_bar_change)
 
@@ -141,6 +142,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self._zoom_history = ZoomHistory()
         self._zoom_colourmap_history = ZoomHistory()
+
+        self._status_callback_data = None
 
         self.update_controls()
         self.update_title()
@@ -747,6 +750,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self._current.selected_array is not None):
             self.update_status_bar()
 
+    def status_callback(self, data):
+        if not (data is None and self._status_callback_data is None):
+            self._status_callback_data = data
+            self.update_status_bar()
+
     def update_controls(self):
         valid_project = self._project is not None
         showing_phase_or_region = self._current.array_type in \
@@ -884,8 +892,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 combo_box.addItem(name)
 
     def update_status_bar(self):
-        msg = self.get_status_string(self._current.displayed_array,
-                                     self._current.displayed_array_stats)
+        if self._status_callback_data is None:
+            msg = self.get_status_string(self._current.displayed_array,
+                                         self._current.displayed_array_stats)
+        elif self._status_callback_data[2] is None:
+            msg = 'x={} y={} value=invalid'.format(*self._status_callback_data)
+        else:
+            msg = 'x={} y={} value={:g}'.format(*self._status_callback_data)
+
         if msg is None:
             self.statusbar.clearMessage()
         else:

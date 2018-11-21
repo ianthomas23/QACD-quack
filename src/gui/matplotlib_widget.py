@@ -308,15 +308,27 @@ class MatplotlibWidget(QtWidgets.QWidget):
         else:
             return self._colourbar.ax
 
+    def get_value_at_position(self, x, y):
+        # Return value at (x, y) indices of the current array, or None if there
+        # is no such value or the value is masked.
+        if self._array is not None:
+            value = self._array[y, x]
+            if value is not np.ma.masked:
+                return value
+        return None
+
     def has_content(self):
         return self._plot_type != PlotType.INVALID
 
     def has_map_axes(self):
         return self._map_axes is not None
 
-    def initialise(self, owning_window, display_options, zoom_enabled=True):
+    def initialise(self, owning_window, display_options, zoom_enabled=True,
+                   status_callback=None):
         self._owning_window = owning_window
         self.set_display_options(display_options)
+        self._status_callback = status_callback
+
         if zoom_enabled:
             self._canvas.mpl_connect('axes_enter_event', self.on_axes_enter)
             self._canvas.mpl_connect('axes_leave_event', self.on_axes_leave)
@@ -412,13 +424,17 @@ class MatplotlibWidget(QtWidgets.QWidget):
             options = self._display_options
 
             if mode_type == ModeType.ZOOM:
-                self._mode_handler = ZoomHandler(self, options)
+                self._mode_handler = ZoomHandler(self, options, \
+                    self._status_callback)
             elif mode_type == ModeType.REGION_RECTANGLE:
-                self._mode_handler = RectangleRegionHandler(self, options, listener)
+                self._mode_handler = RectangleRegionHandler(self, options,
+                    self._status_callback, listener)
             elif mode_type == ModeType.REGION_ELLIPSE:
-                self._mode_handler = EllipseRegionHandler(self, options, listener)
+                self._mode_handler = EllipseRegionHandler(self, options,
+                    self._status_callback, listener)
             elif mode_type == ModeType.REGION_POLYGON:
-                self._mode_handler = PolygonRegionHandler(self, options, listener)
+                self._mode_handler = PolygonRegionHandler(self, options,
+                    self._status_callback, listener)
             else:
                 self._mode_handler = None
 
