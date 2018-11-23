@@ -20,6 +20,10 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
             owning_window=self, display_options=self.project.display_options,
             zoom_enabled=False)
 
+        # Initial vertical sizes above and below splitter.
+        self.splitter.setStretchFactor(0, 2)
+        self.splitter.setStretchFactor(1, 1)
+
         self.fill_element_table()
         self.elementTable.itemSelectionChanged.connect(self.change_element)
         self.lowerSlider.sliderReleased.connect(self.update_element_map)
