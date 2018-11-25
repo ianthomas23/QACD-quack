@@ -750,7 +750,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self._current.selected_array is not None):
             self.update_status_bar()
 
-    def status_callback(self, data):
+    def status_callback(self, matplotlib_widget, data):
         if not (data is None and self._status_callback_data is None):
             self._status_callback_data = data
             self.update_status_bar()
@@ -896,7 +896,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             msg = self.get_status_string(self._current.displayed_array,
                                          self._current.displayed_array_stats)
         elif self._status_callback_data[2] is None:
-            msg = 'x={} y={} value=invalid'.format(*self._status_callback_data)
+            msg = 'x={} y={} value=none'.format(*self._status_callback_data)
         else:
             msg = 'x={} y={} value={:g}'.format(*self._status_callback_data)
 
@@ -911,10 +911,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             title += ' - ' + self._project.filename
         self.setWindowTitle(title)
 
-    def zoom_append(self, from_, to):
-        self._zoom_history.append(from_, to)
-        self.matplotlibWidget.set_map_zoom(to[0], to[1])
-        self.update_controls()
+    def zoom_append(self, matplotlib_widget, from_, to):
+        if matplotlib_widget == self.matplotlibWidget:
+            self._zoom_history.append(from_, to)
+            self.matplotlibWidget.set_map_zoom(to[0], to[1])
+            self.update_controls()
 
     def zoom_colourmap_append(self, from_, to):
         self._zoom_colourmap_history.append(from_, to)

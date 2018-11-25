@@ -4,6 +4,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from src.model.elements import element_properties
 from .enums import ArrayType, PlotType
 from .ui_new_phase_filtered_dialog import Ui_NewPhaseFilteredDialog
+from .zoom_history import ZoomHistory
 
 
 class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
@@ -15,10 +16,10 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
         self.project = project
         self.elementMatplotlibWidget.initialise( \
             owning_window=self, display_options=self.project.display_options,
-            zoom_enabled=False)
+            zoom_enabled=True, status_callback=self.status_callback)
         self.phaseMatplotlibWidget.initialise( \
             owning_window=self, display_options=self.project.display_options,
-            zoom_enabled=False)
+            zoom_enabled=True, status_callback=self.status_callback)
 
         # Initial vertical sizes above and below splitter.
         self.splitter.setStretchFactor(0, 2)
@@ -35,6 +36,8 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
 
         self.okButton = self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok)
         self.nameEdit.textChanged.connect(self.update_ok_button)
+        self.undoButton.clicked.connect(self.zoom_undo)
+        self.redoButton.clicked.connect(self.zoom_redo)
 
         # Currently selected element map.
         self.element = None
@@ -46,6 +49,9 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
 
         # Currently displayed phase map (masked array).
         self.phase_map = None
+
+        self.status_callback_data = None
+        self.zoom_history = ZoomHistory()
 
         # Select first row in element table.
         self.elementTable.setCurrentCell(0, 0)
@@ -226,6 +232,11 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
             self.cache[self.element] = self.project.get_filtered_within_limits(\
                 self.element, lower, upper)
 
+    def status_callback(self, matplotlib_widget, data):
+        if not (data is None and self.status_callback_data is None):
+            self.status_callback_data = data
+            self.update_status_bar()
+
     def update_buttons(self):
         row = self.elementTable.currentRow()
         lower_item = self.elementTable.item(row, 2)
@@ -238,6 +249,9 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
         self.clearThresholdsButton.setEnabled(self.element in self.cache)
         self.update_ok_button()
 
+        self.undoButton.setEnabled(self.zoom_history.has_undo())
+        self.redoButton.setEnabled(self.zoom_history.has_redo())
+
     def update_element_map(self):
         lower = self.lowerSlider.value()
         upper = self.upperSlider.value()
@@ -249,6 +263,8 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
                                  len(self.nameEdit.text()) > 0)
 
     def update_phase_map(self):
+        previously_empty = not self.phaseMatplotlibWidget.has_map_axes()
+
         self.phase_map = None
         for element, array in self.cache.items():
             if self.phase_map is None:
@@ -262,6 +278,19 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
             self.phase_map = np.ma.masked_equal(self.phase_map, 0)
             self.phaseMatplotlibWidget.update(PlotType.MAP, ArrayType.PHASE,
                 self.phase_map, None, None, None)
+            if previously_empty and self.zoom_history.has_any():
+                zoom = self.zoom_history.current()
+                self.phaseMatplotlibWidget.set_map_zoom(zoom[1][0], zoom[1][1])
+
+    def update_status_bar(self):
+        if self.status_callback_data is None:
+            msg = None
+        elif self.status_callback_data[2] is None:
+            msg = 'x={} y={} value=none'.format(*self.status_callback_data)
+        else:
+            msg = 'x={} y={} value={:g}'.format(*self.status_callback_data)
+
+        self.statusbar.setText(msg)
 
     def update_thresholds(self):
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
@@ -270,4 +299,22 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
         self.update_phase_map()
 
         QtWidgets.QApplication.restoreOverrideCursor()
+        self.update_buttons()
+
+    def zoom_append(self, matplotlib_widget, from_, to):
+        self.zoom_history.append(from_, to)
+        for widget in (self.elementMatplotlibWidget, self.phaseMatplotlibWidget):
+            widget.set_map_zoom(to[0], to[1])
+        self.update_buttons()
+
+    def zoom_redo(self):
+        zoom = self.zoom_history.redo()
+        for widget in (self.elementMatplotlibWidget, self.phaseMatplotlibWidget):
+            widget.set_map_zoom(zoom[1][0], zoom[1][1])
+        self.update_buttons()
+
+    def zoom_undo(self):
+        zoom = self.zoom_history.undo()
+        for widget in (self.elementMatplotlibWidget, self.phaseMatplotlibWidget):
+            widget.set_map_zoom(zoom[0][0], zoom[0][1])
         self.update_buttons()

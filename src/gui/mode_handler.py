@@ -16,9 +16,16 @@ class ModeHandler:
         self.matplotlib_widget = matplotlib_widget
         self.display_options = display_options
         self._status_callback = status_callback
+        self._shadow_colour = 'w'
+        self._shadow_alpha = 0.75
 
     def clear(self):
         pass
+
+    def _get_path_effects(self):
+        return [Stroke(linewidth=3, foreground=self._shadow_colour,
+                       alpha=self._shadow_alpha),
+                Normal()]
 
     def move_to_new_axes(self):
         pass
@@ -45,9 +52,9 @@ class ModeHandler:
                 x = int(event.xdata)
                 y = int(event.ydata)
                 value = self.matplotlib_widget.get_value_at_position(x, y)
-                self._status_callback((x, y, value))
+                self._status_callback(self.matplotlib_widget, (x, y, value))
             else:
-                self._status_callback(None)
+                self._status_callback(self.matplotlib_widget, None)
 
     def set_display_options(self, display_options):
         self.display_options = display_options
@@ -60,8 +67,6 @@ class RegionHandler(ModeHandler):
         super().__init__(matplotlib_widget, display_options, status_callback)
         self._listener = listener
         self._line_colour = 'k'
-        self._shadow_colour = 'w'
-        self._shadow_alpha = 0.75
         self._region_alpha = 0.75
 
         self._editing = False
@@ -90,11 +95,6 @@ class RegionHandler(ModeHandler):
 
         self.matplotlib_widget._redraw()
         self.update_listener()
-
-    def _get_path_effects(self):
-        return [Stroke(linewidth=3, foreground=self._shadow_colour,
-                       alpha=self._shadow_alpha),
-                Normal()]
 
     def clear(self):
         if self.matplotlib_widget._map_axes is not None:
@@ -428,6 +428,7 @@ class ZoomHandler(ModeHandler):
                                   fc='none', ec='k', ls='--')
             self._zoom_rectangle = \
                 self.matplotlib_widget._map_axes.add_patch(rectangle)
+            self._zoom_rectangle.set_path_effects(self._get_path_effects())
             self._type = self.Type.MAP
 
         elif (self.matplotlib_widget._colourbar is not None and
@@ -438,6 +439,7 @@ class ZoomHandler(ModeHandler):
                                   fc='none', ec='k', ls='--')
             self._zoom_rectangle = \
                 self.matplotlib_widget.get_colourbar_axes().add_patch(rectangle)
+            self._zoom_rectangle.set_path_effects(self._get_path_effects())
             self._type = self.Type.COLOURBAR
 
         elif (self.matplotlib_widget._histogram_axes is not None and
@@ -450,6 +452,7 @@ class ZoomHandler(ModeHandler):
                 fc='none', ec='k', ls='--')
             self._zoom_rectangle = \
                 self.matplotlib_widget._histogram_axes.add_patch(rectangle)
+            self._zoom_rectangle.set_path_effects(self._get_path_effects())
             self._type = self.Type.HISTOGRAM
 
         self.matplotlib_widget._redraw()
@@ -493,7 +496,8 @@ class ZoomHandler(ModeHandler):
                                     self.matplotlib_widget._map_axes.get_ylim())) / scale
                 to = np.asarray((zoom_xs, zoom_ys)) / scale
 
-                self.matplotlib_widget._owning_window.zoom_append(from_=from_, to=to)
+                self.matplotlib_widget._owning_window.zoom_append( \
+                    self.matplotlib_widget, from_=from_, to=to)
                 self.clear()
         elif self._type == self.Type.COLOURBAR:
             height = self._zoom_rectangle.get_height()

@@ -17,6 +17,12 @@ class ZoomHistory:
         self._stack.clear()
         self._index = 0
 
+    def current(self):
+        if self.has_any():
+            return self._stack[self._index-1]
+        else:
+            return None
+
     def has_any(self):
         return len(self._stack) > 0
 
