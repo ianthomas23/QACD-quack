@@ -57,8 +57,13 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         self._locations_button_group.buttonClicked.connect(self.update_buttons)
         self._colours_button_group.buttonClicked.connect(self.update_buttons)
 
-        # Histogram tab.
+        # Histogram tab controls.
         self.histogramBinCountComboBox.currentIndexChanged.connect(self.update_buttons)
+        self.fixedBinCountGroupBox.toggled.connect(self.toggle_fixed_bin_count)
+        self.fixedBinWidthGroupBox.toggled.connect(self.toggle_fixed_bin_width)
+        self._linked_histogram_groups = True
+        self.histogramBinWidthLineEdit.textChanged.connect(self.update_buttons)
+        self.maxBinCountLineEdit.textChanged.connect(self.update_buttons)
 
     def accept(self):
         try:
@@ -76,6 +81,8 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
             QtWidgets.QMessageBox.critical(self, 'Error', str(e))
 
     def apply_tab(self, tab_index):
+        locale = QtCore.QLocale()
+
         if tab_index == 0:
             # Colourmap tab.
             selected_name = self.get_selected_colourmap_name()
@@ -92,11 +99,13 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
             show_date = self.showDateCheckBox.isChecked()
 
             use_scale = self.useScaleCheckBox.isChecked()
-            pixel_size, ok = QtCore.QLocale().toDouble(self.pixelSizeLineEdit.text())
+
+            pixel_size, ok = locale.toDouble(self.pixelSizeLineEdit.text())
             if not ok or pixel_size == 0.0:
                 validator = self.pixelSizeLineEdit.validator()
-                raise RuntimeError('Pixel size should be a number between {} and {}'.format( \
+                raise RuntimeError('Pixel size should between {} and {}'.format( \
                     validator.bottom(), validator.top()))
+
             units = self.unitsComboBox.currentText()
             show_scale_bar = self.showScaleBarCheckBox.isChecked()
             scale_bar_location = self.get_scale_bar_location()
@@ -108,9 +117,24 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
                 scale_bar_location, scale_bar_colour)
             self.update_buttons()
         else:  # tab_index == 2
+            use_histogram_bin_count = self.fixedBinCountGroupBox.isChecked()
             histogram_bin_count = int(self.histogramBinCountComboBox.currentText())
 
-            self._display_options.set_histogram(histogram_bin_count)
+            histogram_bin_width, ok = locale.toDouble(self.histogramBinWidthLineEdit.text())
+            if not ok:
+                validator = self.histogramBinWidthLineEdit.validator()
+                raise RuntimeError('Histogram bin width should be between {} and {}'.format( \
+                    validator.bottom(), validator.top()))
+
+            histogram_max_bin_count, ok = locale.toInt(self.maxBinCountLineEdit.text())
+            if not ok:
+                validator = self.maxBinCountLineEdit.validator()
+                raise RuntimeError('Histogram max bin count should be between {} and {}'.format( \
+                    validator.bottom(), validator.top()))
+
+            self._display_options.set_histogram( \
+                use_histogram_bin_count, histogram_bin_count,
+                histogram_bin_width, histogram_max_bin_count)
             self.update_buttons()
 
     def change_tab(self):
@@ -184,7 +208,7 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
     def init_histogram_tab(self):
         options = self._display_options
 
-        values = [20, 40, 60, 80, 100, 120, 140, 160, 180, 200]
+        values = list(range(20, 201, 20))
         combo_box = self.histogramBinCountComboBox
         selected_index = None
         for index, value in enumerate(values):
@@ -194,6 +218,19 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
 
         if selected_index is not None:
             combo_box.setCurrentIndex(selected_index)
+
+        use_bin_count = options.use_histogram_bin_count
+        self.fixedBinCountGroupBox.setChecked(use_bin_count)
+        self.fixedBinWidthGroupBox.setChecked(not use_bin_count)
+
+        validator1 = QtGui.QDoubleValidator(0.0001, 10000.0, 4)
+        validator1.setNotation(QtGui.QDoubleValidator.StandardNotation)
+        self.histogramBinWidthLineEdit.setValidator(validator1)
+        self.histogramBinWidthLineEdit.setText(str(options.histogram_bin_width))
+
+        validator2 = QtGui.QIntValidator(2, 10000)
+        self.maxBinCountLineEdit.setValidator(validator2)
+        self.maxBinCountLineEdit.setText(str(options.histogram_max_bin_count))
 
     def init_labels_and_scale_tab(self):
         options = self._display_options
@@ -226,28 +263,43 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         self._locations_lookup[options.scale_bar_location].setChecked(True)
         self._colours_lookup[options.scale_bar_colour].setChecked(True)
 
+    def toggle_fixed_bin_count(self, on):
+        if self._linked_histogram_groups:
+            self._linked_histogram_groups = False
+            self.fixedBinWidthGroupBox.setChecked(not on)
+            self._linked_histogram_groups = True
+            self.update_buttons()
+
+    def toggle_fixed_bin_width(self, on):
+        if self._linked_histogram_groups:
+            self._linked_histogram_groups = False
+            self.fixedBinCountGroupBox.setChecked(not on)
+            self._linked_histogram_groups = True
+            self.update_buttons()
+
     def update_buttons(self):
         options = self._display_options
+        locale = QtCore.QLocale()
 
-        tab_index = self.tabWidget.currentIndex()
-        if tab_index == 0:
-            selected_name = self.get_selected_colourmap_name()
-            self.applyButton.setEnabled(selected_name != options.colourmap_name)
-        else:
-            enabled = \
-                self.showTicksAndLabelsCheckBox.isChecked() != options.show_ticks_and_labels or \
-                self.overallTitleLineEdit.text() != options.overall_title or \
-                self.showProjectFilenameCheckBox.isChecked() != options.show_project_filename or \
-                self.showDateCheckBox.isChecked() != options.show_date or \
-                self.useScaleCheckBox.isChecked() != options.use_scale or \
-                QtCore.QLocale().toDouble(self.pixelSizeLineEdit.text())[0] != options.pixel_size or \
-                self.unitsComboBox.currentText() != options.units or \
-                self.showScaleBarCheckBox.isChecked() != options.show_scale_bar or \
-                self.get_scale_bar_location() != options.scale_bar_location or \
-                self.get_scale_bar_colour() != options.scale_bar_colour or \
-                int(self.histogramBinCountComboBox.currentText()) != options.histogram_bin_count
+        enabled = \
+            self.get_selected_colourmap_name() != options.colourmap_name or \
+            self.showTicksAndLabelsCheckBox.isChecked() != options.show_ticks_and_labels or \
+            self.overallTitleLineEdit.text() != options.overall_title or \
+            self.showProjectFilenameCheckBox.isChecked() != options.show_project_filename or \
+            self.showDateCheckBox.isChecked() != options.show_date or \
+            self.useScaleCheckBox.isChecked() != options.use_scale or \
+            locale.toDouble(self.pixelSizeLineEdit.text())[0] != options.pixel_size or \
+            self.unitsComboBox.currentText() != options.units or \
+            self.showScaleBarCheckBox.isChecked() != options.show_scale_bar or \
+            self.get_scale_bar_location() != options.scale_bar_location or \
+            self.get_scale_bar_colour() != options.scale_bar_colour or \
+            int(self.histogramBinCountComboBox.currentText()) != options.histogram_bin_count or \
+            self.fixedBinCountGroupBox.isChecked() != options.use_histogram_bin_count or \
+            int(self.histogramBinCountComboBox.currentText()) != options.histogram_bin_count or \
+            locale.toDouble(self.histogramBinWidthLineEdit.text())[0] != options.histogram_bin_width or \
+            locale.toInt(self.maxBinCountLineEdit.text())[0] != options.histogram_max_bin_count
 
-            self.applyButton.setEnabled(enabled)
+        self.applyButton.setEnabled(enabled)
 
     def update_controls(self):
         self.update_buttons()

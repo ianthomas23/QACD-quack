@@ -30,7 +30,10 @@ class DisplayOptions:
         self._scale_bar_colour = self._valid_scale_bar_colours[0]
 
         # Histogram options.
+        self._use_histogram_bin_count = True
         self._histogram_bin_count = 100
+        self._histogram_bin_width = 0.005
+        self._histogram_max_bin_count = 200
 
         self._listeners = weakref.WeakSet()
 
@@ -80,6 +83,14 @@ class DisplayOptions:
         return self._histogram_bin_count
 
     @property
+    def histogram_bin_width(self):
+        return self._histogram_bin_width
+
+    @property
+    def histogram_max_bin_count(self):
+        return self._histogram_max_bin_count
+
+    @property
     def overall_title(self):
         return self._overall_title
 
@@ -110,8 +121,12 @@ class DisplayOptions:
     def scale_bar_location(self):
         return self._scale_bar_location
 
-    def set_histogram(self, histogram_bin_count):
+    def set_histogram(self, use_histogram_bin_count, histogram_bin_count,
+                histogram_bin_width, histogram_max_bin_count):
+        self._use_histogram_bin_count = use_histogram_bin_count
         self._histogram_bin_count = histogram_bin_count
+        self._histogram_bin_width = histogram_bin_width
+        self._histogram_max_bin_count = histogram_max_bin_count
 
         self._project().save_display_options()
 
@@ -173,6 +188,10 @@ class DisplayOptions:
     @property
     def use_scale(self):
         return self._use_scale
+
+    @property
+    def use_histogram_bin_count(self):
+        return self._use_histogram_bin_count
 
     @property
     def units(self):

@@ -1,4 +1,5 @@
 from enum import Enum, unique
+import math
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 import matplotlib.cm as cm
 from matplotlib.colors import LinearSegmentedColormap, Normalize
@@ -127,7 +128,6 @@ class MatplotlibWidget(QtWidgets.QWidget):
     def _redraw(self):
         self._canvas.draw()
         #self._canvas.draw_idle()
-
     def _update_draw(self):
         # Draw using cached variables.
 
@@ -205,10 +205,20 @@ class MatplotlibWidget(QtWidgets.QWidget):
             self._bar = None
             self._bar_norm_x = None
         else:
-            if cmap_int_max is None:
+            if cmap_int_max is not None:
+                bins = np.arange(0, cmap_int_max+1)-0.5
+            elif options.use_histogram_bin_count:
                 bins = options.histogram_bin_count
             else:
-                bins = np.arange(0, cmap_int_max+1)-0.5
+                # Use bin width, but only if max count not exceeded.
+                bin_width = options.histogram_bin_width
+                min_index = math.floor(self._array.min() / bin_width)
+                max_index = math.ceil(self._array.max() / bin_width) - 1
+                bins = max_index - min_index
+                if bins < options.histogram_max_bin_count:
+                    bins = bin_width*np.arange(min_index, max_index+2)
+                else:
+                    bins = options.histogram_max_bin_count
             hist, bin_edges = np.histogram(np.ma.compressed(self._array),
                                            bins=bins)
             width = bin_edges[1] - bin_edges[0]
