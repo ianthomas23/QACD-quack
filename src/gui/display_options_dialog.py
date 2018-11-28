@@ -118,6 +118,7 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
                 scale_bar_location, scale_bar_colour)
             self.update_buttons()
         else:  # tab_index == 2
+            # Histogram tab.
             use_histogram_bin_count = self.fixedBinCountGroupBox.isChecked()
             histogram_bin_count = int(self.histogramBinCountComboBox.currentText())
 
@@ -142,7 +143,7 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
             self.update_buttons()
 
     def change_tab(self):
-        self.update_buttons()
+        self.update_controls()
 
     def create_pixmap(self, name):
         w, h = self._image_size
@@ -287,24 +288,33 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         options = self._display_options
         locale = QtCore.QLocale()
 
-        enabled = \
-            self.get_selected_colourmap_name() != options.colourmap_name or \
-            self.showTicksAndLabelsCheckBox.isChecked() != options.show_ticks_and_labels or \
-            self.overallTitleLineEdit.text() != options.overall_title or \
-            self.showProjectFilenameCheckBox.isChecked() != options.show_project_filename or \
-            self.showDateCheckBox.isChecked() != options.show_date or \
-            self.useScaleCheckBox.isChecked() != options.use_scale or \
-            locale.toDouble(self.pixelSizeLineEdit.text())[0] != options.pixel_size or \
-            self.unitsComboBox.currentText() != options.units or \
-            self.showScaleBarCheckBox.isChecked() != options.show_scale_bar or \
-            self.get_scale_bar_location() != options.scale_bar_location or \
-            self.get_scale_bar_colour() != options.scale_bar_colour or \
-            int(self.histogramBinCountComboBox.currentText()) != options.histogram_bin_count or \
-            self.fixedBinCountGroupBox.isChecked() != options.use_histogram_bin_count or \
-            int(self.histogramBinCountComboBox.currentText()) != options.histogram_bin_count or \
-            locale.toDouble(self.histogramBinWidthLineEdit.text())[0] != options.histogram_bin_width or \
-            locale.toInt(self.maxBinCountLineEdit.text())[0] != options.histogram_max_bin_count or \
-            self.showMeanMedianStdCheckBox.isChecked() != options.show_mean_median_std_lines
+        tab_index = self.tabWidget.currentIndex()
+
+        if tab_index == 0:
+            # Colourmap tab.
+            enabled = self.get_selected_colourmap_name() != options.colourmap_name
+        elif tab_index == 1:
+            # Labels and scale tab.
+            enabled = \
+                self.showTicksAndLabelsCheckBox.isChecked() != options.show_ticks_and_labels or \
+                self.overallTitleLineEdit.text() != options.overall_title or \
+                self.showProjectFilenameCheckBox.isChecked() != options.show_project_filename or \
+                self.showDateCheckBox.isChecked() != options.show_date or \
+                self.useScaleCheckBox.isChecked() != options.use_scale or \
+                locale.toDouble(self.pixelSizeLineEdit.text())[0] != options.pixel_size or \
+                self.unitsComboBox.currentText() != options.units or \
+                self.showScaleBarCheckBox.isChecked() != options.show_scale_bar or \
+                self.get_scale_bar_location() != options.scale_bar_location or \
+                self.get_scale_bar_colour() != options.scale_bar_colour
+        else:  # tab_index == 2
+            # Histogram tab.
+            enabled = \
+                int(self.histogramBinCountComboBox.currentText()) != options.histogram_bin_count or \
+                self.fixedBinCountGroupBox.isChecked() != options.use_histogram_bin_count or \
+                int(self.histogramBinCountComboBox.currentText()) != options.histogram_bin_count or \
+                locale.toDouble(self.histogramBinWidthLineEdit.text())[0] != options.histogram_bin_width or \
+                locale.toInt(self.maxBinCountLineEdit.text())[0] != options.histogram_max_bin_count or \
+                self.showMeanMedianStdCheckBox.isChecked() != options.show_mean_median_std_lines
 
         self.applyButton.setEnabled(enabled)
 
