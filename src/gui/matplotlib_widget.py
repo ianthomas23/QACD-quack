@@ -41,6 +41,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._cmap_int_max = None  # One beyond end, as in numpy slicing.
         self._scale_bar = None
         self._colourbar = None
+        self._histogram = None     # Latest (histogram, bin_edges, bin_width).
 
         # Scale and units initially from display options, but may need to
         # change them if distances are too large, e.g. 1000 mm goes to 1 m.
@@ -208,6 +209,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
         if self._histogram_axes is None:
             self._bar = None
             self._bar_norm_x = None
+            self._histogram = None
         else:
             if cmap_int_max is not None:
                 bins = np.arange(0, cmap_int_max+1)-0.5
@@ -226,6 +228,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
             hist, bin_edges = np.histogram(np.ma.compressed(self._array),
                                            bins=bins)
             bin_width = bin_edges[1] - bin_edges[0]
+            self._histogram = (hist, bin_edges, bin_width)
             bin_centres = bin_edges[:-1] + 0.5*bin_width
             self._bar_norm_x = norm(bin_centres)
             colours = cmap(self._bar_norm_x)
@@ -321,6 +324,24 @@ class MatplotlibWidget(QtWidgets.QWidget):
             return None
         else:
             return self._colourbar.ax
+
+    def get_histogram_at_x(self, x):
+        # Return histogram data at specified x value.
+        if self._histogram is None:
+            return None
+
+        hist, bin_edges, bin_width = self._histogram
+        nbins = len(hist)
+        i = math.floor((x - bin_edges[0]) / bin_width)
+        if i < 0 or i >= len(bin_edges)-1:
+            # In histogram, but not within a bin.
+            return [bin_width, nbins]
+        else:
+            # Within a histogram bin.
+            bin_low = bin_edges[i]
+            bin_high = bin_edges[i+1]
+            count = hist[i]
+            return [bin_width, nbins, bin_low, bin_high, count]
 
     def get_value_at_position(self, x, y):
         # Return value at (x, y) indices of the current array, or None if there

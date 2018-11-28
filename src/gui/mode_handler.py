@@ -47,14 +47,20 @@ class ModeHandler:
 
     def send_status_callback(self, event):
         if self._status_callback is not None:
-            if (event is not None and event.inaxes is not None and
-                event.inaxes == self.matplotlib_widget._map_axes):
-                x = int(event.xdata)
-                y = int(event.ydata)
-                value = self.matplotlib_widget.get_value_at_position(x, y)
-                self._status_callback(self.matplotlib_widget, (x, y, value))
-            else:
-                self._status_callback(self.matplotlib_widget, None)
+            callback_data = None
+            if event is not None and event.inaxes is not None:
+                if event.inaxes == self.matplotlib_widget._map_axes:
+                    x = int(event.xdata)
+                    y = int(event.ydata)
+                    value = self.matplotlib_widget.get_value_at_position(x, y)
+                    callback_data = ('pixel', x, y, value)
+                elif event.inaxes == self.matplotlib_widget._histogram_axes:
+                    x = event.xdata
+                    callback_data = self.matplotlib_widget.get_histogram_at_x(x)
+                    if callback_data is not None:
+                        callback_data.insert(0, 'histogram')
+
+            self._status_callback(self.matplotlib_widget, callback_data)
 
     def set_display_options(self, display_options):
         self.display_options = display_options

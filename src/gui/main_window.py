@@ -751,7 +751,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.update_status_bar()
 
     def status_callback(self, matplotlib_widget, data):
-        if not (data is None and self._status_callback_data is None):
+        if data != self._status_callback_data:
             self._status_callback_data = data
             self.update_status_bar()
 
@@ -892,13 +892,26 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 combo_box.addItem(name)
 
     def update_status_bar(self):
-        if self._status_callback_data is None:
+        data = self._status_callback_data
+        if data is None:
             msg = self.get_status_string(self._current.displayed_array,
                                          self._current.displayed_array_stats)
-        elif self._status_callback_data[2] is None:
-            msg = 'x={} y={} value=none'.format(*self._status_callback_data)
-        else:
-            msg = 'x={} y={} value={:g}'.format(*self._status_callback_data)
+        elif data[0] == 'pixel':
+            value = data[3]
+            value = 'none' if value is None else '{:g}'.format(value)
+            msg = 'x={}, y={}, value={}'.format(data[1], data[2], value)
+        elif data[0] == 'histogram':
+            bin_width = data[1]
+            nbins = data[2]
+            msg = 'bin width={:g}, bin count={}'.format(bin_width, nbins)
+            if len(data) == 6:
+                bin_low = data[3]
+                bin_high = data[4]
+                count = data[5]
+                msg = '{}, bin={:g} to {:g}, pixel count={}'.format( \
+                    msg, bin_low, bin_high, count)
+        else:  # Should not occur.
+            msg = None
 
         if msg is None:
             self.statusbar.clearMessage()
