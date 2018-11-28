@@ -34,6 +34,7 @@ class DisplayOptions:
         self._histogram_bin_count = 100
         self._histogram_bin_width = 0.005
         self._histogram_max_bin_count = 200
+        self._show_mean_median_std_lines = True
 
         self._listeners = weakref.WeakSet()
 
@@ -122,11 +123,13 @@ class DisplayOptions:
         return self._scale_bar_location
 
     def set_histogram(self, use_histogram_bin_count, histogram_bin_count,
-                histogram_bin_width, histogram_max_bin_count):
+                histogram_bin_width, histogram_max_bin_count,
+                show_mean_median_std_lines):
         self._use_histogram_bin_count = use_histogram_bin_count
         self._histogram_bin_count = histogram_bin_count
         self._histogram_bin_width = histogram_bin_width
         self._histogram_max_bin_count = histogram_max_bin_count
+        self._show_mean_median_std_lines = show_mean_median_std_lines
 
         self._project().save_display_options()
 
@@ -169,6 +172,10 @@ class DisplayOptions:
     @property
     def show_date(self):
         return self._show_date
+
+    @property
+    def show_mean_median_std_lines(self):
+        return self._show_mean_median_std_lines
 
     @property
     def show_project_filename(self):

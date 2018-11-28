@@ -128,6 +128,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
     def _redraw(self):
         self._canvas.draw()
         #self._canvas.draw_idle()
+
     def _update_draw(self):
         # Draw using cached variables.
 
@@ -172,6 +173,9 @@ class MatplotlibWidget(QtWidgets.QWidget):
             cmap_ticks = np.arange(0, cmap_int_max)
             if cmap_int_max >= 15:
                 cmap_ticks = cmap_ticks[::2]
+
+        if show_stats:
+            show_stats = options.show_mean_median_std_lines
 
         if self._map_axes is None:
             self._image = None
@@ -221,11 +225,11 @@ class MatplotlibWidget(QtWidgets.QWidget):
                     bins = options.histogram_max_bin_count
             hist, bin_edges = np.histogram(np.ma.compressed(self._array),
                                            bins=bins)
-            width = bin_edges[1] - bin_edges[0]
-            bin_centres = bin_edges[:-1] + 0.5*width
+            bin_width = bin_edges[1] - bin_edges[0]
+            bin_centres = bin_edges[:-1] + 0.5*bin_width
             self._bar_norm_x = norm(bin_centres)
             colours = cmap(self._bar_norm_x)
-            self._bar = self._histogram_axes.bar(bin_centres, hist, width,
+            self._bar = self._histogram_axes.bar(bin_centres, hist, bin_width,
                                                  color=colours)
             if cmap_ticks is not None:
                 self._histogram_axes.set_xticks(cmap_ticks)

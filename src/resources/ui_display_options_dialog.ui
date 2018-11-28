@@ -202,7 +202,7 @@
       <attribute name="title">
        <string>Histogram</string>
       </attribute>
-      <layout class="QVBoxLayout" name="v" stretch="0,0,0">
+      <layout class="QVBoxLayout" name="v" stretch="0,0,0,0,0,0">
        <item>
         <widget class="QGroupBox" name="fixedBinCountGroupBox">
          <property name="title">
@@ -258,6 +258,39 @@
            <widget class="QLineEdit" name="maxBinCountLineEdit"/>
           </item>
          </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>10</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="Line" name="line2">
+         <property name="frameShadow">
+          <enum>QFrame::Sunken</enum>
+         </property>
+         <property name="lineWidth">
+          <number>1</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="showMeanMedianStdCheckBox">
+         <property name="text">
+          <string>Show mean, median and standard deviation lines</string>
+         </property>
         </widget>
        </item>
        <item>
