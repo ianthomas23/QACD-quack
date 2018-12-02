@@ -34,6 +34,7 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         self.init_colourmap_tab()
         self.init_labels_and_scale_tab()
         self.init_histogram_tab()
+        self.init_zoom_tab()
         self.tabWidget.setCurrentIndex(0)
         self.update_controls()
 
@@ -66,9 +67,12 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         self.maxBinCountLineEdit.textChanged.connect(self.update_buttons)
         self.showMeanMedianStdCheckBox.stateChanged.connect(self.update_buttons)
 
+        # Zoom tab controls.
+        self.autoZoomRegionCheckBox.stateChanged.connect(self.update_buttons)
+
     def accept(self):
         try:
-            for index in range(3):
+            for index in range(self.tabWidget.count()):
                 self.apply_tab(index)
             self.close()
         except Exception as e:
@@ -117,7 +121,7 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
                 show_date, use_scale, pixel_size, units, show_scale_bar,
                 scale_bar_location, scale_bar_colour)
             self.update_buttons()
-        else:  # tab_index == 2
+        elif tab_index == 2:
             # Histogram tab.
             use_histogram_bin_count = self.fixedBinCountGroupBox.isChecked()
             histogram_bin_count = int(self.histogramBinCountComboBox.currentText())
@@ -140,6 +144,11 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
                 use_histogram_bin_count, histogram_bin_count,
                 histogram_bin_width, histogram_max_bin_count,
                 show_mean_median_std_lines)
+            self.update_buttons()
+        else:  # tab_index == 3
+            auto_zoom_region = self.autoZoomRegionCheckBox.isChecked()
+
+            self._display_options.set_zoom(auto_zoom_region)
             self.update_buttons()
 
     def change_tab(self):
@@ -270,6 +279,11 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         self._locations_lookup[options.scale_bar_location].setChecked(True)
         self._colours_lookup[options.scale_bar_colour].setChecked(True)
 
+    def init_zoom_tab(self):
+        options = self._display_options
+
+        self.autoZoomRegionCheckBox.setChecked(options.auto_zoom_region)
+
     def toggle_fixed_bin_count(self, on):
         if self._linked_histogram_groups:
             self._linked_histogram_groups = False
@@ -306,7 +320,7 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
                 self.showScaleBarCheckBox.isChecked() != options.show_scale_bar or \
                 self.get_scale_bar_location() != options.scale_bar_location or \
                 self.get_scale_bar_colour() != options.scale_bar_colour
-        else:  # tab_index == 2
+        elif tab_index == 2:
             # Histogram tab.
             enabled = \
                 int(self.histogramBinCountComboBox.currentText()) != options.histogram_bin_count or \
@@ -315,13 +329,17 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
                 locale.toDouble(self.histogramBinWidthLineEdit.text())[0] != options.histogram_bin_width or \
                 locale.toInt(self.maxBinCountLineEdit.text())[0] != options.histogram_max_bin_count or \
                 self.showMeanMedianStdCheckBox.isChecked() != options.show_mean_median_std_lines
+        else:  # tab_index == 3
+            # Zoom tab.
+            enabled = \
+                self.autoZoomRegionCheckBox.isChecked() != options.auto_zoom_region
 
         self.applyButton.setEnabled(enabled)
 
     def update_controls(self):
         self.update_buttons()
 
-        # Scale.
+        # Scale tab.
         use_scale = self.useScaleCheckBox.isChecked()
         show_scale_bar = self.showScaleBarCheckBox.isChecked()
 

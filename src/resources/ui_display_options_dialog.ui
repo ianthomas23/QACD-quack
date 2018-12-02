@@ -305,6 +305,30 @@
        </item>
       </layout>
      </widget>
+     <widget class="QWidget" name="zoomTab">
+      <attribute name="title">
+       <string>Zoom</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="v3">
+       <item>
+        <widget class="QCheckBox" name="autoZoomRegionCheckBox">
+         <property name="text">
+          <string>Auto zoom to selected region</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="dummy2">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>1</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
     </widget>
    </item>
    <item>

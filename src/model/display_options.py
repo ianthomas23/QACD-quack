@@ -36,6 +36,9 @@ class DisplayOptions:
         self._histogram_max_bin_count = 200
         self._show_mean_median_std_lines = True
 
+        # Zoom options.
+        self._auto_zoom_region = False
+
         self._listeners = weakref.WeakSet()
 
     def _determine_valid_colourmap_names(self):
@@ -49,6 +52,10 @@ class DisplayOptions:
                        'Vega20c', 'flag', 'prism', 'spectral', 'tab10',
                        'tab20', 'tab20b', 'tab20c'])
         return sorted(all_.difference(exclude))
+
+    @property
+    def auto_zoom_region(self):
+        return self._auto_zoom_region
 
     @property
     def colourmap_name(self):
@@ -168,6 +175,14 @@ class DisplayOptions:
 
         for listener in self._listeners:
             listener.update_labels_and_scale()
+
+    def set_zoom(self, auto_zoom_region):
+        self._auto_zoom_region = auto_zoom_region
+
+        self._project().save_display_options()
+
+        for listener in self._listeners:
+            listener.update_zoom()
 
     @property
     def show_date(self):

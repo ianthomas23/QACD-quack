@@ -507,3 +507,6 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
     def update_labels_and_scale(self):
         self._update_draw()
+
+    def update_zoom(self):
+        pass
