@@ -130,7 +130,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._canvas.draw()
         #self._canvas.draw_idle()
 
-    def _update_draw(self):
+    def _update_draw(self, refresh=True):
         # Draw using cached variables.
 
         # Derived quantities.
@@ -268,7 +268,8 @@ class MatplotlibWidget(QtWidgets.QWidget):
         if self._mode_handler:
             self._mode_handler.move_to_new_axes()
 
-        self._redraw()
+        if refresh:
+            self._redraw()
 
     def _update_map_axes_ticks_and_labels(self):
         if self._display_options.show_ticks_and_labels:
@@ -303,8 +304,11 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
     def clear_all(self):
         # Clear everything, including cached zoom extent, etc.
-        self._zoom_rectangle = None
+        self.clear_zoom_rectangle()
         self.clear()
+
+    def clear_zoom_rectangle(self):
+        self._zoom_rectangle = None
 
     def create_colourmap(self):
         if self._array_type in (ArrayType.PHASE, ArrayType.REGION):
@@ -474,7 +478,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
                 self._mode_handler = None
 
     def update(self, plot_type, array_type, array, array_stats, title, name,
-               colourmap_limits=None):
+               colourmap_limits=None, refresh=True):
         self._plot_type = plot_type
         self._array_type = array_type
         self._array = array
@@ -483,7 +487,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._name = name
         self._colourmap_limits = colourmap_limits
 
-        self._update_draw()
+        self._update_draw(refresh)
 
     def update_colourmap_name(self):
         colourmap_name = self._display_options.colourmap_name

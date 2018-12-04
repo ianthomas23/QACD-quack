@@ -214,7 +214,28 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self._current.region = ~self._project.get_region(text, masked=False)
         self._current.create_mask()
 
-        if self._project is not None:
+        if self._project is None:
+            return
+
+        if (self._project.display_options.auto_zoom_region and
+            self.matplotlibWidget.has_map_axes()):
+
+            have_region = self._current.region is not None
+            if have_region:
+                extent = self._project.get_region_extent(text)
+                if extent[0] is None:
+                    # Cope with region of no pixels, so extent is (None,)
+                    have_region = False
+
+            self.zoom_clear()
+            self.update_matplotlib_widget(refresh=not have_region)
+
+            if have_region:
+                self.zoom_append(self.matplotlibWidget, None, extent)
+
+            self.update_controls()
+            self.update_status_bar()
+        else:
             self.update_matplotlib_widget()
             self.update_status_bar()
 
@@ -485,7 +506,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         elif array_type == ArrayType.REGION:
             regions = self._project.regions
             for name in sorted(regions.keys()):
-                rows.append((name, regions[name]))
+                tuple_ = regions[name]
+                rows.append((name, tuple_[0]))
 
         self._ignore_change_name = True
         nrows = len(rows)
@@ -793,7 +815,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.undoColourmapButton.setEnabled(self._zoom_colourmap_history.has_undo())
         self.redoColourmapButton.setEnabled(self._zoom_colourmap_history.has_redo())
 
-    def update_matplotlib_widget(self):
+    def update_matplotlib_widget(self, refresh=True):
         current = self._current
 
         if current.array_type is ArrayType.INVALID:
@@ -866,7 +888,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.matplotlibWidget.update( \
                 plot_type, current.array_type, current.displayed_array,
                 current.displayed_array_stats, title, current.name,
-                current.colourmap_limits)
+                current.colourmap_limits, refresh)
 
         # Update controls that depend on mpl widget displaying valid data.
         self.actionExportImage.setEnabled(self.matplotlibWidget.has_content())
@@ -926,9 +948,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def zoom_append(self, matplotlib_widget, from_, to):
         if matplotlib_widget == self.matplotlibWidget:
+            if from_ is None:
+                from_ = (self.matplotlibWidget._map_axes.get_xlim(),
+                         self.matplotlibWidget._map_axes.get_ylim())
+
             self._zoom_history.append(from_, to)
             self.matplotlibWidget.set_map_zoom(to[0], to[1])
             self.update_controls()
+
+    def zoom_clear(self):
+        self._zoom_history.clear()
+        self.matplotlibWidget.clear_zoom_rectangle()
 
     def zoom_colourmap_append(self, from_, to):
         self._zoom_colourmap_history.append(from_, to)

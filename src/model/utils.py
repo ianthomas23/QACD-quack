@@ -41,6 +41,22 @@ def calculate_region_rectangle(x, y, corner0, corner1):
     return region
 
 
+def get_mask_extent(mask):
+    # mask is a 2D boolean array.  Want min and max i and j indices of True
+    # values.
+    rows = np.where(mask.sum(axis=1) > 0)[0]
+    if len(rows) == 0:
+        return (None, )
+    jmin, jmax = rows[0], rows[-1]+1
+
+    cols = np.where(mask[jmin:jmax].sum(axis=0) > 0)[0]
+    if len(cols) == 0:
+        return (None, )
+    imin, imax = cols[0], cols[-1]+1
+
+    return [[imin-1, imax+1], [jmin-1, jmax+1]]
+
+
 # 3x3 median filter, ignoring nans.
 # Would like to use scipy.ndimage.filters.median_filter but it treats nans as
 # finite numbers.  scipy.ndimage.filters.generic_filter using np.nanmedian works

@@ -38,7 +38,8 @@ class QACDProject:
                            #   (formula, correction_model, preset)
         self._phases = {}  # dict of name -> tuple of (source, ...).  Extra
                            # items depend on source, see create_phase_*
-        self._regions = {}  # dict of name -> shape string.
+        self._regions = {}  # dict of name -> tuple of
+                            #   (shape string, extents).
 
         # Regular expression to match input CSV filenames.
         self._csv_file_re = re.compile('^([A-Z][a-z]?) K series.csv$')
@@ -447,7 +448,7 @@ class QACDProject:
             self._add_array_stats(region_group, region, mask=None)
             region_group._v_attrs.shape = shape_string
 
-        self._regions[name] = shape_string
+        self._regions[name] = (shape_string, None)
 
     def delete_all_clusters(self):
         with self._h5file() as h5file:
@@ -746,6 +747,19 @@ class QACDProject:
 
         return self._get_array('/region/' + name, masked=masked,
                                want_stats=want_stats, h5file=h5file)
+
+    def get_region_extent(self, name):
+        # Return extent of region, calculating it if necessary.  Newly
+        # calculated extents are cached for quicker lookup later on.
+        if name not in self._regions:
+            raise RuntimeError('No such region: {}'.format(name))
+
+        extent = self._regions[name][1]
+        if extent is None:
+            extent = utils.get_mask_extent(self.get_region(name, masked=False))
+            self._regions[name] = self._regions[name][:-1] + (extent,)
+
+        return extent
 
     def get_valid_preset_ratios(self):
         if self._state <= State.EMPTY:
@@ -1320,7 +1334,7 @@ class QACDProject:
                     if node.shape != shape:
                         raise RuntimeError('Incorrect shape for region {}'.format(name))
 
-                    self._regions[name] = shape_string
+                    self._regions[name] = (shape_string, None)
 
             self.load_display_options()
 
