@@ -50,8 +50,8 @@ class ModeHandler:
             callback_data = None
             if event is not None and event.inaxes is not None:
                 if event.inaxes == self.matplotlib_widget._map_axes:
-                    x = int(event.xdata)
-                    y = int(event.ydata)
+                    x = int(event.xdata / self.display_options.scale)
+                    y = int(event.ydata / self.display_options.scale)
                     value = self.matplotlib_widget.get_value_at_position(x, y)
                     callback_data = ('pixel', x, y, value)
                 elif event.inaxes == self.matplotlib_widget._histogram_axes:

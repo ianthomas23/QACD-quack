@@ -949,8 +949,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def zoom_append(self, matplotlib_widget, from_, to):
         if matplotlib_widget == self.matplotlibWidget:
             if from_ is None:
-                from_ = (self.matplotlibWidget._map_axes.get_xlim(),
-                         self.matplotlibWidget._map_axes.get_ylim())
+                map_axes = matplotlib_widget._map_axes
+                scale = matplotlib_widget._scale
+                from_ = np.asarray((map_axes.get_xlim(),
+                                    map_axes.get_ylim())) / scale
 
             self._zoom_history.append(from_, to)
             self.matplotlibWidget.set_map_zoom(to[0], to[1])
