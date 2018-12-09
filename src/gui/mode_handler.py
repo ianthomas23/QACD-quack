@@ -88,7 +88,7 @@ class RegionHandler(ModeHandler):
             cmap = self.matplotlib_widget._create_white_colourmap()
 
             ny, nx = masked.shape
-            extent = np.array([0.0, nx, ny, 0.0])*self.display_options.scale
+            extent = np.array([0.0, nx, ny, 0.0])*self.matplotlib_widget._scale
             return self.matplotlib_widget._map_axes.imshow( \
                 masked, alpha=self._region_alpha, cmap=cmap, extent=extent)
         else:
@@ -210,6 +210,9 @@ class EllipseRegionHandler(MouseDragRegionHandler):
         project = self.matplotlib_widget._owning_window._project
         if project is not None:
             centre, size = self._get_centre_and_size(False)
+            ratio = self.display_options.scale / self.matplotlib_widget._scale
+            centre *= ratio
+            size *= ratio
             return project.calculate_region_ellipse(centre, size)
         else:
             return None
@@ -256,8 +259,9 @@ class RectangleRegionHandler(MouseDragRegionHandler):
     def _calculate_region(self):
         project = self.matplotlib_widget._owning_window._project
         if project is not None:
-            corner0 = self._points[0]
-            corner1 = self._points[1]
+            ratio = self.display_options.scale / self.matplotlib_widget._scale
+            corner0 = self._points[0]*ratio
+            corner1 = self._points[1]*ratio
             return project.calculate_region_rectangle(corner0, corner1)
         else:
             return None
@@ -310,7 +314,9 @@ class PolygonRegionHandler(RegionHandler):
     def _calculate_region(self):
         project = self.matplotlib_widget._owning_window._project
         if project is not None:
-            return project.calculate_region_polygon(self._points)
+            ratio = self.display_options.scale / self.matplotlib_widget._scale
+            points = self._points*ratio
+            return project.calculate_region_polygon(points)
         else:
             return None
 
