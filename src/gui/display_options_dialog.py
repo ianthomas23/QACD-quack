@@ -69,6 +69,7 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
 
         # Zoom tab controls.
         self.autoZoomRegionCheckBox.stateChanged.connect(self.update_buttons)
+        self.zoomUpdatesStatsCheckBox.stateChanged.connect(self.update_buttons)
 
     def accept(self):
         try:
@@ -147,8 +148,9 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
             self.update_buttons()
         else:  # tab_index == 3
             auto_zoom_region = self.autoZoomRegionCheckBox.isChecked()
+            zoom_updates_stats = self.zoomUpdatesStatsCheckBox.isChecked()
 
-            self._display_options.set_zoom(auto_zoom_region)
+            self._display_options.set_zoom(auto_zoom_region, zoom_updates_stats)
             self.update_buttons()
 
     def change_tab(self):
@@ -283,6 +285,7 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         options = self._display_options
 
         self.autoZoomRegionCheckBox.setChecked(options.auto_zoom_region)
+        self.zoomUpdatesStatsCheckBox.setChecked(options.zoom_updates_stats)
 
     def toggle_fixed_bin_count(self, on):
         if self._linked_histogram_groups:
@@ -332,7 +335,8 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         else:  # tab_index == 3
             # Zoom tab.
             enabled = \
-                self.autoZoomRegionCheckBox.isChecked() != options.auto_zoom_region
+                self.autoZoomRegionCheckBox.isChecked() != options.auto_zoom_region or \
+                self.zoomUpdatesStatsCheckBox.isChecked() != options.zoom_updates_stats
 
         self.applyButton.setEnabled(enabled)
 

@@ -33,6 +33,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._title = None
         self._name = None
         self._colourmap_limits = None
+        self._map_zoom = None      # None or int array of shape (2,2).
 
         self._image = None         # Image used for element map.
         self._bar = None           # Bar used for histogram.
@@ -52,9 +53,6 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._owning_window = None
         self._mode_type = ModeType.INVALID
         self._mode_handler = None
-
-        # Zoom to this when create new map, is [left, right, bottom, top].
-        self._zoom_rectangle = None
 
         # Created when first needed.
         self._black_colourmap = None
@@ -111,8 +109,8 @@ class MatplotlibWidget(QtWidgets.QWidget):
             self._scale = options.scale
             self._units = options.units
             extent *= self._scale
-            if self._zoom_rectangle is not None:
-                display_rectangle = self._zoom_rectangle*self._scale
+            if self._map_zoom is not None:
+                display_rectangle = self._map_zoom*self._scale
             else:
                 display_rectangle = extent
             max_dimension = np.absolute(np.diff(display_rectangle.reshape((2,2)))).max()
@@ -188,9 +186,10 @@ class MatplotlibWidget(QtWidgets.QWidget):
             self._image = self._map_axes.imshow(self._array, cmap=cmap,
                                                 norm=norm, extent=extent)
 
-            if self._zoom_rectangle is not None:
-                self._map_axes.set_xlim(self._zoom_rectangle[:2]*self._scale)
-                self._map_axes.set_ylim(self._zoom_rectangle[2:]*self._scale)
+            ##print('==> _update_draw', self._map_zoom)
+            if self._map_zoom is not None:
+                self._map_axes.set_xlim(self._map_zoom[0]*self._scale)
+                self._map_axes.set_ylim(self._map_zoom[1]*self._scale)
 
             if show_colourbar:
                 self._colourbar = figure.colorbar(self._image, ax=self._map_axes,
@@ -291,6 +290,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._title = None
         self._name = None
         self._colourmap_limits = None
+        self._map_zoom = None
         self._image = None
         self._bar = None
         self._bar_norm_x = None
@@ -304,11 +304,11 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
     def clear_all(self):
         # Clear everything, including cached zoom extent, etc.
-        self.clear_zoom_rectangle()
+        self.clear_map_zoom()
         self.clear()
 
-    def clear_zoom_rectangle(self):
-        self._zoom_rectangle = None
+    def clear_map_zoom(self):
+        self._map_zoom = None
 
     def create_colourmap(self):
         if self._array_type in (ArrayType.PHASE, ArrayType.REGION):
@@ -427,32 +427,6 @@ class MatplotlibWidget(QtWidgets.QWidget):
         if self._mode_handler is not None:
             self._mode_handler.set_display_options(display_options)
 
-    def set_map_zoom(self, xs, ys):
-        if self._map_axes is None:
-            return
-
-        xs = np.asarray(xs)
-        ys = np.asarray(ys)
-
-        self._zoom_rectangle = np.concatenate((xs, ys))
-
-        # Avoid a complete _update_draw as can keep same map and/or histogram
-        # axes, but need to recalculate scale and units which affects scale
-        # bar, axis labels, etc.
-        extent = self._get_scaled_extent()
-        if self._image:
-            self._image.set_extent(extent)
-
-        self._map_axes.set_xlim(xs*self._scale)
-        self._map_axes.set_ylim(ys*self._scale)
-
-        if self._scale_bar:
-            self._create_scale_bar()
-
-        self._update_map_axes_ticks_and_labels()
-
-        self._redraw()
-
     def set_mode_type(self, mode_type, listener=None):
         if mode_type != self._mode_type:
             self._mode_type = mode_type
@@ -478,7 +452,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
                 self._mode_handler = None
 
     def update(self, plot_type, array_type, array, array_stats, title, name,
-               colourmap_limits=None, refresh=True):
+               map_zoom=None, colourmap_limits=None, refresh=True):
         self._plot_type = plot_type
         self._array_type = array_type
         self._array = array
@@ -486,6 +460,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._title = title
         self._name = name
         self._colourmap_limits = colourmap_limits
+        self._map_zoom = map_zoom
 
         self._update_draw(refresh)
 

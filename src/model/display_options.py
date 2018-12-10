@@ -38,6 +38,7 @@ class DisplayOptions:
 
         # Zoom options.
         self._auto_zoom_region = False
+        self._zoom_updates_stats = False
 
         self._listeners = weakref.WeakSet()
 
@@ -176,8 +177,9 @@ class DisplayOptions:
         for listener in self._listeners:
             listener.update_labels_and_scale()
 
-    def set_zoom(self, auto_zoom_region):
+    def set_zoom(self, auto_zoom_region, zoom_updates_stats):
         self._auto_zoom_region = auto_zoom_region
+        self._zoom_updates_stats = zoom_updates_stats
 
         self._project().save_display_options()
 
@@ -226,3 +228,7 @@ class DisplayOptions:
     @property
     def valid_units(self):
         return self._valid_units
+
+    @property
+    def zoom_updates_stats(self):
+        return self._zoom_updates_stats

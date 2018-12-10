@@ -44,6 +44,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.colourmap_limits = None  # None or tuple of (lower, upper).
             self.mask = None    # None or combined phase & region boolean array.
 
+            self.zoom = None    # None or int array of shape (2,2).
+
         def create_mask(self):
             # Mask excludes colourmap limits as these have a different effect
             # on each element map.
@@ -231,7 +233,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.update_matplotlib_widget(refresh=not have_region)
 
             if have_region:
-                self.zoom_append(self.matplotlibWidget, None, extent)
+                self.zoom_append(self.matplotlibWidget, None, np.asarray(extent))
 
             self.update_controls()
             self.update_status_bar()
@@ -888,7 +890,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.matplotlibWidget.update( \
                 plot_type, current.array_type, current.displayed_array,
                 current.displayed_array_stats, title, current.name,
-                current.colourmap_limits, refresh)
+                current.zoom, current.colourmap_limits, refresh)
 
         # Update controls that depend on mpl widget displaying valid data.
         self.actionExportImage.setEnabled(self.matplotlibWidget.has_content())
@@ -955,12 +957,19 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                                     map_axes.get_ylim())) / scale
 
             self._zoom_history.append(from_, to)
-            self.matplotlibWidget.set_map_zoom(to[0], to[1])
+            ##self.matplotlibWidget.set_map_zoom(to[0], to[1])
+            self._current.zoom = to
+            self.update_matplotlib_widget()
             self.update_controls()
+            ##print('==> zoom_append', self._zoom_history.current()[1])
 
     def zoom_clear(self):
+        # Does not update matplotlib widget as expecting a following call to
+        # zoom_append().
         self._zoom_history.clear()
-        self.matplotlibWidget.clear_zoom_rectangle()
+        self._current.zoom = None
+        self.matplotlibWidget.clear_map_zoom()
+        ##print('==> zoom_clear', self._zoom_history.current()[1])
 
     def zoom_colourmap_append(self, from_, to):
         self._zoom_colourmap_history.append(from_, to)
@@ -985,10 +994,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def zoom_redo(self):
         zoom = self._zoom_history.redo()
-        self.matplotlibWidget.set_map_zoom(zoom[1][0], zoom[1][1])
+        ##self.matplotlibWidget.set_map_zoom(zoom[1][0], zoom[1][1])
+        self._current.zoom = zoom[1]
+        self.update_matplotlib_widget()
         self.update_controls()
+        ##print('==> zoom_redo', self._zoom_history.current()[1])
 
     def zoom_undo(self):
         zoom = self._zoom_history.undo()
-        self.matplotlibWidget.set_map_zoom(zoom[0][0], zoom[0][1])
+        ##self.matplotlibWidget.set_map_zoom(zoom[0][0], zoom[0][1])
+        self._current.zoom = zoom[0]
+        self.update_matplotlib_widget()
         self.update_controls()
+        ##print('==> zoom_undo', self._zoom_history.current()[1])

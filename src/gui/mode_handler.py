@@ -396,20 +396,19 @@ class ZoomHandler(ModeHandler):
         super().__init__(matplotlib_widget, display_options, status_callback)
         self._zoom_rectangle = None  # Only set when zooming.
         self._type = self.Type.INVALID
+        self._zoom_axes = None
 
     def clear(self):
-        if (self._zoom_rectangle is not None and
-            self.matplotlib_widget._map_axes is not None):
-
+        if self._zoom_rectangle is not None:
             self._zoom_rectangle.remove()
             self._zoom_rectangle = None
 
             self._type = self.Type.INVALID
-            self.matplotlib_widget._redraw()
 
         self.send_status_callback(None)
 
     def on_axes_enter(self, event):
+        ##print('enter', event.inaxes, self.matplotlib_widget._map_axes)
         if (event.inaxes is not None and
             (event.inaxes == self.matplotlib_widget._map_axes or
              (self.matplotlib_widget._array_type != ArrayType.CLUSTER and
@@ -419,12 +418,15 @@ class ZoomHandler(ModeHandler):
             QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CrossCursor)
 
     def on_axes_leave(self, event):
+        ##print('leave', event.inaxes, self.matplotlib_widget._map_axes)
         if (event.inaxes is not None and
-            (event.inaxes == self.matplotlib_widget._map_axes or
+            (event.inaxes == self._zoom_axes or
+             event.inaxes == self.matplotlib_widget._map_axes or
              event.inaxes == self.matplotlib_widget.get_colourbar_axes() or
              event.inaxes == self.matplotlib_widget._histogram_axes)):
 
             QtWidgets.QApplication.restoreOverrideCursor()
+            self._zoom_axes = None
 
         self.send_status_callback(None)
 
@@ -436,6 +438,7 @@ class ZoomHandler(ModeHandler):
         if (self.matplotlib_widget._map_axes is not None and
             event.inaxes == self.matplotlib_widget._map_axes):
 
+            self._zoom_axes = event.inaxes
             rectangle = Rectangle((event.xdata, event.ydata), width=0, height=0,
                                   fc='none', ec='k', ls='--')
             self._zoom_rectangle = \

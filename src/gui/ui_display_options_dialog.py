@@ -169,6 +169,9 @@ class Ui_DisplayOptionsDialog(object):
         self.autoZoomRegionCheckBox = QtWidgets.QCheckBox(self.zoomTab)
         self.autoZoomRegionCheckBox.setObjectName("autoZoomRegionCheckBox")
         self.v3.addWidget(self.autoZoomRegionCheckBox)
+        self.zoomUpdatesStatsCheckBox = QtWidgets.QCheckBox(self.zoomTab)
+        self.zoomUpdatesStatsCheckBox.setObjectName("zoomUpdatesStatsCheckBox")
+        self.v3.addWidget(self.zoomUpdatesStatsCheckBox)
         self.dummy2 = QtWidgets.QLabel(self.zoomTab)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
@@ -186,7 +189,7 @@ class Ui_DisplayOptionsDialog(object):
         self.verticalLayout.addWidget(self.buttonBox)
 
         self.retranslateUi(DisplayOptionsDialog)
-        self.tabWidget.setCurrentIndex(2)
+        self.tabWidget.setCurrentIndex(3)
         self.buttonBox.accepted.connect(DisplayOptionsDialog.accept)
         self.buttonBox.rejected.connect(DisplayOptionsDialog.reject)
         QtCore.QMetaObject.connectSlotsByName(DisplayOptionsDialog)
@@ -219,7 +222,9 @@ class Ui_DisplayOptionsDialog(object):
         self.label_2b.setText(_translate("DisplayOptionsDialog", "Maximum number of bins"))
         self.showMeanMedianStdCheckBox.setText(_translate("DisplayOptionsDialog", "Show mean, median and standard deviation lines"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.histogramTab), _translate("DisplayOptionsDialog", "Histogram"))
-        self.autoZoomRegionCheckBox.setText(_translate("DisplayOptionsDialog", "Auto zoom to selected region"))
+        self.autoZoomRegionCheckBox.setText(_translate("DisplayOptionsDialog", "Auto zoom when change region"))
+        self.zoomUpdatesStatsCheckBox.setText(_translate("DisplayOptionsDialog", "Histogram and status bar refer to current zoomed area\n"
+"rather than whole element map"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.zoomTab), _translate("DisplayOptionsDialog", "Zoom"))
 
 

@@ -17,7 +17,7 @@
    <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>2</number>
+      <number>3</number>
      </property>
      <widget class="QWidget" name="colourmapTab">
       <attribute name="title">
@@ -313,7 +313,15 @@
        <item>
         <widget class="QCheckBox" name="autoZoomRegionCheckBox">
          <property name="text">
-          <string>Auto zoom to selected region</string>
+          <string>Auto zoom when change region</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="zoomUpdatesStatsCheckBox">
+         <property name="text">
+          <string>Histogram and status bar refer to current zoomed area
+rather than whole element map</string>
          </property>
         </widget>
        </item>
