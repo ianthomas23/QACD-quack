@@ -1,3 +1,4 @@
+import math
 import numpy as np
 import os
 from PyQt5 import QtCore, QtWidgets, QtGui
@@ -32,7 +33,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.selected_array = None
             self.selected_array_stats = None
 
-            # Displayed array is selected array masked by phase and/or region.
+            # Displayed array is selected array masked by phase and/or region,
+            # and possibly zoomed (if display_options.zoom_updates_stats is
+            # True).
             # May be same objects as selected above.
             self.displayed_array = None
             self.displayed_array_stats = None
@@ -44,7 +47,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.colourmap_limits = None  # None or tuple of (lower, upper).
             self.mask = None    # None or combined phase & region boolean array.
 
-            self.zoom = None    # None or int array of shape (2,2).
+            self.zoom = None    # None or float array of shape (2,2).
+            self.pixel_zoom = None  # None or int array of ((imin, imax),
+                                    #                       (jmin, jmax))
 
         def create_mask(self):
             # Mask excludes colourmap limits as these have a different effect
@@ -202,7 +207,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         if self._project is not None:
             self.update_matplotlib_widget()
-            self.update_status_bar()
 
     def change_plot_type(self):
         self.update_matplotlib_widget()
@@ -236,10 +240,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.zoom_append(self.matplotlibWidget, None, np.asarray(extent))
 
             self.update_controls()
-            self.update_status_bar()
         else:
             self.update_matplotlib_widget()
-            self.update_status_bar()
 
     def change_table_item(self):
         if self._ignore_change_selection:
@@ -303,8 +305,26 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.update_controls()
         self.update_matplotlib_widget()
-        self.update_status_bar()
         QtWidgets.QApplication.restoreOverrideCursor()
+
+    def change_zoom(self, zoom):
+        self._current.zoom = zoom
+
+        ny, nx = self._current.selected_array.shape
+        is_zoomed = (zoom is not None and
+                     not np.array_equal(zoom, ((0, nx), (ny, 0))))
+        #print('==> main_window.change_zoom', is_zoomed)
+        if is_zoomed:
+            imin = math.floor(zoom[0].min())
+            imax = math.ceil(zoom[0].max())
+            jmin = math.floor(zoom[1].min())
+            jmax = math.ceil(zoom[1].max())
+            self._current.pixel_zoom = ((imin, imax), (jmin, jmax))
+        else:
+            self._current.pixel_zoom = None
+
+        self.update_matplotlib_widget()
+        self.update_controls()
 
     def choose_open_project(self):
         options = QtWidgets.QFileDialog.Options()
@@ -583,8 +603,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             return ret
 
         if array is not None:
-            ny, nx = array.shape
-            msg = 'pixels={}x{}'.format(nx, ny)
+            if (self._project.display_options.zoom_updates_stats and
+                self._current.pixel_zoom is not None):
+                ((imin, imax), (jmin, jmax)) = self._current.pixel_zoom
+                nx = imax - imin
+                ny = jmax - jmin
+                title = 'zoomed'
+            else:
+                ny, nx = array.shape
+                title = 'whole map'
+            msg = '{}: pixels={}x{}'.format(title, nx, ny)
             msg += stat_to_string('valid')
             msg += stat_to_string('invalid')
             msg += stat_to_string('min')
@@ -646,7 +674,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.update_controls()
         self.update_matplotlib_widget()
-        self.update_status_bar()
         self.update_title()
         QtWidgets.QApplication.restoreOverrideCursor()
 
@@ -762,7 +789,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.update_matplotlib_widget()
         self.update_phase_combo_box()
         self.update_region_combo_box()
-        self.update_status_bar()
         self.update_title()
         QtWidgets.QApplication.restoreOverrideCursor()
 
@@ -850,11 +876,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             if changed:
                 current.colourmap_limits = None
 
-            if (current.array_type in (ArrayType.PHASE, ArrayType.REGION) or
-                (current.mask is None and current.colourmap_limits is None)):
-                current.displayed_array = current.selected_array
-                current.displayed_array_stats = current.selected_array_stats
-            else:
+            #if (current.array_type in (ArrayType.PHASE, ArrayType.REGION) or
+            #    (current.mask is None and current.colourmap_limits is None)):
+            #    current.displayed_array = current.selected_array
+            #    current.displayed_array_stats = current.selected_array_stats
+            #else:
+            if True:
                 clim_mask = None
                 if current.colourmap_limits is not None:
                     clim_mask = np.logical_or( \
@@ -869,20 +896,30 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
                 # May want to cache this instead of recalculating it each time.
                 array = np.ma.masked_where(mask, current.selected_array)
+
+                # subarray is array zoomed to, if only want stats of zoomed
+                # area.
+                subarray = array
+                if self._project.display_options.zoom_updates_stats:
+                    pixel_zoom = current.pixel_zoom
+                    if pixel_zoom is not None:
+                        ((imin, imax), (jmin, jmax)) = current.pixel_zoom
+                        subarray = subarray[jmin:jmax, imin:imax]
+
                 array_stats = {}
                 if 'valid' in current.selected_array_stats:
-                    number_invalid = np.ma.count_masked(array)
+                    number_invalid = np.ma.count_masked(subarray)
                     array_stats['invalid'] = number_invalid
-                    array_stats['valid'] = array.size - number_invalid
+                    array_stats['valid'] = subarray.size - number_invalid
                 if 'min' in current.selected_array_stats:
-                    array_stats['max'] = array.max()
-                    array_stats['min'] = array.min()
+                    array_stats['max'] = subarray.max()
+                    array_stats['min'] = subarray.min()
                 if 'mean' in current.selected_array_stats and current.colourmap_limits is None:
-                    array_stats['mean'] = array.mean()
+                    array_stats['mean'] = subarray.mean()
                 if 'median' in current.selected_array_stats and current.colourmap_limits is None:
-                    array_stats['median'] = np.ma.median(array)
+                    array_stats['median'] = np.ma.median(subarray)
                 if 'std' in current.selected_array_stats and current.colourmap_limits is None:
-                    array_stats['std'] = array.std()
+                    array_stats['std'] = subarray.std()
                 current.displayed_array = array
                 current.displayed_array_stats = array_stats
                 # Assuming update_status_bar will follow anyway.
@@ -890,7 +927,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.matplotlibWidget.update( \
                 plot_type, current.array_type, current.displayed_array,
                 current.displayed_array_stats, title, current.name,
-                current.zoom, current.colourmap_limits, refresh)
+                current.zoom, current.pixel_zoom, current.colourmap_limits,
+                refresh)
 
         # Update controls that depend on mpl widget displaying valid data.
         self.actionExportImage.setEnabled(self.matplotlibWidget.has_content())
@@ -898,6 +936,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if changed and self._zoom_colourmap_history.has_any():
             self._zoom_colourmap_history.clear()
             self.update_controls()
+
+        self.update_status_bar()
 
     def update_phase_combo_box(self):
         combo_box = self.phaseComboBox
@@ -957,11 +997,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                                     map_axes.get_ylim())) / scale
 
             self._zoom_history.append(from_, to)
-            ##self.matplotlibWidget.set_map_zoom(to[0], to[1])
-            self._current.zoom = to
-            self.update_matplotlib_widget()
-            self.update_controls()
-            ##print('==> zoom_append', self._zoom_history.current()[1])
+            self.change_zoom(to)
 
     def zoom_clear(self):
         # Does not update matplotlib widget as expecting a following call to
@@ -969,41 +1005,29 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self._zoom_history.clear()
         self._current.zoom = None
         self.matplotlibWidget.clear_map_zoom()
-        ##print('==> zoom_clear', self._zoom_history.current()[1])
 
     def zoom_colourmap_append(self, from_, to):
         self._zoom_colourmap_history.append(from_, to)
         self._current.colourmap_limits = to
         self.update_matplotlib_widget()
         self.update_controls()
-        self.update_status_bar()
 
     def zoom_colourmap_redo(self):
         to = self._zoom_colourmap_history.redo()[1]
         self._current.colourmap_limits = to
         self.update_matplotlib_widget()
         self.update_controls()
-        self.update_status_bar()
 
     def zoom_colourmap_undo(self):
         to = self._zoom_colourmap_history.undo()[0]
         self._current.colourmap_limits = to
         self.update_matplotlib_widget()
         self.update_controls()
-        self.update_status_bar()
 
     def zoom_redo(self):
         zoom = self._zoom_history.redo()
-        ##self.matplotlibWidget.set_map_zoom(zoom[1][0], zoom[1][1])
-        self._current.zoom = zoom[1]
-        self.update_matplotlib_widget()
-        self.update_controls()
-        ##print('==> zoom_redo', self._zoom_history.current()[1])
+        self.change_zoom(zoom[1])
 
     def zoom_undo(self):
         zoom = self._zoom_history.undo()
-        ##self.matplotlibWidget.set_map_zoom(zoom[0][0], zoom[0][1])
-        self._current.zoom = zoom[0]
-        self.update_matplotlib_widget()
-        self.update_controls()
-        ##print('==> zoom_undo', self._zoom_history.current()[1])
+        self.change_zoom(zoom[0])

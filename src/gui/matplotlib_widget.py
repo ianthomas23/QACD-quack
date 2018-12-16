@@ -33,13 +33,14 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._title = None
         self._name = None
         self._colourmap_limits = None
-        self._map_zoom = None      # None or int array of shape (2,2).
+        self._map_zoom = None       # None or float array of shape (2,2).
+        self._map_pixel_zoom = None # None or int array ((imin,imax), (jmin,jmax))
 
-        self._image = None         # Image used for element map.
-        self._bar = None           # Bar used for histogram.
-        self._bar_norm_x = None    # Normalised x-positions of centres of bars
-                                   #   in range 0 (= min) to 1.0 (= max value).
-        self._cmap_int_max = None  # One beyond end, as in numpy slicing.
+        self._image = None          # Image used for element map.
+        self._bar = None            # Bar used for histogram.
+        self._bar_norm_x = None     # Normalised x-positions of centres of bars
+                                    #   in range 0 (= min) to 1.0 (= max value).
+        self._cmap_int_max = None   # One beyond end, as in numpy slicing.
         self._scale_bar = None
         self._colourbar = None
         self._histogram = None     # Latest (histogram, bin_edges, bin_width).
@@ -186,7 +187,6 @@ class MatplotlibWidget(QtWidgets.QWidget):
             self._image = self._map_axes.imshow(self._array, cmap=cmap,
                                                 norm=norm, extent=extent)
 
-            ##print('==> _update_draw', self._map_zoom)
             if self._map_zoom is not None:
                 self._map_axes.set_xlim(self._map_zoom[0]*self._scale)
                 self._map_axes.set_ylim(self._map_zoom[1]*self._scale)
@@ -210,6 +210,12 @@ class MatplotlibWidget(QtWidgets.QWidget):
             self._bar_norm_x = None
             self._histogram = None
         else:
+            # May only want histogram of zoomed sub array.
+            subarray = self._array
+            if options.zoom_updates_stats and self._map_pixel_zoom is not None:
+                ((imin, imax), (jmin, jmax)) = self._map_pixel_zoom
+                subarray = subarray[jmin:jmax, imin:imax]
+
             if cmap_int_max is not None:
                 bins = np.arange(0, cmap_int_max+1)-0.5
             elif options.use_histogram_bin_count:
@@ -217,14 +223,14 @@ class MatplotlibWidget(QtWidgets.QWidget):
             else:
                 # Use bin width, but only if max count not exceeded.
                 bin_width = options.histogram_bin_width
-                min_index = math.floor(self._array.min() / bin_width)
-                max_index = math.ceil(self._array.max() / bin_width) - 1
+                min_index = math.floor(subarray.min() / bin_width)
+                max_index = math.ceil(subarray.max() / bin_width) - 1
                 bins = max_index - min_index
                 if bins < options.histogram_max_bin_count:
                     bins = bin_width*np.arange(min_index, max_index+2)
                 else:
                     bins = options.histogram_max_bin_count
-            hist, bin_edges = np.histogram(np.ma.compressed(self._array),
+            hist, bin_edges = np.histogram(np.ma.compressed(subarray),
                                            bins=bins)
             bin_width = bin_edges[1] - bin_edges[0]
             self._histogram = (hist, bin_edges, bin_width)
@@ -290,7 +296,6 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._title = None
         self._name = None
         self._colourmap_limits = None
-        self._map_zoom = None
         self._image = None
         self._bar = None
         self._bar_norm_x = None
@@ -309,6 +314,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
     def clear_map_zoom(self):
         self._map_zoom = None
+        self._map_pixel_zoom = None
 
     def create_colourmap(self):
         if self._array_type in (ArrayType.PHASE, ArrayType.REGION):
@@ -452,7 +458,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
                 self._mode_handler = None
 
     def update(self, plot_type, array_type, array, array_stats, title, name,
-               map_zoom=None, colourmap_limits=None, refresh=True):
+               map_zoom, map_pixel_zoom, colourmap_limits=None, refresh=True):
         self._plot_type = plot_type
         self._array_type = array_type
         self._array = array
@@ -461,6 +467,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._name = name
         self._colourmap_limits = colourmap_limits
         self._map_zoom = map_zoom
+        self._map_pixel_zoom = map_pixel_zoom
 
         self._update_draw(refresh)
 
