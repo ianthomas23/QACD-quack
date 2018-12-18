@@ -227,13 +227,20 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
             else:
                 # Use bin width, but only if max count not exceeded.
                 bin_width = options.histogram_bin_width
-                min_index = math.floor(subarray.min() / bin_width)
-                max_index = math.ceil(subarray.max() / bin_width) - 1
-                bins = max_index - min_index
-                if bins < options.histogram_max_bin_count:
-                    bins = bin_width*np.arange(min_index, max_index+2)
+                subarray_min = subarray.min()
+                subarray_max = subarray.max()
+                if subarray_min is np.ma.masked or subarray_max is np.ma.masked:
+                    # Subarray is all masked out, so cannot display histogram.
+                    bins = 1
                 else:
-                    bins = options.histogram_max_bin_count
+                    min_index = math.floor(subarray_min / bin_width)
+                    max_index = math.ceil(subarray_max / bin_width) - 1
+                    bins = max_index - min_index
+                    if bins < options.histogram_max_bin_count:
+                        bins = bin_width*np.arange(min_index, max_index+2)
+                    else:
+                        bins = options.histogram_max_bin_count
+
             hist, bin_edges = np.histogram(np.ma.compressed(subarray),
                                            bins=bins)
             bin_width = bin_edges[1] - bin_edges[0]
