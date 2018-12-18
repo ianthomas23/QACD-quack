@@ -7,12 +7,13 @@ from matplotlib.figure import Figure
 import numpy as np
 from PyQt5 import QtCore, QtWidgets
 
+from src.model.display_options_listener import DisplayOptionsListener
 from .enums import ArrayType, ModeType, PlotType
 from .mode_handler import *
 from .scale_bar import ScaleBar
 
 
-class MatplotlibWidget(QtWidgets.QWidget):
+class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
     def __init__(self, parent):
         super(MatplotlibWidget, self).__init__(parent)
 
@@ -136,7 +137,10 @@ class MatplotlibWidget(QtWidgets.QWidget):
         show_colourbar = True
         cmap_int_max = None
         if self._array_type == ArrayType.CLUSTER:
-            cmap_int_max = self._array_stats['max'] + 1
+            if 'k' in self._array_stats:
+                cmap_int_max = self._array_stats['k'] + 1
+            else:
+                cmap_int_max = self._array_stats['max'] + 1
         elif self._array_type in (ArrayType.PHASE, ArrayType.REGION):
             show_colourbar = False
             cmap_int_max = 2
@@ -472,6 +476,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
         self._update_draw(refresh)
 
     def update_colourmap_name(self):
+        # Handler for DisplayOptions callback.
         colourmap_name = self._display_options.colourmap_name
         cmap = self.create_colourmap()
 
@@ -487,12 +492,3 @@ class MatplotlibWidget(QtWidgets.QWidget):
                 item.set_color(colours[index])
 
         self._redraw()
-
-    def update_histogram_options(self):
-        self._update_draw()
-
-    def update_labels_and_scale(self):
-        self._update_draw()
-
-    def update_zoom(self):
-        pass

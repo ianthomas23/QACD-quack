@@ -5,6 +5,7 @@ from PyQt5 import QtCore, QtWidgets, QtGui
 import string
 import time
 
+from src.model.display_options_listener import DisplayOptionsListener
 from src.model.elements import element_properties
 from src.model.qacd_project import QACDProject, State
 from .about_dialog import AboutDialog
@@ -22,7 +23,7 @@ from .ui_main_window import Ui_MainWindow
 from .zoom_history import ZoomHistory
 
 
-class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
+class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
     # Inner class for current data displayed.
     class Current:
         def __init__(self):
@@ -304,7 +305,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             current.selected_array, current.selected_array_stats = ret
 
         self.update_controls()
-        self.update_matplotlib_widget()
+        self.update_matplotlib_widget(override_cursor=False)
         QtWidgets.QApplication.restoreOverrideCursor()
 
     def change_zoom(self, zoom):
@@ -313,7 +314,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         ny, nx = self._current.selected_array.shape
         is_zoomed = (zoom is not None and
                      not np.array_equal(zoom, ((0, nx), (ny, 0))))
-        #print('==> main_window.change_zoom', is_zoomed)
         if is_zoomed:
             imin = math.floor(zoom[0].min())
             imax = math.ceil(zoom[0].max())
@@ -337,6 +337,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def close_project(self):
         if self._project is not None:
+            self._project.display_options.unregister_listener(self)
+
             self._project = None
             self._current.clear()
 
@@ -664,6 +666,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self, 'New project ' + os.path.basename(filename), thread_func,
                 args=[self._project, csv_directory, csv_files])
 
+            self._project.display_options.register_listener(self)
             self.matplotlibWidget.set_display_options( \
                 self._project.display_options)
         except Exception as e:
@@ -673,7 +676,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.tabWidget.setCurrentIndex(0)  # Bring tab to front.
 
         self.update_controls()
-        self.update_matplotlib_widget()
+        self.update_matplotlib_widget(override_cursor=False)
         self.update_title()
         QtWidgets.QApplication.restoreOverrideCursor()
 
@@ -781,12 +784,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.fill_table_widget(5)  # Phases.
                 self.fill_table_widget(6)  # Regions.
 
+            self._project.display_options.register_listener(self)
             self.matplotlibWidget.set_display_options(project.display_options)
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, 'Error', str(e))
 
         self.update_controls()
-        self.update_matplotlib_widget()
+        self.update_matplotlib_widget(override_cursor=True)
         self.update_phase_combo_box()
         self.update_region_combo_box()
         self.update_title()
@@ -843,7 +847,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.undoColourmapButton.setEnabled(self._zoom_colourmap_history.has_undo())
         self.redoColourmapButton.setEnabled(self._zoom_colourmap_history.has_redo())
 
-    def update_matplotlib_widget(self, refresh=True):
+    def update_histogram_options(self):
+        # Handler for DisplayOptions callback.
+        self.update_matplotlib_widget()
+
+    def update_labels_and_scale(self):
+        # Handler for DisplayOptions callback.
+        self.update_matplotlib_widget()
+
+    def update_matplotlib_widget(self, refresh=True, override_cursor=True):
+        if override_cursor:
+            QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
+
         current = self._current
 
         if current.array_type is ArrayType.INVALID:
@@ -876,53 +891,50 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             if changed:
                 current.colourmap_limits = None
 
-            #if (current.array_type in (ArrayType.PHASE, ArrayType.REGION) or
-            #    (current.mask is None and current.colourmap_limits is None)):
-            #    current.displayed_array = current.selected_array
-            #    current.displayed_array_stats = current.selected_array_stats
-            #else:
-            if True:
-                clim_mask = None
-                if current.colourmap_limits is not None:
-                    clim_mask = np.logical_or( \
-                        np.ma.less(current.selected_array, current.colourmap_limits[0]),
-                        np.ma.greater(current.selected_array, current.colourmap_limits[1]))
-                if clim_mask is not None and current.mask is not None:
-                    mask = np.logical_or(clim_mask, current.mask)
-                elif clim_mask is not None:
-                    mask = clim_mask
-                else:  # current.mask is not None:
-                    mask = current.mask
+            clim_mask = None
+            if current.colourmap_limits is not None:
+                clim_mask = np.logical_or( \
+                    np.ma.less(current.selected_array, current.colourmap_limits[0]),
+                    np.ma.greater(current.selected_array, current.colourmap_limits[1]))
+            if clim_mask is not None and current.mask is not None:
+                mask = np.logical_or(clim_mask, current.mask)
+            elif clim_mask is not None:
+                mask = clim_mask
+            else:  # current.mask is not None:
+                mask = current.mask
 
-                # May want to cache this instead of recalculating it each time.
-                array = np.ma.masked_where(mask, current.selected_array)
+            # May want to cache this instead of recalculating it each time.
+            array = np.ma.masked_where(mask, current.selected_array)
 
-                # subarray is array zoomed to, if only want stats of zoomed
-                # area.
-                subarray = array
-                if self._project.display_options.zoom_updates_stats:
-                    pixel_zoom = current.pixel_zoom
-                    if pixel_zoom is not None:
-                        ((imin, imax), (jmin, jmax)) = current.pixel_zoom
-                        subarray = subarray[jmin:jmax, imin:imax]
+            # subarray is array zoomed to, if only want stats of zoomed
+            # area.
+            subarray = array
+            if self._project.display_options.zoom_updates_stats:
+                pixel_zoom = current.pixel_zoom
+                if pixel_zoom is not None:
+                    ((imin, imax), (jmin, jmax)) = current.pixel_zoom
+                    subarray = subarray[jmin:jmax, imin:imax]
 
-                array_stats = {}
-                if 'valid' in current.selected_array_stats:
-                    number_invalid = np.ma.count_masked(subarray)
-                    array_stats['invalid'] = number_invalid
-                    array_stats['valid'] = subarray.size - number_invalid
-                if 'min' in current.selected_array_stats:
-                    array_stats['max'] = subarray.max()
-                    array_stats['min'] = subarray.min()
-                if 'mean' in current.selected_array_stats and current.colourmap_limits is None:
-                    array_stats['mean'] = subarray.mean()
-                if 'median' in current.selected_array_stats and current.colourmap_limits is None:
-                    array_stats['median'] = np.ma.median(subarray)
-                if 'std' in current.selected_array_stats and current.colourmap_limits is None:
-                    array_stats['std'] = subarray.std()
-                current.displayed_array = array
-                current.displayed_array_stats = array_stats
-                # Assuming update_status_bar will follow anyway.
+            array_stats = {}
+            if 'valid' in current.selected_array_stats:
+                number_invalid = np.ma.count_masked(subarray)
+                array_stats['invalid'] = number_invalid
+                array_stats['valid'] = subarray.size - number_invalid
+            if 'min' in current.selected_array_stats:
+                array_stats['max'] = subarray.max()
+                array_stats['min'] = subarray.min()
+            if 'mean' in current.selected_array_stats and current.colourmap_limits is None:
+                array_stats['mean'] = subarray.mean()
+            if 'median' in current.selected_array_stats and current.colourmap_limits is None:
+                array_stats['median'] = np.ma.median(subarray)
+            if 'std' in current.selected_array_stats and current.colourmap_limits is None:
+                array_stats['std'] = subarray.std()
+
+            if current.array_type == ArrayType.CLUSTER:
+                array_stats['k'] = current.selected_array_stats['max']
+
+            current.displayed_array = array
+            current.displayed_array_stats = array_stats
 
             self.matplotlibWidget.update( \
                 plot_type, current.array_type, current.displayed_array,
@@ -938,6 +950,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.update_controls()
 
         self.update_status_bar()
+
+        if override_cursor:
+            QtWidgets.QApplication.restoreOverrideCursor()
 
     def update_phase_combo_box(self):
         combo_box = self.phaseComboBox
@@ -987,6 +1002,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if self._project is not None:
             title += ' - ' + self._project.filename
         self.setWindowTitle(title)
+
+    def update_zoom(self):
+        # Handler for DisplayOptions callback.
+        self.update_matplotlib_widget()
 
     def zoom_append(self, matplotlib_widget, from_, to):
         if matplotlib_widget == self.matplotlibWidget:

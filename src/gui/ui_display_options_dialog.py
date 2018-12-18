@@ -223,8 +223,8 @@ class Ui_DisplayOptionsDialog(object):
         self.showMeanMedianStdCheckBox.setText(_translate("DisplayOptionsDialog", "Show mean, median and standard deviation lines"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.histogramTab), _translate("DisplayOptionsDialog", "Histogram"))
         self.autoZoomRegionCheckBox.setText(_translate("DisplayOptionsDialog", "Auto zoom when change region"))
-        self.zoomUpdatesStatsCheckBox.setText(_translate("DisplayOptionsDialog", "Histogram and status bar refer to current zoomed area\n"
-"rather than whole element map"))
+        self.zoomUpdatesStatsCheckBox.setText(_translate("DisplayOptionsDialog", "Histogram, colour bar and status bar refer to current\n"
+"zoomed area rather than whole element map"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.zoomTab), _translate("DisplayOptionsDialog", "Zoom"))
 
 

@@ -73,8 +73,9 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
 
     def accept(self):
         try:
-            for index in range(self.tabWidget.count()):
-                self.apply_tab(index)
+            n = self.tabWidget.count()
+            for index in range(n):
+                self.apply_tab(index, index == n-1)
             self.close()
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, 'Error', str(e))
@@ -82,11 +83,11 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
     def apply(self):
         try:
             # Apply the current tab.
-            self.apply_tab(self.tabWidget.currentIndex())
+            self.apply_tab(self.tabWidget.currentIndex(), True)
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, 'Error', str(e))
 
-    def apply_tab(self, tab_index):
+    def apply_tab(self, tab_index, refresh_display):
         locale = QtCore.QLocale()
 
         if tab_index == 0:
@@ -120,7 +121,8 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
             self._display_options.set_labels_and_scale( \
                 show_ticks_and_labels, overall_title, show_project_filename,
                 show_date, use_scale, pixel_size, units, show_scale_bar,
-                scale_bar_location, scale_bar_colour)
+                scale_bar_location, scale_bar_colour,
+                refresh_display=refresh_display)
             self.update_buttons()
         elif tab_index == 2:
             # Histogram tab.
@@ -144,13 +146,14 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
             self._display_options.set_histogram( \
                 use_histogram_bin_count, histogram_bin_count,
                 histogram_bin_width, histogram_max_bin_count,
-                show_mean_median_std_lines)
+                show_mean_median_std_lines, refresh_display=refresh_display)
             self.update_buttons()
         else:  # tab_index == 3
             auto_zoom_region = self.autoZoomRegionCheckBox.isChecked()
             zoom_updates_stats = self.zoomUpdatesStatsCheckBox.isChecked()
 
-            self._display_options.set_zoom(auto_zoom_region, zoom_updates_stats)
+            self._display_options.set_zoom(auto_zoom_region, zoom_updates_stats,
+                                           refresh_display=refresh_display)
             self.update_buttons()
 
     def change_tab(self):

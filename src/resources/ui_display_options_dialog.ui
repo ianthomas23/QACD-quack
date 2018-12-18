@@ -320,8 +320,8 @@
        <item>
         <widget class="QCheckBox" name="zoomUpdatesStatsCheckBox">
          <property name="text">
-          <string>Histogram and status bar refer to current zoomed area
-rather than whole element map</string>
+          <string>Histogram, colour bar and status bar refer to current
+zoomed area rather than whole element map</string>
          </property>
         </widget>
        </item>

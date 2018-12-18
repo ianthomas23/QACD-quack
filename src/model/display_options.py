@@ -132,7 +132,7 @@ class DisplayOptions:
 
     def set_histogram(self, use_histogram_bin_count, histogram_bin_count,
                 histogram_bin_width, histogram_max_bin_count,
-                show_mean_median_std_lines):
+                show_mean_median_std_lines, refresh_display=True):
         self._use_histogram_bin_count = use_histogram_bin_count
         self._histogram_bin_count = histogram_bin_count
         self._histogram_bin_width = histogram_bin_width
@@ -141,13 +141,15 @@ class DisplayOptions:
 
         self._project().save_display_options()
 
-        for listener in self._listeners:
-            listener.update_histogram_options()
+        if refresh_display:
+            for listener in self._listeners:
+                listener.update_histogram_options()
 
     def set_labels_and_scale(self, show_ticks_and_labels, overall_title,
                              show_project_filename, show_date, use_scale,
                              pixel_size, units, show_scale_bar,
-                             scale_bar_location, scale_bar_colour):
+                             scale_bar_location, scale_bar_colour,
+                             refresh_display=True):
         # Validation.
         if pixel_size <= 0.0:
             raise RuntimeError('Pixel size must be positive')
@@ -174,17 +176,20 @@ class DisplayOptions:
 
         self._project().save_display_options()
 
-        for listener in self._listeners:
-            listener.update_labels_and_scale()
+        if refresh_display:
+            for listener in self._listeners:
+                listener.update_labels_and_scale()
 
-    def set_zoom(self, auto_zoom_region, zoom_updates_stats):
+    def set_zoom(self, auto_zoom_region, zoom_updates_stats,
+                 refresh_display=True):
         self._auto_zoom_region = auto_zoom_region
         self._zoom_updates_stats = zoom_updates_stats
 
         self._project().save_display_options()
 
-        for listener in self._listeners:
-            listener.update_zoom()
+        if refresh_display:
+            for listener in self._listeners:
+                listener.update_zoom()
 
     @property
     def show_date(self):
