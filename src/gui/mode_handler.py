@@ -381,17 +381,9 @@ class PolygonRegionHandler(RegionHandler):
 
 
 class ZoomHandler(ModeHandler):
-    @unique
-    class Type(Enum):
-        INVALID   = -1
-        MAP       =  0
-        COLOURBAR =  1
-        HISTOGRAM =  2
-
     def __init__(self, matplotlib_widget, display_options, status_callback):
         super().__init__(matplotlib_widget, display_options, status_callback)
         self._zoom_rectangle = None  # Only set when zooming.
-        self._type = self.Type.INVALID
         self._zoom_axes = None
 
     def clear(self):
@@ -399,27 +391,18 @@ class ZoomHandler(ModeHandler):
             self._zoom_rectangle.remove()
             self._zoom_rectangle = None
 
-            self._type = self.Type.INVALID
-
         self.send_status_callback(None)
 
     def on_axes_enter(self, event):
-        ##print('enter', event.inaxes, self.matplotlib_widget._map_axes)
         if (event.inaxes is not None and
-            (event.inaxes == self.matplotlib_widget._map_axes or
-             (self.matplotlib_widget._array_type != ArrayType.CLUSTER and
-              (event.inaxes == self.matplotlib_widget.get_colourbar_axes() or
-               event.inaxes == self.matplotlib_widget._histogram_axes)))):
+            event.inaxes == self.matplotlib_widget._map_axes):
 
             QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CrossCursor)
 
     def on_axes_leave(self, event):
-        ##print('leave', event.inaxes, self.matplotlib_widget._map_axes)
         if (event.inaxes is not None and
             (event.inaxes == self._zoom_axes or
-             event.inaxes == self.matplotlib_widget._map_axes or
-             event.inaxes == self.matplotlib_widget.get_colourbar_axes() or
-             event.inaxes == self.matplotlib_widget._histogram_axes)):
+             event.inaxes == self.matplotlib_widget._map_axes)):
 
             QtWidgets.QApplication.restoreOverrideCursor()
             self._zoom_axes = None
@@ -440,101 +423,38 @@ class ZoomHandler(ModeHandler):
             self._zoom_rectangle = \
                 self.matplotlib_widget._map_axes.add_patch(rectangle)
             self._zoom_rectangle.set_path_effects(self._get_path_effects())
-            self._type = self.Type.MAP
-
-        elif (self.matplotlib_widget._colourbar is not None and
-              event.inaxes == self.matplotlib_widget.get_colourbar_axes() and
-              self.matplotlib_widget._array_type != ArrayType.CLUSTER):
-
-            rectangle = Rectangle((0.0, event.ydata), width=1.0, height=0,
-                                  fc='none', ec='k', ls='--')
-            self._zoom_rectangle = \
-                self.matplotlib_widget.get_colourbar_axes().add_patch(rectangle)
-            self._zoom_rectangle.set_path_effects(self._get_path_effects())
-            self._type = self.Type.COLOURBAR
-
-        elif (self.matplotlib_widget._histogram_axes is not None and
-              event.inaxes == self.matplotlib_widget._histogram_axes and
-              self.matplotlib_widget._array_type != ArrayType.CLUSTER):
-
-            ylim = self.matplotlib_widget._histogram_axes.get_ylim()
-            rectangle = Rectangle( \
-                (event.xdata, ylim[0]), width=0.0, height=ylim[1] - ylim[0],
-                fc='none', ec='k', ls='--')
-            self._zoom_rectangle = \
-                self.matplotlib_widget._histogram_axes.add_patch(rectangle)
-            self._zoom_rectangle.set_path_effects(self._get_path_effects())
-            self._type = self.Type.HISTOGRAM
 
         self.matplotlib_widget._redraw()
 
     def on_mouse_move(self, event):
-        if self._zoom_rectangle is not None:  # Zooming
-            if (self._type == self.Type.MAP and
-                event.inaxes == self.matplotlib_widget._map_axes):
-                x = event.xdata
-                y = event.ydata
-                self._zoom_rectangle.set_width(x - self._zoom_rectangle.get_x())
-                self._zoom_rectangle.set_height(y - self._zoom_rectangle.get_y())
-            elif (self._type == self.Type.COLOURBAR and
-                  event.inaxes == self.matplotlib_widget.get_colourbar_axes()):
-                y = event.ydata
-                self._zoom_rectangle.set_height(y - self._zoom_rectangle.get_y())
-            elif (self._type == self.Type.HISTOGRAM and
-                  event.inaxes == self.matplotlib_widget._histogram_axes):
-                x = event.xdata
-                self._zoom_rectangle.set_width(x - self._zoom_rectangle.get_x())
+        if (self._zoom_rectangle is not None and
+            event.inaxes == self.matplotlib_widget._map_axes):
 
-            self.matplotlib_widget._redraw()
+            x = event.xdata
+            y = event.ydata
+            self._zoom_rectangle.set_width(x - self._zoom_rectangle.get_x())
+            self._zoom_rectangle.set_height(y - self._zoom_rectangle.get_y())
 
+        self.matplotlib_widget._redraw()
         self.send_status_callback(event)
 
     def on_mouse_up(self, event):
         if self._zoom_rectangle is None or event.button != 1 or event.dblclick:
             return
 
-        if self._type == self.Type.MAP:
-            width = self._zoom_rectangle.get_width()
-            height = self._zoom_rectangle.get_height()
-            if abs(width) > 1e-10 and abs(height) > 1e-10:
-                x = self._zoom_rectangle.get_x()
-                y = self._zoom_rectangle.get_y()
-                zoom_xs = sorted([x, x+width])
-                zoom_ys = sorted([y, y+height], reverse=True)
+        width = self._zoom_rectangle.get_width()
+        height = self._zoom_rectangle.get_height()
+        if abs(width) > 1e-10 and abs(height) > 1e-10:
+            x = self._zoom_rectangle.get_x()
+            y = self._zoom_rectangle.get_y()
+            zoom_xs = sorted([x, x+width])
+            zoom_ys = sorted([y, y+height], reverse=True)
 
-                scale = self.matplotlib_widget._scale
-                from_ = np.asarray((self.matplotlib_widget._map_axes.get_xlim(),
-                                    self.matplotlib_widget._map_axes.get_ylim())) / scale
-                to = np.asarray((zoom_xs, zoom_ys)) / scale
+            scale = self.matplotlib_widget._scale
+            from_ = np.asarray((self.matplotlib_widget._map_axes.get_xlim(),
+                                self.matplotlib_widget._map_axes.get_ylim())) / scale
+            to = np.asarray((zoom_xs, zoom_ys)) / scale
 
-                self.matplotlib_widget._owning_window.zoom_append( \
-                    self.matplotlib_widget, from_=from_, to=to)
-                self.clear()
-        elif self._type == self.Type.COLOURBAR:
-            height = self._zoom_rectangle.get_height()
-            if abs(height) > 1e-10:
-                y = self._zoom_rectangle.get_y()
-                zoom_ys = sorted([y, y+height])
-                zoom_ys = (self.matplotlib_widget._colourbar.norm.inverse(zoom_ys[0]),
-                           self.matplotlib_widget._colourbar.norm.inverse(zoom_ys[1]))
-
-                self.clear()  # Must be before matplotlib widget update.
-                self.matplotlib_widget._owning_window.zoom_colourmap_append( \
-                    from_=self.matplotlib_widget._colourmap_limits, to=zoom_ys)
-                QtWidgets.QApplication.restoreOverrideCursor()
-            else:
-                self.clear()
-        elif self._type == self.Type.HISTOGRAM:
-            width = self._zoom_rectangle.get_width()
-            if abs(width) > 1e-10:
-                x = self._zoom_rectangle.get_x()
-                zoom_xs = sorted([x, x+width])
-
-                self.clear()  # Must be before matplotlib widget update.
-                self.matplotlib_widget._owning_window.zoom_colourmap_append( \
-                    from_=self.matplotlib_widget._colourmap_limits, to=zoom_xs)
-                QtWidgets.QApplication.restoreOverrideCursor()
-            else:
-                self.clear()
-
-        self._type = self.Type.INVALID
+            self.matplotlib_widget._owning_window.zoom_append( \
+                self.matplotlib_widget, from_=from_, to=to)
+            self.clear()

@@ -33,7 +33,6 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
         self._array_stats = None
         self._title = None
         self._name = None
-        self._colourmap_limits = None
         self._map_zoom = None       # None or float array of shape (2,2).
         self._map_pixel_zoom = None # None or int array ((imin,imax), (jmin,jmax))
 
@@ -306,7 +305,6 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
         self._array_stats = None
         self._title = None
         self._name = None
-        self._colourmap_limits = None
         self._image = None
         self._bar = None
         self._bar_norm_x = None
@@ -339,12 +337,6 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
     def export_to_file(self, filename):
         figure = self._canvas.figure
         figure.savefig(filename)
-
-    def get_colourbar_axes(self):
-        if self._colourbar is None:
-            return None
-        else:
-            return self._colourbar.ax
 
     def get_histogram_at_x(self, x):
         # Return histogram data at specified x value.
@@ -469,14 +461,13 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
                 self._mode_handler = None
 
     def update(self, plot_type, array_type, array, array_stats, title, name,
-               map_zoom, map_pixel_zoom, colourmap_limits=None, refresh=True):
+               map_zoom=None, map_pixel_zoom=None, refresh=True):
         self._plot_type = plot_type
         self._array_type = array_type
         self._array = array
         self._array_stats = array_stats
         self._title = title
         self._name = name
-        self._colourmap_limits = colourmap_limits
         self._map_zoom = map_zoom
         self._map_pixel_zoom = map_pixel_zoom
 

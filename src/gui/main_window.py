@@ -45,7 +45,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
             self.name = None    # e.g. element name, or 'total', etc.
             self.phase = None   # None or phase boolean array.
             self.region = None  # None or region boolean array.
-            self.colourmap_limits = None  # None or tuple of (lower, upper).
             self.mask = None    # None or combined phase & region boolean array.
 
             self.zoom = None    # None or float array of shape (2,2).
@@ -103,8 +102,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
         self.regionComboBox.currentIndexChanged.connect(self.change_region)
         self.undoButton.clicked.connect(self.zoom_undo)
         self.redoButton.clicked.connect(self.zoom_redo)
-        self.undoColourmapButton.clicked.connect(self.zoom_colourmap_undo)
-        self.redoColourmapButton.clicked.connect(self.zoom_colourmap_redo)
 
         # Hide all but the first tab.
         for i in range(self.tabWidget.count()-1, 0, -1):
@@ -149,7 +146,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
         self._new_region_shown = False        # Modeless dialog.
 
         self._zoom_history = ZoomHistory()
-        self._zoom_colourmap_history = ZoomHistory()
 
         self._status_callback_data = None
 
@@ -844,8 +840,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
                                    self.matplotlibWidget.has_map_axes())
         self.redoButton.setEnabled(self._zoom_history.has_redo() and
                                    self.matplotlibWidget.has_map_axes())
-        self.undoColourmapButton.setEnabled(self._zoom_colourmap_history.has_undo())
-        self.redoColourmapButton.setEnabled(self._zoom_colourmap_history.has_redo())
 
     def update_histogram_options(self):
         # Handler for DisplayOptions callback.
@@ -863,7 +857,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
 
         if current.array_type is ArrayType.INVALID:
             self.matplotlibWidget.clear()
-            changed = True
         else:
             plot_type = PlotType(self.plotTypeComboBox.currentIndex())
             if current.name in ('h', 'h-factor'):
@@ -886,16 +879,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
                 type_string = string.capwords(current.array_type.name.lower())
                 title = '{} {} element'.format(type_string, name)
 
-            changed = (self.matplotlibWidget._name != current.name or
-                       self.matplotlibWidget._array_type != current.array_type)
-            if changed:
-                current.colourmap_limits = None
-
             clim_mask = None
-            if current.colourmap_limits is not None:
-                clim_mask = np.logical_or( \
-                    np.ma.less(current.selected_array, current.colourmap_limits[0]),
-                    np.ma.greater(current.selected_array, current.colourmap_limits[1]))
+#            if current.colourmap_limits is not None:
+#                clim_mask = np.logical_or( \
+#                    np.ma.less(current.selected_array, current.colourmap_limits[0]),
+#                    np.ma.greater(current.selected_array, current.colourmap_limits[1]))
             if clim_mask is not None and current.mask is not None:
                 mask = np.logical_or(clim_mask, current.mask)
             elif clim_mask is not None:
@@ -923,11 +911,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
             if 'min' in current.selected_array_stats:
                 array_stats['max'] = subarray.max()
                 array_stats['min'] = subarray.min()
-            if 'mean' in current.selected_array_stats and current.colourmap_limits is None:
+            if 'mean' in current.selected_array_stats:
                 array_stats['mean'] = subarray.mean()
-            if 'median' in current.selected_array_stats and current.colourmap_limits is None:
+            if 'median' in current.selected_array_stats:
                 array_stats['median'] = np.ma.median(subarray)
-            if 'std' in current.selected_array_stats and current.colourmap_limits is None:
+            if 'std' in current.selected_array_stats:
                 array_stats['std'] = subarray.std()
 
             if current.array_type == ArrayType.CLUSTER:
@@ -939,15 +927,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
             self.matplotlibWidget.update( \
                 plot_type, current.array_type, current.displayed_array,
                 current.displayed_array_stats, title, current.name,
-                current.zoom, current.pixel_zoom, current.colourmap_limits,
-                refresh)
+                current.zoom, current.pixel_zoom, refresh)
 
-        # Update controls that depend on mpl widget displaying valid data.
+        # Update controls that depend on mpl widget displaying valid data
+        # rather than all the controls.
         self.actionExportImage.setEnabled(self.matplotlibWidget.has_content())
-
-        if changed and self._zoom_colourmap_history.has_any():
-            self._zoom_colourmap_history.clear()
-            self.update_controls()
 
         self.update_status_bar()
 
@@ -1024,24 +1008,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
         self._zoom_history.clear()
         self._current.zoom = None
         self.matplotlibWidget.clear_map_zoom()
-
-    def zoom_colourmap_append(self, from_, to):
-        self._zoom_colourmap_history.append(from_, to)
-        self._current.colourmap_limits = to
-        self.update_matplotlib_widget()
-        self.update_controls()
-
-    def zoom_colourmap_redo(self):
-        to = self._zoom_colourmap_history.redo()[1]
-        self._current.colourmap_limits = to
-        self.update_matplotlib_widget()
-        self.update_controls()
-
-    def zoom_colourmap_undo(self):
-        to = self._zoom_colourmap_history.undo()[0]
-        self._current.colourmap_limits = to
-        self.update_matplotlib_widget()
-        self.update_controls()
 
     def zoom_redo(self):
         zoom = self._zoom_history.redo()
