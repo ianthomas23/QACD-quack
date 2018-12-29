@@ -27,6 +27,9 @@ class ModeHandler:
                        alpha=self._shadow_alpha),
                 Normal()]
 
+    def _get_scale(self):
+        return self.matplotlib_widget._scale
+
     def move_to_new_axes(self):
         pass
 
@@ -50,8 +53,9 @@ class ModeHandler:
             callback_data = None
             if event is not None and event.inaxes is not None:
                 if event.inaxes == self.matplotlib_widget._map_axes:
-                    x = int(event.xdata / self.display_options.scale)
-                    y = int(event.ydata / self.display_options.scale)
+                    scale= self._get_scale()
+                    x = int(event.xdata / scale)
+                    y = int(event.ydata / scale)
                     value = self.matplotlib_widget.get_value_at_position(x, y)
                     callback_data = ('pixel', x, y, value)
                 elif event.inaxes == self.matplotlib_widget._histogram_axes:
@@ -178,7 +182,7 @@ class MouseDragRegionHandler(RegionHandler):
             self._editing = True
             self._points = np.asarray([[event.xdata, event.ydata],
                                        [event.xdata, event.ydata]])
-            self._points /= self.display_options.scale
+            self._points /= self._get_scale()
             self._artists = self._create_artists()
             self.matplotlib_widget._redraw()
 
@@ -187,7 +191,7 @@ class MouseDragRegionHandler(RegionHandler):
             event.inaxes == self.matplotlib_widget._map_axes):
 
             self._points[1] = (event.xdata, event.ydata)
-            self._points[1] /= self.display_options.scale
+            self._points[1] /= self._get_scale()
             self._move_artists()
             self.matplotlib_widget._redraw()
 
@@ -210,9 +214,6 @@ class EllipseRegionHandler(MouseDragRegionHandler):
         project = self.matplotlib_widget._owning_window._project
         if project is not None:
             centre, size = self._get_centre_and_size(False)
-            ratio = self.display_options.scale / self.matplotlib_widget._scale
-            centre *= ratio
-            size *= ratio
             return project.calculate_region_ellipse(centre, size)
         else:
             return None
@@ -221,7 +222,6 @@ class EllipseRegionHandler(MouseDragRegionHandler):
         if len(self._points) < 2:
             return []
 
-        scale = self.display_options.scale
         centre, size = self._get_centre_and_size(True)
         ellipse = Ellipse(centre, width=size[0], height=size[1],
                           fc='none', ec=self._line_colour)
@@ -235,8 +235,8 @@ class EllipseRegionHandler(MouseDragRegionHandler):
         centre = (start + end)*0.5
         size = end - start
         if scaled:
-            centre *= self.display_options.scale
-            size *= self.display_options.scale
+            centre *= self._get_scale()
+            size *= self._get_scale()
         return centre, size
 
     def _move_artists(self):
@@ -259,9 +259,8 @@ class RectangleRegionHandler(MouseDragRegionHandler):
     def _calculate_region(self):
         project = self.matplotlib_widget._owning_window._project
         if project is not None:
-            ratio = self.display_options.scale / self.matplotlib_widget._scale
-            corner0 = self._points[0]*ratio
-            corner1 = self._points[1]*ratio
+            corner0 = self._points[0]
+            corner1 = self._points[1]
             return project.calculate_region_rectangle(corner0, corner1)
         else:
             return None
@@ -270,8 +269,8 @@ class RectangleRegionHandler(MouseDragRegionHandler):
         if len(self._points) < 2:
             return []
 
-        start = self._points[0]*self.display_options.scale
-        size  = self._points[1]*self.display_options.scale - start
+        start = self._points[0]*self._get_scale()
+        size  = self._points[1]*self._get_scale() - start
         rectangle = Rectangle(start, width=size[0], height=size[1],
                               fc='none', ec=self._line_colour)
         rectangle = self.matplotlib_widget._map_axes.add_patch(rectangle)
@@ -279,8 +278,8 @@ class RectangleRegionHandler(MouseDragRegionHandler):
         return [rectangle]
 
     def _move_artists(self):
-        start = self._points[0]*self.display_options.scale
-        end   = self._points[1]*self.display_options.scale
+        start = self._points[0]*self._get_scale()
+        end   = self._points[1]*self._get_scale()
         self._artists[0].set_width( end[0] - start[0])
         self._artists[0].set_height(end[1] - start[1])
 
@@ -304,7 +303,7 @@ class PolygonRegionHandler(RegionHandler):
             if not self._artists:
                 self._artists = self._create_artists()
             else:
-                scale = self.display_options.scale
+                scale = self._get_scale()
                 self._artists[0].set_data(self._points[:, 0]*scale,
                                           self._points[:, 1]*scale)
                 self._artists[1].set_data(self._points[:, 0]*scale,
@@ -314,17 +313,15 @@ class PolygonRegionHandler(RegionHandler):
     def _calculate_region(self):
         project = self.matplotlib_widget._owning_window._project
         if project is not None:
-            ratio = self.display_options.scale / self.matplotlib_widget._scale
-            points = self._points*ratio
-            return project.calculate_region_polygon(points)
+            return project.calculate_region_polygon(self._points)
         else:
             return None
 
     def _close_polygon(self):
         if self._artists:
             self._points = np.vstack((self._points, self._points[0]))
-            x = self._points[:, 0]*self.display_options.scale
-            y = self._points[:, 1]*self.display_options.scale
+            x = self._points[:, 0]*self._get_scale()
+            y = self._points[:, 1]*self._get_scale()
             self._artists[0].set_data(x, y)
             self._artists[1].set_data(x, y)
 
@@ -332,7 +329,7 @@ class PolygonRegionHandler(RegionHandler):
 
     def _create_artists(self):
         colour = self._line_colour
-        scale = self.display_options.scale
+        scale = self._get_scale()
         lines = self.matplotlib_widget._map_axes.plot( \
             self._points[:, 0]*scale, self._points[:, 1]*scale, '-', c=colour)[0]
         markers = self.matplotlib_widget._map_axes.plot(\
@@ -360,8 +357,7 @@ class PolygonRegionHandler(RegionHandler):
             if event.dblclick or (self._artists and self._artists[2]):
                 self._close_polygon()
             else:
-                scale = self.display_options.scale
-                point = np.asarray((event.xdata, event.ydata)) / scale
+                point = np.asarray((event.xdata, event.ydata)) / self._get_scale()
                 self._add_point(point)
 
     def on_mouse_move(self, event):
@@ -371,7 +367,7 @@ class PolygonRegionHandler(RegionHandler):
             inside, matches = self._artists[1].contains(event)
             if inside:
                 if self._artists[2] is None and 0 in matches['ind']:
-                    scale = self.display_options.scale
+                    scale = self._get_scale()
                     self._artists[2] = self.matplotlib_widget._map_axes.plot(\
                         self._points[0, 0]*scale, self._points[0, 1]*scale,
                         'o', c='yellow')[0]
