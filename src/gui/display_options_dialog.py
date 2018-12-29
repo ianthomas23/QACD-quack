@@ -70,6 +70,11 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         # Zoom tab controls.
         self.autoZoomRegionCheckBox.stateChanged.connect(self.update_buttons)
         self.zoomUpdatesStatsCheckBox.stateChanged.connect(self.update_buttons)
+        self._linked_colourmap_zoom_groups = True
+        self.automaticColourmapZoomCheckBox.toggled.connect(self.toggle_automatic_colourmap_zoom)
+        self.manualColourmapZoomGroupBox.toggled.connect(self.toggle_manual_colourmap_zoom)
+        self.lowerColourmapLimitLineEdit.textChanged.connect(self.update_buttons)
+        self.upperColourmapLimitLineEdit.textChanged.connect(self.update_buttons)
 
     def accept(self):
         try:
@@ -151,9 +156,24 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         else:  # tab_index == 3
             auto_zoom_region = self.autoZoomRegionCheckBox.isChecked()
             zoom_updates_stats = self.zoomUpdatesStatsCheckBox.isChecked()
+            manual_colourmap_zoom = self.manualColourmapZoomGroupBox.isChecked()
 
-            self._display_options.set_zoom(auto_zoom_region, zoom_updates_stats,
-                                           refresh_display=refresh_display)
+            lower_colourmap_limit, ok = locale.toDouble(self.lowerColourmapLimitLineEdit.text())
+            if not ok:
+                validator = self.lowerColourmapLimitLineEdit.validator()
+                raise RuntimeError('Lower colourmap limit should be between {} and {}'.format( \
+                    validator.bottom(), validator.top()))
+
+            upper_colourmap_limit, ok = locale.toDouble(self.upperColourmapLimitLineEdit.text())
+            if not ok:
+                validator = self.upperColourmapLimitLineEdit.validator()
+                raise RuntimeError('Upper colourmap limit should be between {} and {}'.format( \
+                    validator.bottom(), validator.top()))
+
+            self._display_options.set_zoom( \
+                auto_zoom_region, zoom_updates_stats, manual_colourmap_zoom,
+                lower_colourmap_limit, upper_colourmap_limit,
+                refresh_display=refresh_display)
             self.update_buttons()
 
     def change_tab(self):
@@ -290,6 +310,17 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         self.autoZoomRegionCheckBox.setChecked(options.auto_zoom_region)
         self.zoomUpdatesStatsCheckBox.setChecked(options.zoom_updates_stats)
 
+        manual_colourmap_zoom = options.manual_colourmap_zoom
+        self.automaticColourmapZoomCheckBox.setChecked(not manual_colourmap_zoom)
+        self.manualColourmapZoomGroupBox.setChecked(manual_colourmap_zoom)
+
+        validator = QtGui.QDoubleValidator(0.0, 10000.0, 4)
+        validator.setNotation(QtGui.QDoubleValidator.StandardNotation)
+        self.lowerColourmapLimitLineEdit.setValidator(validator)
+        self.upperColourmapLimitLineEdit.setValidator(validator)
+        self.lowerColourmapLimitLineEdit.setText(str(options.lower_colourmap_limit))
+        self.upperColourmapLimitLineEdit.setText(str(options.upper_colourmap_limit))
+
     def toggle_fixed_bin_count(self, on):
         if self._linked_histogram_groups:
             self._linked_histogram_groups = False
@@ -302,6 +333,20 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
             self._linked_histogram_groups = False
             self.fixedBinCountGroupBox.setChecked(not on)
             self._linked_histogram_groups = True
+            self.update_buttons()
+
+    def toggle_automatic_colourmap_zoom(self, on):
+        if self._linked_colourmap_zoom_groups:
+            self._linked_colourmap_zoom_groups = False
+            self.manualColourmapZoomGroupBox.setChecked(not on)
+            self._linked_colourmap_zoom_groups = True
+            self.update_buttons()
+
+    def toggle_manual_colourmap_zoom(self, on):
+        if self._linked_colourmap_zoom_groups:
+            self._linked_colourmap_zoom_groups = False
+            self.automaticColourmapZoomCheckBox.setChecked(not on)
+            self._linked_colourmap_zoom_groups = True
             self.update_buttons()
 
     def update_buttons(self):
@@ -339,7 +384,10 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
             # Zoom tab.
             enabled = \
                 self.autoZoomRegionCheckBox.isChecked() != options.auto_zoom_region or \
-                self.zoomUpdatesStatsCheckBox.isChecked() != options.zoom_updates_stats
+                self.zoomUpdatesStatsCheckBox.isChecked() != options.zoom_updates_stats or \
+                self.manualColourmapZoomGroupBox.isChecked() != options.manual_colourmap_zoom or \
+                locale.toDouble(self.lowerColourmapLimitLineEdit.text())[0] != options.lower_colourmap_limit or \
+                locale.toDouble(self.upperColourmapLimitLineEdit.text())[0] != options.upper_colourmap_limit
 
         self.applyButton.setEnabled(enabled)
 

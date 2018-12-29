@@ -39,6 +39,9 @@ class DisplayOptions:
         # Zoom options.
         self._auto_zoom_region = False
         self._zoom_updates_stats = False
+        self._manual_colourmap_zoom = False
+        self._lower_colourmap_limit = 0.0
+        self._upper_colourmap_limit = 1.0
 
         self._listeners = weakref.WeakSet()
 
@@ -98,6 +101,14 @@ class DisplayOptions:
     @property
     def histogram_max_bin_count(self):
         return self._histogram_max_bin_count
+
+    @property
+    def lower_colourmap_limit(self):
+        return self._lower_colourmap_limit
+
+    @property
+    def manual_colourmap_zoom(self):
+        return self._manual_colourmap_zoom
 
     @property
     def overall_title(self):
@@ -181,9 +192,13 @@ class DisplayOptions:
                 listener.update_labels_and_scale()
 
     def set_zoom(self, auto_zoom_region, zoom_updates_stats,
-                 refresh_display=True):
+                 manual_colourmap_zoom, lower_colourmap_limit,
+                 upper_colourmap_limit, refresh_display=True):
         self._auto_zoom_region = auto_zoom_region
         self._zoom_updates_stats = zoom_updates_stats
+        self._manual_colourmap_zoom = manual_colourmap_zoom
+        self._lower_colourmap_limit = lower_colourmap_limit
+        self._upper_colourmap_limit = upper_colourmap_limit
 
         self._project().save_display_options()
 
@@ -225,6 +240,10 @@ class DisplayOptions:
     @property
     def units(self):
         return self._units
+
+    @property
+    def upper_colourmap_limit(self):
+        return self._upper_colourmap_limit
 
     @property
     def valid_colourmap_names(self):

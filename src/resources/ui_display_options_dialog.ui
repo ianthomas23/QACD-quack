@@ -320,9 +320,64 @@
        <item>
         <widget class="QCheckBox" name="zoomUpdatesStatsCheckBox">
          <property name="text">
-          <string>Histogram, colour bar and status bar refer to current
+          <string>Histogram, colour bar and status bar are limited to
 zoomed area rather than whole element map</string>
          </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="Line" name="line3">
+         <property name="frameShadow">
+          <enum>QFrame::Sunken</enum>
+         </property>
+         <property name="lineWidth">
+          <number>1</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="automaticColourmapZoomCheckBox">
+         <property name="text">
+          <string>Automatic colourmap zoom</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="manualColourmapZoomGroupBox">
+         <property name="title">
+          <string>Manual colourmap zoom</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+         <property name="checked">
+          <bool>false</bool>
+         </property>
+         <layout class="QGridLayout" name="g">
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_minz">
+            <property name="text">
+             <string>Lower colourmap limit</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLineEdit" name="lowerColourmapLimitLineEdit"/>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_maxz">
+            <property name="text">
+             <string>Upper colourmap limit</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLineEdit" name="upperColourmapLimitLineEdit"/>
+          </item>
+         </layout>
         </widget>
        </item>
        <item>

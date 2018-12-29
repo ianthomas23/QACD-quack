@@ -1007,7 +1007,8 @@ class QACDProject:
                          'use_histogram_bin_count', 'histogram_bin_count',
                          'histogram_bin_width', 'histogram_max_bin_count',
                          'show_mean_median_std_lines', 'auto_zoom_region',
-                         'zoom_updates_stats']:
+                         'zoom_updates_stats', 'manual_colourmap_zoom',
+                         'lower_colourmap_limit', 'upper_colourmap_limit']:
                 read_and_set_option(name)
 
     def load_file(self, filename):
@@ -1434,7 +1435,8 @@ class QACDProject:
                          'histogram_bin_count', 'histogram_bin_width',
                          'histogram_max_bin_count',
                          'show_mean_median_std_lines', 'auto_zoom_region',
-                         'zoom_updates_stats']:
+                         'zoom_updates_stats', 'manual_colourmap_zoom',
+                         'lower_colourmap_limit', 'upper_colourmap_limit']:
                 group_node._v_attrs[name] = getattr(options, '_' + name)
 
     def set_filename(self, filename):
