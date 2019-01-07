@@ -166,9 +166,16 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
 
         cmap = self.create_colourmap()
 
+        cmap_limits = None
         if cmap_int_max is None:
             show_stats = True
-            norm = Normalize(self._array_stats['min'], self._array_stats['max'])
+            if options.manual_colourmap_zoom:
+                cmap_limits = (options.lower_colourmap_limit,
+                               options.upper_colourmap_limit)
+            else:
+                cmap_limits = (self._array_stats['min'],
+                               self._array_stats['max'])
+            norm = Normalize(cmap_limits[0], cmap_limits[1])
             cmap_ticks = None
         else:
             show_stats = False
@@ -226,14 +233,19 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
             else:
                 # Use bin width, but only if max count not exceeded.
                 bin_width = options.histogram_bin_width
-                subarray_min = subarray.min()
-                subarray_max = subarray.max()
-                if subarray_min is np.ma.masked or subarray_max is np.ma.masked:
+
+                if options.manual_colourmap_zoom:
+                    subarray_limits = cmap_limits
+                else:
+                    subarray_limits = (subarray.min(), subarray.max())
+                if (subarray_limits[0] is np.ma.masked or
+                    subarray_limits[1] is np.ma.masked or
+                    subarray_limits[0] == subarray_limits[1]):
                     # Subarray is all masked out, so cannot display histogram.
                     bins = 1
                 else:
-                    min_index = math.floor(subarray_min / bin_width)
-                    max_index = math.ceil(subarray_max / bin_width) - 1
+                    min_index = math.floor(subarray_limits[0] / bin_width)
+                    max_index = math.ceil(subarray_limits[1] / bin_width) - 1
                     bins = max_index - min_index
                     if bins < options.histogram_max_bin_count:
                         bins = bin_width*np.arange(min_index, max_index+2)
@@ -241,7 +253,7 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
                         bins = options.histogram_max_bin_count
 
             hist, bin_edges = np.histogram(np.ma.compressed(subarray),
-                                           bins=bins)
+                                           bins=bins, range=cmap_limits)
             bin_width = bin_edges[1] - bin_edges[0]
             self._histogram = (hist, bin_edges, bin_width)
             bin_centres = bin_edges[:-1] + 0.5*bin_width

@@ -170,6 +170,9 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
                 raise RuntimeError('Upper colourmap limit should be between {} and {}'.format( \
                     validator.bottom(), validator.top()))
 
+            if lower_colourmap_limit > upper_colourmap_limit:
+                raise RuntimeError('Upper colourmap limit must be greater\nthan lower colourmap limit.')
+
             self._display_options.set_zoom( \
                 auto_zoom_region, zoom_updates_stats, manual_colourmap_zoom,
                 lower_colourmap_limit, upper_colourmap_limit,

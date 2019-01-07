@@ -854,6 +854,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
             QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
 
         current = self._current
+        options = self._project.display_options
 
         if current.array_type is ArrayType.INVALID:
             self.matplotlibWidget.clear()
@@ -880,10 +881,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
                 title = '{} {} element'.format(type_string, name)
 
             clim_mask = None
-#            if current.colourmap_limits is not None:
-#                clim_mask = np.logical_or( \
-#                    np.ma.less(current.selected_array, current.colourmap_limits[0]),
-#                    np.ma.greater(current.selected_array, current.colourmap_limits[1]))
+            if (options.manual_colourmap_zoom and current.array_type not in
+                (ArrayType.CLUSTER, ArrayType.PHASE, ArrayType.REGION)):
+                clim_mask = np.logical_or( \
+                    np.ma.less(current.selected_array,
+                               options.lower_colourmap_limit),
+                    np.ma.greater(current.selected_array,
+                                  options.upper_colourmap_limit))
             if clim_mask is not None and current.mask is not None:
                 mask = np.logical_or(clim_mask, current.mask)
             elif clim_mask is not None:
@@ -897,7 +901,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
             # subarray is array zoomed to, if only want stats of zoomed
             # area.
             subarray = array
-            if self._project.display_options.zoom_updates_stats:
+            if options.zoom_updates_stats:
                 pixel_zoom = current.pixel_zoom
                 if pixel_zoom is not None:
                     ((imin, imax), (jmin, jmax)) = current.pixel_zoom
