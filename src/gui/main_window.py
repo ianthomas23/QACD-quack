@@ -85,6 +85,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
         self.actionClustering.triggered.connect(self.clustering)
         self.actionNewRegion.triggered.connect(self.new_region)
         self.actionExportImage.triggered.connect(self.export_image)
+        self.actionExportHistogram.triggered.connect(self.export_histogram)
+        self.actionExportPixels.triggered.connect(self.export_pixels)
         self.actionDisplayOptions.triggered.connect(self.display_options)
         self.actionAbout.triggered.connect(self.about)
 
@@ -457,6 +459,90 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
         self._display_options_shown = True
         self.update_controls()
 
+    def export_common(self, is_histogram):
+        name = 'histogram' if is_histogram else 'pixels'
+
+        options = QtWidgets.QFileDialog.Options()
+        options |= QtWidgets.QFileDialog.DontUseNativeDialog
+        filename, file_type = QtWidgets.QFileDialog.getSaveFileName( \
+            self, 'Select filename to export {} to'.format(name), '',
+            'Comma Separated Values (*.csv)', '', options=options)
+        if filename:
+            if os.path.splitext(filename)[1].lower() != '.csv':
+                filename = os.path.splitext(filename)[0] + '.csv'
+
+            QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
+
+            options = self._project.display_options
+            pixel_zoom = self._current.pixel_zoom
+            if (pixel_zoom is None or
+                (is_histogram and not options.zoom_updates_stats)):
+                ny, nx = self._current.selected_array.shape
+                pixels = '{}x{}'.format(nx, ny)
+                zoom = 'None'
+            else:
+                ((imin, imax), (jmin, jmax)) = pixel_zoom
+                pixels = '{}x{}'.format(imax-imin, jmax-jmin)
+                zoom = '{} to {} x {} to {}'.format(imin, imax-1, jmin, jmax-1)
+
+            if (options.manual_colourmap_zoom and
+                self._current.array_type not in
+                (ArrayType.CLUSTER, ArrayType.PHASE, ArrayType.REGION)):
+                colourmap_zoom = '{:g} to {:g}'.format( \
+                    options.lower_colourmap_limit,
+                    options.upper_colourmap_limit)
+            else:
+                colourmap_zoom = 'None'
+
+            notes = [
+                ('project filename', self._project.filename),
+                ('date', self._project.display_options.date),
+                ('title', self.matplotlibWidget._title + ' ' + name),
+                ('phase', self.phaseComboBox.currentText() or 'None'),
+                ('region', self.regionComboBox.currentText() or 'None'),
+                ('pixels', pixels),
+                ('zoom', zoom),
+                ('colourmap zoom', colourmap_zoom),
+            ]
+
+            if is_histogram:
+                histogram, bin_edges, bin_width = self.matplotlibWidget._histogram
+                bin_centres = 0.5*(bin_edges[:-1] + bin_edges[1:])
+
+                notes += [
+                    ('bin width', '{:g}'.format(bin_width)),
+                    ('bin count', len(histogram)),
+                ]
+            else:
+                no_data_value = -99
+                notes += [('no data value', no_data_value)]
+
+            with open(filename, 'w') as f:
+                for note in notes:
+                    f.write('{},{}\n'.format(*note))
+                f.write('\n')
+                if is_histogram:
+                    f.write('bin centre,number of pixels\n')
+                    for bin_centre, count in zip(bin_centres, histogram):
+                        f.write('{:g},{}\n'.format(bin_centre, count))
+                else:
+                    f.write('pixels\n')
+                    subarray = self._current.displayed_array
+                    pixel_zoom = self._current.pixel_zoom
+                    if pixel_zoom is not None:
+                        ((imin, imax), (jmin, jmax)) = pixel_zoom
+                        subarray = subarray[jmin:jmax, imin:imax]
+                    if subarray.dtype == np.bool:
+                        subarray = np.ma.filled(subarray, 0)
+                    else:
+                        subarray = np.ma.filled(subarray, no_data_value)
+                    np.savetxt(f, subarray, delimiter=',', fmt='%g')
+
+            QtWidgets.QApplication.restoreOverrideCursor()
+
+    def export_histogram(self):
+        self.export_common(True)
+
     def export_image(self):
         file_types = ['Joint Photographic ExpertsGroup (*.jpg)',
                       'Portable Document Format (*.pdf)',
@@ -481,6 +567,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
                 return
 
             self.matplotlibWidget.export_to_file(filename)
+
+    def export_pixels(self):
+        self.export_common(False)
 
     def fill_table_widget(self, index):
         array_type, tab_widget, table_widget, tab_title, editable_name = \
@@ -818,8 +907,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
                                          self._project.state == State.H_FACTOR)
         self.actionDisplayOptions.setEnabled(valid_project and
                                              not self._display_options_shown)
-        # actionExportImage is also updated in update_matplotlib_widget.
+        # actionExport* are also updated in update_matplotlib_widget.
         self.actionExportImage.setEnabled(self.matplotlibWidget.has_content())
+        self.actionExportHistogram.setEnabled(self.matplotlibWidget.has_histogram_axes())
+        self.actionExportPixels.setEnabled(self.matplotlibWidget.has_map_axes())
+
         self.actionNewRegion.setEnabled(valid_project and
                                         not self._new_region_shown)
 
@@ -904,7 +996,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
             if options.zoom_updates_stats:
                 pixel_zoom = current.pixel_zoom
                 if pixel_zoom is not None:
-                    ((imin, imax), (jmin, jmax)) = current.pixel_zoom
+                    ((imin, imax), (jmin, jmax)) = pixel_zoom
                     subarray = subarray[jmin:jmax, imin:imax]
 
             array_stats = {}
@@ -936,6 +1028,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
         # Update controls that depend on mpl widget displaying valid data
         # rather than all the controls.
         self.actionExportImage.setEnabled(self.matplotlibWidget.has_content())
+        self.actionExportHistogram.setEnabled(self.matplotlibWidget.has_histogram_axes())
+        self.actionExportPixels.setEnabled(self.matplotlibWidget.has_map_axes())
 
         self.update_status_bar()
 

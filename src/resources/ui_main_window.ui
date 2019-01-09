@@ -709,7 +709,7 @@
         <item>
          <layout class="QHBoxLayout" name="topRightHorizontalLayout" stretch="0,1">
           <item>
-           <layout class="QGridLayout" name="gridLayout" columnstretch="0,0,0,0,0,0,0">
+           <layout class="QGridLayout" name="gridLayout" columnstretch="0,0,0,0,0">
             <item row="0" column="0">
              <widget class="QLabel" name="plotTypeLabel">
               <property name="sizePolicy">
@@ -872,7 +872,7 @@
      <x>0</x>
      <y>0</y>
      <width>951</width>
-     <height>18</height>
+     <height>22</height>
     </rect>
    </property>
    <property name="nativeMenuBar">
@@ -894,6 +894,8 @@
     <addaction name="actionClustering"/>
     <addaction name="actionNewRegion"/>
     <addaction name="actionExportImage"/>
+    <addaction name="actionExportPixels"/>
+    <addaction name="actionExportHistogram"/>
    </widget>
    <widget class="QMenu" name="menuOptions">
     <property name="title">
@@ -1015,6 +1017,16 @@
    </property>
    <property name="toolTip">
     <string>About QACD-quack</string>
+   </property>
+  </action>
+  <action name="actionExportHistogram">
+   <property name="text">
+    <string>Export Histogram to File ...</string>
+   </property>
+  </action>
+  <action name="actionExportPixels">
+   <property name="text">
+    <string>Export Pixels to File ...</string>
    </property>
   </action>
  </widget>

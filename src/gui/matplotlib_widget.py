@@ -43,7 +43,7 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
         self._cmap_int_max = None   # One beyond end, as in numpy slicing.
         self._scale_bar = None
         self._colourbar = None
-        self._histogram = None     # Latest (histogram, bin_edges, bin_width).
+        self._histogram = None      # Latest (histogram, bin_edges, bin_width).
 
         # Scale and units initially from display options, but may need to
         # change them if distances are too large, e.g. 1000 mm goes to 1 m.
@@ -379,6 +379,9 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
 
     def has_content(self):
         return self._plot_type != PlotType.INVALID
+
+    def has_histogram_axes(self):
+        return self._histogram_axes is not None
 
     def has_map_axes(self):
         return self._map_axes is not None

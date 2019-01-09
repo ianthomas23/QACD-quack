@@ -394,7 +394,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_2.addLayout(self.hlayout)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 951, 18))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 951, 22))
         self.menubar.setNativeMenuBar(False)
         self.menubar.setObjectName("menubar")
         self.menuProject = QtWidgets.QMenu(self.menubar)
@@ -439,6 +439,10 @@ class Ui_MainWindow(object):
         self.actionExportImage.setObjectName("actionExportImage")
         self.actionAbout = QtWidgets.QAction(MainWindow)
         self.actionAbout.setObjectName("actionAbout")
+        self.actionExportHistogram = QtWidgets.QAction(MainWindow)
+        self.actionExportHistogram.setObjectName("actionExportHistogram")
+        self.actionExportPixels = QtWidgets.QAction(MainWindow)
+        self.actionExportPixels.setObjectName("actionExportPixels")
         self.menuProject.addAction(self.actionProjectNew)
         self.menuProject.addAction(self.actionProjectOpen)
         self.menuProject.addAction(self.actionProjectClose)
@@ -446,6 +450,8 @@ class Ui_MainWindow(object):
         self.menuAction.addAction(self.actionClustering)
         self.menuAction.addAction(self.actionNewRegion)
         self.menuAction.addAction(self.actionExportImage)
+        self.menuAction.addAction(self.actionExportPixels)
+        self.menuAction.addAction(self.actionExportHistogram)
         self.menuOptions.addAction(self.actionDisplayOptions)
         self.menuHelp.addAction(self.actionAbout)
         self.menubar.addAction(self.menuProject.menuAction())
@@ -563,6 +569,8 @@ class Ui_MainWindow(object):
         self.actionExportImage.setToolTip(_translate("MainWindow", "Export image to file"))
         self.actionAbout.setText(_translate("MainWindow", "About"))
         self.actionAbout.setToolTip(_translate("MainWindow", "About QACD-quack"))
+        self.actionExportHistogram.setText(_translate("MainWindow", "Export Histogram to File ..."))
+        self.actionExportPixels.setText(_translate("MainWindow", "Export Pixels to File ..."))
 
 from .matplotlib_widget import MatplotlibWidget
 
