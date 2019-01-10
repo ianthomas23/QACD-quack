@@ -20,12 +20,14 @@ class ModeType(Enum):
     REGION_RECTANGLE = 2
     REGION_ELLIPSE   = 3
     REGION_POLYGON   = 4
+    TRANSECT         = 5
 
 
 # Same values as in plotTypeComboBox.
 @unique
 class PlotType(Enum):
-    INVALID   = -1
-    MAP       =  0
-    HISTOGRAM =  1
-    BOTH      =  2
+    INVALID           = -1
+    MAP               =  0
+    HISTOGRAM         =  1
+    MAP_AND_HISTOGRAM =  2
+    MAP_AND_TRANSECT  =  3

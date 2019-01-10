@@ -773,6 +773,9 @@
               <property name="toolTip">
                <string>Type of plot displayed below</string>
               </property>
+              <property name="currentText">
+               <string>Map and histogram</string>
+              </property>
               <property name="currentIndex">
                <number>2</number>
               </property>
@@ -789,6 +792,11 @@
               <item>
                <property name="text">
                 <string>Map and histogram</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Map and transect</string>
                </property>
               </item>
              </widget>

@@ -25,6 +25,7 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
         self._display_options = None
         self._map_axes = None
         self._histogram_axes = None
+        self._transect_axes = None
 
         # Variables set by call to update()
         self._plot_type = PlotType.INVALID
@@ -152,14 +153,18 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
         options = self._display_options
         self._map_axes = None
         self._histogram_axes = None
+        self._transect_axes = None
         if self._plot_type == PlotType.INVALID:
             return
         elif self._plot_type == PlotType.MAP:
             self._map_axes = figure.subplots()
         elif self._plot_type == PlotType.HISTOGRAM:
             self._histogram_axes = figure.subplots()
-        elif self._plot_type == PlotType.BOTH:
+        elif self._plot_type == PlotType.MAP_AND_HISTOGRAM:
             self._map_axes, self._histogram_axes = figure.subplots( \
+                nrows=2, gridspec_kw={'height_ratios': (3,1)})
+        elif self._plot_type == PlotType.MAP_AND_TRANSECT:
+            self._map_axes, self._transect_axes = figure.subplots( \
                 nrows=2, gridspec_kw={'height_ratios': (3,1)})
         else:
             raise RuntimeError('Invalid plot type')
@@ -311,6 +316,7 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
         self._canvas.figure.clear()
         self._map_axes = None
         self._histogram_axes = None
+        self._transect_axes = None
         self._plot_type = PlotType.INVALID
         self._array_type = ArrayType.INVALID
         self._array = None
@@ -399,11 +405,16 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
             self._canvas.mpl_connect('button_release_event', self.on_mouse_up)
             self._canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
 
-            self.set_mode_type(ModeType.ZOOM)
+            self.set_default_mode_type()
         else:
             self.set_mode_type(ModeType.INVALID)
 
         self._canvas.mpl_connect('resize_event', self.on_resize)
+
+    def is_region_mode_type(self):
+        return self._mode_type in (ModeType.REGION_RECTANGLE,
+                                   ModeType.REGION_ELLIPSE,
+                                   ModeType.REGION_POLYGON)
 
     def on_axes_enter(self, event):
         if self._mode_handler:
@@ -441,6 +452,12 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
             cmap.set_under('w')
             self._redraw()
 
+    def set_default_mode_type(self):
+        if self._plot_type == PlotType.MAP_AND_TRANSECT:
+            self.set_mode_type(ModeType.TRANSECT)
+        else:
+            self.set_mode_type(ModeType.ZOOM)
+
     def set_display_options(self, display_options):
         if self._display_options is not None:
             self._display_options.unregister_listener(self)
@@ -472,6 +489,9 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
             elif mode_type == ModeType.REGION_POLYGON:
                 self._mode_handler = PolygonRegionHandler(self, options,
                     self._status_callback, listener)
+            elif mode_type == ModeType.TRANSECT:
+                self._mode_handler = TransectHandler(self, options,
+                    self._status_callback)
             else:
                 self._mode_handler = None
 
@@ -485,6 +505,9 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
         self._name = name
         self._map_zoom = map_zoom
         self._map_pixel_zoom = map_pixel_zoom
+
+        if not self.is_region_mode_type():
+            self.set_default_mode_type()
 
         self._update_draw(refresh)
 

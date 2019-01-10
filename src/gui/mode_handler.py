@@ -53,7 +53,7 @@ class ModeHandler:
             callback_data = None
             if event is not None and event.inaxes is not None:
                 if event.inaxes == self.matplotlib_widget._map_axes:
-                    scale= self._get_scale()
+                    scale = self._get_scale()
                     x = int(event.xdata / scale)
                     y = int(event.ydata / scale)
                     value = self.matplotlib_widget.get_value_at_position(x, y)
@@ -380,9 +380,71 @@ class PolygonRegionHandler(RegionHandler):
         self.send_status_callback(event)
 
 
+class TransectHandler(ModeHandler):
+    def __init__(self, matplotlib_widget, display_options, status_callback):
+        super().__init__(matplotlib_widget, display_options, status_callback)
+        print('### TransectHandler')
+        self._points = None
+        self._line = None
+
+        # Need to be able to keep line when finished editing.  Only when start
+        # new line is old one removed.
+
+    def clear(self):
+        ######## Deal with self._line if not None
+
+        self.send_status_callback(None)
+
+    def on_axes_enter(self, event):
+        pass
+
+    def on_axes_leave(self, event):
+        pass
+
+    def on_mouse_down(self, event):
+        if (self._line is not None or event.button != 1 or
+            event.dblclick):
+            return
+
+        if (self.matplotlib_widget._map_axes is not None and
+            event.inaxes == self.matplotlib_widget._map_axes):
+
+            self._points = np.asarray([[event.xdata, event.ydata],
+                                       [event.xdata, event.ydata]])
+
+            self._line = self.matplotlib_widget._map_axes.plot( \
+                self._points[:, 0], self._points[:, 1], '-', c='k')[0]
+            self._line.set_path_effects(self._get_path_effects())
+
+            self.matplotlib_widget._redraw()
+
+    def on_mouse_move(self, event):
+        if (self._line is not None and
+            event.inaxes == self.matplotlib_widget._map_axes):
+
+            self._points[1] = (event.xdata, event.ydata)
+            self._line.set_data(self._points[:, 0], self._points[:, 1])
+
+            self.matplotlib_widget._redraw()
+
+        self.send_status_callback(event)
+
+    def on_mouse_up(self, event):
+        if self._line is None or event.button != 1 or event.dblclick:
+            return
+
+        self._line.remove()
+
+        self._points = None
+        self._line = None
+
+        self.matplotlib_widget._redraw()
+
+
 class ZoomHandler(ModeHandler):
     def __init__(self, matplotlib_widget, display_options, status_callback):
         super().__init__(matplotlib_widget, display_options, status_callback)
+        print('### ZoomHandler')
         self._zoom_rectangle = None  # Only set when zooming.
         self._zoom_axes = None
 

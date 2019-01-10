@@ -211,6 +211,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
         self.update_matplotlib_widget()
         self.update_controls()
 
+
+
+            #if plot_type == PlotType.MAP_AND_TRANSECT:
+            #    self.matplotlibWidget.set_mode_type(ModeType.TRANSECT)
+            #else:
+            #    self.matplotlibWidget.set_mode_type(ModeType.ZOOM)
+
+
+
     def change_region(self):
         text = self.regionComboBox.currentText()
         if text == '':

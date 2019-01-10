@@ -44,7 +44,7 @@ class NewRegionDialog(QtWidgets.QDialog, Ui_NewRegionDialog):
                                        region)
 
             # Close dialog.
-            self.get_matplotlib_widget().set_mode_type(ModeType.ZOOM)
+            self.get_matplotlib_widget().set_default_mode_type()
             super().accept()
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, 'Error', str(e))
