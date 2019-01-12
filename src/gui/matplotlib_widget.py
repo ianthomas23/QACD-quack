@@ -8,6 +8,7 @@ import numpy as np
 from PyQt5 import QtCore, QtWidgets
 
 from src.model.display_options_listener import DisplayOptionsListener
+from src.model.utils import calculate_transect
 from .enums import ArrayType, ModeType, PlotType
 from .mode_handler import *
 from .scale_bar import ScaleBar
@@ -392,6 +393,9 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
     def has_map_axes(self):
         return self._map_axes is not None
 
+    def has_transect_axes(self):
+        return self._transect_axes is not None
+
     def initialise(self, owning_window, display_options, zoom_enabled=True,
                    status_callback=None):
         self._owning_window = owning_window
@@ -494,6 +498,17 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
                     self._status_callback)
             else:
                 self._mode_handler = None
+
+    def set_transect(self, points):
+        if not self.has_transect_axes():
+            raise RuntimeError('MatplotlibWidget does not have transect axes')
+
+        lambdas, values = calculate_transect(self._array, points[0], points[1])
+
+        axes = self._transect_axes
+        axes.clear()
+        axes.plot(lambdas, values)
+        axes.set_xlim(0.0, 1.0)
 
     def update(self, plot_type, array_type, array, array_stats, title, name,
                map_zoom=None, map_pixel_zoom=None, refresh=True):

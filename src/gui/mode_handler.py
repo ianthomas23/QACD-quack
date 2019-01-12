@@ -384,14 +384,17 @@ class TransectHandler(ModeHandler):
     def __init__(self, matplotlib_widget, display_options, status_callback):
         super().__init__(matplotlib_widget, display_options, status_callback)
         print('### TransectHandler')
-        self._points = None
-        self._line = None
+        self._points = None  # Not None when editing.
+        self._line = None    # Current drawn line, may be editing or completed.
 
-        # Need to be able to keep line when finished editing.  Only when start
-        # new line is old one removed.
+    def _clear_line(self):
+        if self._line is not None:
+            self._line.remove()
+            self._line = None
 
     def clear(self):
-        ######## Deal with self._line if not None
+        self._points = None
+        self._clear_line()
 
         self.send_status_callback(None)
 
@@ -402,13 +405,14 @@ class TransectHandler(ModeHandler):
         pass
 
     def on_mouse_down(self, event):
-        if (self._line is not None or event.button != 1 or
+        if (self._points is not None or event.button != 1 or
             event.dblclick):
             return
 
         if (self.matplotlib_widget._map_axes is not None and
             event.inaxes == self.matplotlib_widget._map_axes):
 
+            self._clear_line()
             self._points = np.asarray([[event.xdata, event.ydata],
                                        [event.xdata, event.ydata]])
 
@@ -419,7 +423,7 @@ class TransectHandler(ModeHandler):
             self.matplotlib_widget._redraw()
 
     def on_mouse_move(self, event):
-        if (self._line is not None and
+        if (self._points is not None and
             event.inaxes == self.matplotlib_widget._map_axes):
 
             self._points[1] = (event.xdata, event.ydata)
@@ -430,13 +434,11 @@ class TransectHandler(ModeHandler):
         self.send_status_callback(event)
 
     def on_mouse_up(self, event):
-        if self._line is None or event.button != 1 or event.dblclick:
+        if self._points is None or event.button != 1 or event.dblclick:
             return
 
-        self._line.remove()
-
+        self.matplotlib_widget.set_transect(self._points / self._get_scale())
         self._points = None
-        self._line = None
 
         self.matplotlib_widget._redraw()
 

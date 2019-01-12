@@ -1,3 +1,4 @@
+import math
 from matplotlib.patches import Ellipse, Polygon, Rectangle
 import numpy as np
 import numba
@@ -39,6 +40,22 @@ def calculate_region_rectangle(x, y, corner0, corner1):
     region = rectangle.contains_points(xy)         # Shape (2*npoints)
     region.shape = x.shape                         # Shape (npoints, 2)
     return region
+
+
+def calculate_transect(array, start, end):
+    # Calculate transect through pixel array from start xy to end xy.
+    # Returns two 1D arrays, lambdas from 0 to 1 (start to end) and values the
+    # nearest values from the array.
+    n = 1 + int(np.absolute(end - start).max())
+
+    lambdas = np.linspace(0.0, 1.0, n)
+    xs = start[0] + (end[0] - start[0])*lambdas
+    ys = start[1] + (end[1] - start[1])*lambdas
+    i = np.floor(xs).astype(np.int32)
+    j = np.floor(ys).astype(np.int32)
+    values = array[j, i]
+
+    return lambdas, values
 
 
 def get_mask_extent(mask):
