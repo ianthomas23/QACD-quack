@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>429</width>
+    <width>493</width>
     <height>537</height>
    </rect>
   </property>
@@ -16,8 +16,14 @@
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <widget class="QTabWidget" name="tabWidget">
+     <property name="minimumSize">
+      <size>
+       <width>411</width>
+       <height>490</height>
+      </size>
+     </property>
      <property name="currentIndex">
-      <number>3</number>
+      <number>4</number>
      </property>
      <widget class="QWidget" name="colourmapTab">
       <attribute name="title">
@@ -320,8 +326,8 @@
        <item>
         <widget class="QCheckBox" name="zoomUpdatesStatsCheckBox">
          <property name="text">
-          <string>Histogram, colour bar and status bar are limited to
-zoomed area rather than whole element map</string>
+          <string>Histogram, colour bar and status bar are limited to zoomed area
+rather than whole element map</string>
          </property>
         </widget>
        </item>
@@ -382,6 +388,30 @@ zoomed area rather than whole element map</string>
        </item>
        <item>
         <widget class="QLabel" name="dummy2">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>1</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="transectTab">
+      <attribute name="title">
+       <string>Transect</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="v4">
+       <item>
+        <widget class="QCheckBox" name="transectUsesColourmapCheckBox">
+         <property name="text">
+          <string>Transect displayed using colourmap</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="dummy4">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
            <horstretch>0</horstretch>

@@ -8,5 +8,8 @@ class DisplayOptionsListener:
     def update_labels_and_scale(self):
         pass
 
+    def update_transect(self):
+        pass
+
     def update_zoom(self):
         pass

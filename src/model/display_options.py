@@ -43,6 +43,9 @@ class DisplayOptions:
         self._lower_colourmap_limit = 0.0
         self._upper_colourmap_limit = 1.0
 
+        # Transect options.
+        self._transect_uses_colourmap = True
+
         self._listeners = weakref.WeakSet()
 
     def _determine_valid_colourmap_names(self):
@@ -64,20 +67,6 @@ class DisplayOptions:
     @property
     def colourmap_name(self):
         return self._colourmap_name
-
-    @colourmap_name.setter
-    def colourmap_name(self, colourmap_name):
-        name_to_check = colourmap_name
-        if name_to_check.endswith('_r'):
-            name_to_check = name_to_check[:-2]
-        if name_to_check not in self._valid_colourmap_names:
-            raise RuntimeError('Not such colourmap: {}'.format(name_to_check))
-        self._colourmap_name = colourmap_name
-
-        self._project().save_display_options()
-
-        for listener in self._listeners:
-            listener.update_colourmap_name()
 
     @property
     def date(self):
@@ -141,18 +130,32 @@ class DisplayOptions:
     def scale_bar_location(self):
         return self._scale_bar_location
 
+    def set_colourmap_name(self, colourmap_name, refresh):
+        name_to_check = colourmap_name
+        if name_to_check.endswith('_r'):
+            name_to_check = name_to_check[:-2]
+        if name_to_check not in self._valid_colourmap_names:
+            raise RuntimeError('Not such colourmap: {}'.format(name_to_check))
+        self._colourmap_name = colourmap_name
+
+        if refresh:
+            self._project().save_display_options()
+
+            for listener in self._listeners:
+                listener.update_colourmap_name()
+
     def set_histogram(self, use_histogram_bin_count, histogram_bin_count,
                 histogram_bin_width, histogram_max_bin_count,
-                show_mean_median_std_lines, refresh_display=True):
+                show_mean_median_std_lines, refresh=True):
         self._use_histogram_bin_count = use_histogram_bin_count
         self._histogram_bin_count = histogram_bin_count
         self._histogram_bin_width = histogram_bin_width
         self._histogram_max_bin_count = histogram_max_bin_count
         self._show_mean_median_std_lines = show_mean_median_std_lines
 
-        self._project().save_display_options()
+        if refresh:
+            self._project().save_display_options()
 
-        if refresh_display:
             for listener in self._listeners:
                 listener.update_histogram_options()
 
@@ -160,7 +163,7 @@ class DisplayOptions:
                              show_project_filename, show_date, use_scale,
                              pixel_size, units, show_scale_bar,
                              scale_bar_location, scale_bar_colour,
-                             refresh_display=True):
+                             refresh=True):
         # Validation.
         if pixel_size <= 0.0:
             raise RuntimeError('Pixel size must be positive')
@@ -185,24 +188,33 @@ class DisplayOptions:
         self._scale_bar_location = scale_bar_location
         self._scale_bar_colour = scale_bar_colour
 
-        self._project().save_display_options()
+        if refresh:
+            self._project().save_display_options()
 
-        if refresh_display:
             for listener in self._listeners:
                 listener.update_labels_and_scale()
 
+    def set_transect(self, transect_uses_colourmap, refresh=True):
+        self._transect_uses_colourmap = transect_uses_colourmap
+
+        if refresh:
+            self._project().save_display_options()
+
+            for listener in self._listeners:
+                listener.update_transect()
+
     def set_zoom(self, auto_zoom_region, zoom_updates_stats,
                  manual_colourmap_zoom, lower_colourmap_limit,
-                 upper_colourmap_limit, refresh_display=True):
+                 upper_colourmap_limit, refresh=True):
         self._auto_zoom_region = auto_zoom_region
         self._zoom_updates_stats = zoom_updates_stats
         self._manual_colourmap_zoom = manual_colourmap_zoom
         self._lower_colourmap_limit = lower_colourmap_limit
         self._upper_colourmap_limit = upper_colourmap_limit
 
-        self._project().save_display_options()
+        if refresh:
+            self._project().save_display_options()
 
-        if refresh_display:
             for listener in self._listeners:
                 listener.update_zoom()
 
@@ -225,6 +237,10 @@ class DisplayOptions:
     @property
     def show_ticks_and_labels(self):
         return self._show_ticks_and_labels
+
+    @property
+    def transect_uses_colourmap(self):
+        return self._transect_uses_colourmap
 
     def unregister_listener(self, listener):
         self._listeners.discard(listener)

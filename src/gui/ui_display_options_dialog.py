@@ -11,10 +11,11 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_DisplayOptionsDialog(object):
     def setupUi(self, DisplayOptionsDialog):
         DisplayOptionsDialog.setObjectName("DisplayOptionsDialog")
-        DisplayOptionsDialog.resize(429, 537)
+        DisplayOptionsDialog.resize(493, 537)
         self.verticalLayout = QtWidgets.QVBoxLayout(DisplayOptionsDialog)
         self.verticalLayout.setObjectName("verticalLayout")
         self.tabWidget = QtWidgets.QTabWidget(DisplayOptionsDialog)
+        self.tabWidget.setMinimumSize(QtCore.QSize(411, 490))
         self.tabWidget.setObjectName("tabWidget")
         self.colourmapTab = QtWidgets.QWidget()
         self.colourmapTab.setObjectName("colourmapTab")
@@ -209,6 +210,22 @@ class Ui_DisplayOptionsDialog(object):
         self.dummy2.setObjectName("dummy2")
         self.v3.addWidget(self.dummy2)
         self.tabWidget.addTab(self.zoomTab, "")
+        self.transectTab = QtWidgets.QWidget()
+        self.transectTab.setObjectName("transectTab")
+        self.v4 = QtWidgets.QVBoxLayout(self.transectTab)
+        self.v4.setObjectName("v4")
+        self.transectUsesColourmapCheckBox = QtWidgets.QCheckBox(self.transectTab)
+        self.transectUsesColourmapCheckBox.setObjectName("transectUsesColourmapCheckBox")
+        self.v4.addWidget(self.transectUsesColourmapCheckBox)
+        self.dummy4 = QtWidgets.QLabel(self.transectTab)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(1)
+        sizePolicy.setHeightForWidth(self.dummy4.sizePolicy().hasHeightForWidth())
+        self.dummy4.setSizePolicy(sizePolicy)
+        self.dummy4.setObjectName("dummy4")
+        self.v4.addWidget(self.dummy4)
+        self.tabWidget.addTab(self.transectTab, "")
         self.verticalLayout.addWidget(self.tabWidget)
         self.buttonBox = QtWidgets.QDialogButtonBox(DisplayOptionsDialog)
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
@@ -217,7 +234,7 @@ class Ui_DisplayOptionsDialog(object):
         self.verticalLayout.addWidget(self.buttonBox)
 
         self.retranslateUi(DisplayOptionsDialog)
-        self.tabWidget.setCurrentIndex(3)
+        self.tabWidget.setCurrentIndex(4)
         self.buttonBox.accepted.connect(DisplayOptionsDialog.accept)
         self.buttonBox.rejected.connect(DisplayOptionsDialog.reject)
         QtCore.QMetaObject.connectSlotsByName(DisplayOptionsDialog)
@@ -251,13 +268,15 @@ class Ui_DisplayOptionsDialog(object):
         self.showMeanMedianStdCheckBox.setText(_translate("DisplayOptionsDialog", "Show mean, median and standard deviation lines"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.histogramTab), _translate("DisplayOptionsDialog", "Histogram"))
         self.autoZoomRegionCheckBox.setText(_translate("DisplayOptionsDialog", "Auto zoom when change region"))
-        self.zoomUpdatesStatsCheckBox.setText(_translate("DisplayOptionsDialog", "Histogram, colour bar and status bar are limited to\n"
-"zoomed area rather than whole element map"))
+        self.zoomUpdatesStatsCheckBox.setText(_translate("DisplayOptionsDialog", "Histogram, colour bar and status bar are limited to zoomed area\n"
+"rather than whole element map"))
         self.automaticColourmapZoomCheckBox.setText(_translate("DisplayOptionsDialog", "Automatic colourmap zoom"))
         self.manualColourmapZoomGroupBox.setTitle(_translate("DisplayOptionsDialog", "Manual colourmap zoom"))
         self.label_minz.setText(_translate("DisplayOptionsDialog", "Lower colourmap limit"))
         self.label_maxz.setText(_translate("DisplayOptionsDialog", "Upper colourmap limit"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.zoomTab), _translate("DisplayOptionsDialog", "Zoom"))
+        self.transectUsesColourmapCheckBox.setText(_translate("DisplayOptionsDialog", "Transect displayed using colourmap"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.transectTab), _translate("DisplayOptionsDialog", "Transect"))
 
 
 if __name__ == "__main__":

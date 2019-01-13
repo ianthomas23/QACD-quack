@@ -35,6 +35,7 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         self.init_labels_and_scale_tab()
         self.init_histogram_tab()
         self.init_zoom_tab()
+        self.init_transect_tab()
         self.tabWidget.setCurrentIndex(0)
         self.update_controls()
 
@@ -76,6 +77,9 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         self.lowerColourmapLimitLineEdit.textChanged.connect(self.update_buttons)
         self.upperColourmapLimitLineEdit.textChanged.connect(self.update_buttons)
 
+        # Transect tab controls.
+        self.transectUsesColourmapCheckBox.stateChanged.connect(self.update_buttons)
+
     def accept(self):
         try:
             n = self.tabWidget.count()
@@ -92,17 +96,17 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, 'Error', str(e))
 
-    def apply_tab(self, tab_index, refresh_display):
+    def apply_tab(self, tab_index, refresh):
         locale = QtCore.QLocale()
 
         if tab_index == 0:
             # Colourmap tab.
             selected_name = self.get_selected_colourmap_name()
-            if selected_name is not None:
-                # The following line will update any visible matplotlib_widget
-                # objects.
-                self._display_options.colourmap_name = selected_name
-                self.update_buttons()
+
+            self._display_options.set_colourmap_name(selected_name,
+                                                     refresh=refresh)
+
+            self.update_buttons()
         elif tab_index == 1:
             # Labels and scale tab.
             show_ticks_and_labels = self.showTicksAndLabelsCheckBox.isChecked()
@@ -127,7 +131,7 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
                 show_ticks_and_labels, overall_title, show_project_filename,
                 show_date, use_scale, pixel_size, units, show_scale_bar,
                 scale_bar_location, scale_bar_colour,
-                refresh_display=refresh_display)
+                refresh=refresh)
             self.update_buttons()
         elif tab_index == 2:
             # Histogram tab.
@@ -151,9 +155,9 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
             self._display_options.set_histogram( \
                 use_histogram_bin_count, histogram_bin_count,
                 histogram_bin_width, histogram_max_bin_count,
-                show_mean_median_std_lines, refresh_display=refresh_display)
+                show_mean_median_std_lines, refresh=refresh)
             self.update_buttons()
-        else:  # tab_index == 3
+        elif tab_index == 3:
             auto_zoom_region = self.autoZoomRegionCheckBox.isChecked()
             zoom_updates_stats = self.zoomUpdatesStatsCheckBox.isChecked()
             manual_colourmap_zoom = self.manualColourmapZoomGroupBox.isChecked()
@@ -176,7 +180,14 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
             self._display_options.set_zoom( \
                 auto_zoom_region, zoom_updates_stats, manual_colourmap_zoom,
                 lower_colourmap_limit, upper_colourmap_limit,
-                refresh_display=refresh_display)
+                refresh=refresh)
+            self.update_buttons()
+        else:  # tab_index == 4
+            transect_uses_colourmap = self.transectUsesColourmapCheckBox.isChecked()
+
+            self._display_options.set_transect(transect_uses_colourmap,
+                                               refresh=refresh)
+
             self.update_buttons()
 
     def change_tab(self):
@@ -232,7 +243,7 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
             colourmap_name = colourmap_name[:-2]
         self.reverseCheckBox.setChecked(is_reversed)
 
-        self._image_size = (255, self.colourmapListWidget.font().pointSize()*4 // 3)
+        self._image_size = (300, self.colourmapListWidget.font().pointSize()*4 // 3)
         self._images = []  # Need to keep these in scope.
 
         # Fill list widget with colourmap names.
@@ -306,6 +317,11 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         self.showScaleBarCheckBox.setChecked(options.show_scale_bar)
         self._locations_lookup[options.scale_bar_location].setChecked(True)
         self._colours_lookup[options.scale_bar_colour].setChecked(True)
+
+    def init_transect_tab(self):
+        options = self._display_options
+
+        self.transectUsesColourmapCheckBox.setChecked(options.transect_uses_colourmap)
 
     def init_zoom_tab(self):
         options = self._display_options
@@ -383,7 +399,7 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
                 locale.toDouble(self.histogramBinWidthLineEdit.text())[0] != options.histogram_bin_width or \
                 locale.toInt(self.maxBinCountLineEdit.text())[0] != options.histogram_max_bin_count or \
                 self.showMeanMedianStdCheckBox.isChecked() != options.show_mean_median_std_lines
-        else:  # tab_index == 3
+        elif tab_index == 3:
             # Zoom tab.
             enabled = \
                 self.autoZoomRegionCheckBox.isChecked() != options.auto_zoom_region or \
@@ -391,6 +407,10 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
                 self.manualColourmapZoomGroupBox.isChecked() != options.manual_colourmap_zoom or \
                 locale.toDouble(self.lowerColourmapLimitLineEdit.text())[0] != options.lower_colourmap_limit or \
                 locale.toDouble(self.upperColourmapLimitLineEdit.text())[0] != options.upper_colourmap_limit
+        else:  # tab_index == 4
+            # Transect tab.
+            enabled = \
+                self.transectUsesColourmapCheckBox.isChecked() != options.transect_uses_colourmap
 
         self.applyButton.setEnabled(enabled)
 

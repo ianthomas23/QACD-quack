@@ -1094,6 +1094,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
             title += ' - ' + self._project.filename
         self.setWindowTitle(title)
 
+    def update_transect(self):
+        # Handler for DisplayOptions callback.
+        self.update_matplotlib_widget()
+
     def update_zoom(self):
         # Handler for DisplayOptions callback.
         self.update_matplotlib_widget()

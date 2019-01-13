@@ -2,6 +2,7 @@ from enum import Enum, unique
 import math
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 import matplotlib.cm as cm
+from matplotlib.collections import LineCollection
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 from matplotlib.figure import Figure
 import numpy as np
@@ -505,10 +506,59 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
 
         lambdas, values = calculate_transect(self._array, points[0], points[1])
 
-        axes = self._transect_axes
-        axes.clear()
-        axes.plot(lambdas, values)
-        axes.set_xlim(0.0, 1.0)
+        if self._display_options.transect_uses_colourmap:
+            # Use colourmap.
+
+            #diff = np.absolute(np.diff(values))
+            #min_ = diff.min()
+            #max_ = diff.max()
+            #print('diff min and max', min_, max_)
+            #ptp = max_ - min_
+            #temp = (diff - min_) / ptp
+            #temp = (temp*10).astype(np.int)
+            #print(temp)
+
+            # Resample line.
+            print(lambdas.shape, lambdas[0], lambdas[1], lambdas[-1])
+            factor = 5
+            n = len(lambdas)
+            new_lambdas = np.linspace(lambdas[0], lambdas[-1], factor*(n-1)+1)
+            print(new_lambdas.shape, new_lambdas[0], new_lambdas[factor], new_lambdas[-1])
+
+            new_values = np.interp(new_lambdas, lambdas, values)
+            print(type(values), type(new_values))
+            new_values = np.ma.masked_invalid(new_values)
+            print(new_values.min(), new_values.max())
+            print(type(values), type(new_values))
+
+
+            lambdas = new_lambdas
+            values = new_values
+
+
+            # masked arrays????????????????
+            points = np.array([lambdas, values]).T.reshape(-1, 1, 2)
+            segments = np.concatenate([points[:-1], points[1:]], axis=1)
+            #print(points.shape, segments.shape)
+
+            cmap = self.create_colourmap()
+            norm = self._image.norm
+
+            lines = LineCollection(segments, cmap=cmap, norm=norm)
+            lines.set_array(0.5*(points[:-1, 0, 1] + points[1:, 0, 1]))
+
+
+            axes = self._transect_axes
+            axes.clear()
+            #axes.plot(lambdas, values)
+            lines = axes.add_collection(lines)
+            axes.autoscale_view(scalex=False, scaley=True)
+            axes.set_xlim(0.0, 1.0)
+        else:
+            axes = self._transect_axes
+            axes.clear()
+            axes.plot(lambdas, values)
+            axes.set_xlim(0.0, 1.0)  # Needed in case end points are masked out.
 
     def update(self, plot_type, array_type, array, array_stats, title, name,
                map_zoom=None, map_pixel_zoom=None, refresh=True):
