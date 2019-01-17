@@ -63,6 +63,12 @@ class ModeHandler:
                     callback_data = self.matplotlib_widget.get_histogram_at_x(x)
                     if callback_data is not None:
                         callback_data.insert(0, 'histogram')
+                elif event.inaxes == self.matplotlib_widget._transect_axes:
+                    lambda_ = event.xdata
+                    callback_data = \
+                        self.matplotlib_widget.get_transect_at_lambda(lambda_)
+                    if callback_data is not None:
+                        callback_data.insert(0, 'transect')
 
             self._status_callback(self.matplotlib_widget, callback_data)
 
@@ -383,18 +389,10 @@ class PolygonRegionHandler(RegionHandler):
 class TransectHandler(ModeHandler):
     def __init__(self, matplotlib_widget, display_options, status_callback):
         super().__init__(matplotlib_widget, display_options, status_callback)
-        print('### TransectHandler')
         self._points = None  # Not None when editing.
-        self._line = None    # Current drawn line, may be editing or completed.
-
-    def _clear_line(self):
-        if self._line is not None:
-            self._line.remove()
-            self._line = None
 
     def clear(self):
         self._points = None
-        self._clear_line()
 
         self.send_status_callback(None)
 
@@ -412,24 +410,18 @@ class TransectHandler(ModeHandler):
         if (self.matplotlib_widget._map_axes is not None and
             event.inaxes == self.matplotlib_widget._map_axes):
 
-            self._clear_line()
             self._points = np.asarray([[event.xdata, event.ydata],
-                                       [event.xdata, event.ydata]])
-
-            self._line = self.matplotlib_widget._map_axes.plot( \
-                self._points[:, 0], self._points[:, 1], '-', c='k')[0]
-            self._line.set_path_effects(self._get_path_effects())
-
-            self.matplotlib_widget._redraw()
+                                       [event.xdata, event.ydata]]) / self._get_scale()
+            self.matplotlib_widget.create_map_line(self._points,
+                                                   self._get_path_effects())
 
     def on_mouse_move(self, event):
         if (self._points is not None and
             event.inaxes == self.matplotlib_widget._map_axes):
 
-            self._points[1] = (event.xdata, event.ydata)
-            self._line.set_data(self._points[:, 0], self._points[:, 1])
-
-            self.matplotlib_widget._redraw()
+            scale = self._get_scale()
+            self._points[1] = (event.xdata / scale, event.ydata / scale)
+            self.matplotlib_widget.update_map_line(self._points)
 
         self.send_status_callback(event)
 
@@ -437,7 +429,7 @@ class TransectHandler(ModeHandler):
         if self._points is None or event.button != 1 or event.dblclick:
             return
 
-        self.matplotlib_widget.set_transect(self._points / self._get_scale())
+        self.matplotlib_widget.set_transect(self._points)
         self._points = None
 
         self.matplotlib_widget._redraw()
@@ -446,7 +438,6 @@ class TransectHandler(ModeHandler):
 class ZoomHandler(ModeHandler):
     def __init__(self, matplotlib_widget, display_options, status_callback):
         super().__init__(matplotlib_widget, display_options, status_callback)
-        print('### ZoomHandler')
         self._zoom_rectangle = None  # Only set when zooming.
         self._zoom_axes = None
 

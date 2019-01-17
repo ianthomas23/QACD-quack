@@ -1066,7 +1066,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
         if data is None:
             msg = self.get_status_string(self._current.displayed_array,
                                          self._current.displayed_array_stats)
-        elif data[0] == 'pixel':
+        elif data[0] in ('pixel', 'transect'):
             value = data[3]
             value = 'none' if value is None else '{:g}'.format(value)
             msg = 'x={}, y={}, value={}'.format(data[1], data[2], value)

@@ -48,6 +48,10 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
         self._colourbar = None
         self._histogram = None      # Latest (histogram, bin_edges, bin_width).
 
+        self._map_line_points = None  # Line drawn on map (showing transect).
+        self._map_line = None
+        self._transect = None       # Latest transect values before interpolation.
+
         # Scale and units initially from display options, but may need to
         # change them if distances are too large, e.g. 1000 mm goes to 1 m.
         self._scale = None
@@ -204,6 +208,15 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
             self._image = self._map_axes.imshow(self._array, cmap=cmap,
                                                 norm=norm, extent=extent)
 
+            if self._map_line is not None and self.has_transect_axes():
+                # Redraw existing map_line on new map_axes.
+                self._map_line.remove()
+                path_effects = self._map_line.get_path_effects()
+                self._map_line = self._map_axes.plot( \
+                    self._map_line_points[:, 0]*self._scale,
+                    self._map_line_points[:, 1]*self._scale, '-', c='k',
+                    path_effects=path_effects)[0]
+
             if self._map_zoom is not None:
                 self._map_axes.set_xlim(self._map_zoom[0]*self._scale)
                 self._map_axes.set_ylim(self._map_zoom[1]*self._scale)
@@ -291,6 +304,11 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
             if self._map_axes is None and self._title is not None:
                 self._histogram_axes.set_title(self._title + ' histogram')
 
+        if self.has_transect_axes() and self._map_line is not None:
+            x, y = self._map_line.get_data()
+            points = np.stack((x, y), axis=1)/self._scale
+            self.set_transect(points)
+
         figure.suptitle(options.overall_title)
         if options.show_project_filename:
             figure.text(0.01, 0.01, options.project_filename)
@@ -330,9 +348,13 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
         self._bar_norm_x = None
         self._cmap_int_max = None
         self._scale_bar = None
+        self._colourbar = None
+        self._histogram = None
+        self._map_line_points = None
+        self._map_line = None
+        self._transect = None
         self._scale = None
         self._units = None
-        self._colourbar = None
 
         self._redraw()
 
@@ -353,6 +375,20 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
         else:
             return cm.get_cmap(self._display_options.colourmap_name,
                                self._cmap_int_max)
+
+    def create_map_line(self, points, path_effects):
+        if self._map_line is not None:
+            self._map_line_points = None
+            self._map_line.remove()
+            self._map_line = None
+
+        if self._map_axes is not None:
+            self._map_line_points = points
+            self._map_line = self._map_axes.plot( \
+                points[:, 0]*self._scale, points[:, 1]*self._scale, '-', c='k',
+                path_effects=path_effects)[0]
+
+            self._redraw()
 
     def export_to_file(self, filename):
         figure = self._canvas.figure
@@ -375,6 +411,16 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
             bin_high = bin_edges[i+1]
             count = hist[i]
             return [bin_width, nbins, bin_low, bin_high, count]
+
+    def get_transect_at_lambda(self, lambda_):
+        if self._transect is not None:
+            points = self._map_line_points
+            xy = (points[0] + lambda_*(points[1] - points[0])).astype(np.int)
+            x, y = xy
+            value = self.get_value_at_position(x, y)
+            return [x, y, value]
+        else:
+            return None
 
     def get_value_at_position(self, x, y):
         # Return value at (x, y) indices of the current array, or None if there
@@ -458,6 +504,8 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
             self._redraw()
 
     def set_default_mode_type(self):
+        # Return True if need to call reset on mode_handler after widget is
+        # drawn.
         if self._plot_type == PlotType.MAP_AND_TRANSECT:
             self.set_mode_type(ModeType.TRANSECT)
         else:
@@ -506,59 +554,35 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
 
         lambdas, values = calculate_transect(self._array, points[0], points[1])
 
+        axes = self._transect_axes
+        axes.clear()
+
         if self._display_options.transect_uses_colourmap:
-            # Use colourmap.
-
-            #diff = np.absolute(np.diff(values))
-            #min_ = diff.min()
-            #max_ = diff.max()
-            #print('diff min and max', min_, max_)
-            #ptp = max_ - min_
-            #temp = (diff - min_) / ptp
-            #temp = (temp*10).astype(np.int)
-            #print(temp)
-
-            # Resample line.
-            print(lambdas.shape, lambdas[0], lambdas[1], lambdas[-1])
-            factor = 5
+            # Resample line. This could be done more intelligently as factor
+            # for resampling should depend on abs(diff(values)).
+            factor = 20
             n = len(lambdas)
             new_lambdas = np.linspace(lambdas[0], lambdas[-1], factor*(n-1)+1)
-            print(new_lambdas.shape, new_lambdas[0], new_lambdas[factor], new_lambdas[-1])
-
             new_values = np.interp(new_lambdas, lambdas, values)
-            print(type(values), type(new_values))
-            new_values = np.ma.masked_invalid(new_values)
-            print(new_values.min(), new_values.max())
-            print(type(values), type(new_values))
-
 
             lambdas = new_lambdas
             values = new_values
 
-
-            # masked arrays????????????????
             points = np.array([lambdas, values]).T.reshape(-1, 1, 2)
             segments = np.concatenate([points[:-1], points[1:]], axis=1)
-            #print(points.shape, segments.shape)
-
-            cmap = self.create_colourmap()
-            norm = self._image.norm
-
-            lines = LineCollection(segments, cmap=cmap, norm=norm)
+            lines = LineCollection(segments,
+                                   cmap=self.create_colourmap(),
+                                   norm=self._image.norm)
+            # Set the array that is used to determine colours.
             lines.set_array(0.5*(points[:-1, 0, 1] + points[1:, 0, 1]))
 
-
-            axes = self._transect_axes
-            axes.clear()
-            #axes.plot(lambdas, values)
             lines = axes.add_collection(lines)
             axes.autoscale_view(scalex=False, scaley=True)
-            axes.set_xlim(0.0, 1.0)
         else:
-            axes = self._transect_axes
-            axes.clear()
             axes.plot(lambdas, values)
-            axes.set_xlim(0.0, 1.0)  # Needed in case end points are masked out.
+
+        self._transect = values
+        axes.set_xlim(0.0, 1.0)  # Needed in case end points are masked out.
 
     def update(self, plot_type, array_type, array, array_stats, title, name,
                map_zoom=None, map_pixel_zoom=None, refresh=True):
@@ -592,4 +616,16 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
             for index, item in enumerate(self._bar):
                 item.set_color(colours[index])
 
+        if (self.has_transect_axes() and
+            self._display_options.transect_uses_colourmap):
+            line_collection = self._transect_axes.collections[0]
+            line_collection.set_cmap(cmap)
+
         self._redraw()
+
+    def update_map_line(self, points):
+        if self._map_line is not None and self._map_axes is not None:
+            self._map_line_points = points
+            self._map_line.set_data(points[:, 0]*self._scale,
+                                    points[:, 1]*self._scale)
+            self._redraw()
