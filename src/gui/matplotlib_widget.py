@@ -7,9 +7,10 @@ from matplotlib.colors import LinearSegmentedColormap, Normalize
 from matplotlib.figure import Figure
 import numpy as np
 from PyQt5 import QtCore, QtWidgets
+import warnings
 
 from src.model.display_options_listener import DisplayOptionsListener
-from src.model.utils import calculate_transect
+from src.model.utils import adaptive_interp, calculate_transect
 from .enums import ArrayType, ModeType, PlotType
 from .mode_handler import *
 from .scale_bar import ScaleBar
@@ -133,8 +134,12 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
         return extent
 
     def _redraw(self):
-        self._canvas.draw()
-        #self._canvas.draw_idle()
+        with warnings.catch_warnings():
+            # Ignore RuntimeWarning when determining colour from colourmap if
+            # value is NaN.
+            warnings.filterwarnings( \
+                'ignore', message='invalid value encountered in less')
+            self._canvas.draw()
 
     def _update_draw(self, refresh=True):
         # Draw using cached variables.
@@ -558,15 +563,11 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
         axes.clear()
 
         if self._display_options.transect_uses_colourmap:
-            # Resample line. This could be done more intelligently as factor
-            # for resampling should depend on abs(diff(values)).
-            factor = 20
-            n = len(lambdas)
-            new_lambdas = np.linspace(lambdas[0], lambdas[-1], factor*(n-1)+1)
-            new_values = np.interp(new_lambdas, lambdas, values)
-
-            lambdas = new_lambdas
-            values = new_values
+            import datetime as dt
+            s = dt.datetime.now()
+            lambdas, values = adaptive_interp(lambdas, values, 19)
+            s = (dt.datetime.now() - s)
+            print(s.total_seconds())
 
             points = np.array([lambdas, values]).T.reshape(-1, 1, 2)
             segments = np.concatenate([points[:-1], points[1:]], axis=1)

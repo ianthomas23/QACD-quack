@@ -4,6 +4,39 @@ import numpy as np
 import numba
 
 
+def adaptive_interp(x, y, max_extra):
+    # Interpolate 1D arrays x,y with from 0 to max_extra points between each
+    # original point depending on abs(diff(y)) between adjacent points.  The
+    # largest abs(diff) has max_extra points inserted, decreasing down to no
+    # extra points for low abs(diff).
+    npts = len(x)
+    diff = np.absolute(np.diff(y))
+    normalised_diff = diff / diff.max()  # In range 0 to 1.
+    extras = (normalised_diff*max_extra).astype(np.int)  # In range 0 to max_extra.
+    extra_points = extras.sum()
+    new_npts = npts + extra_points
+    new_x = np.empty(new_npts)
+    new_y = np.full(new_npts, np.nan)
+    j = 0
+    for i in range(npts-1):
+        new_x[j] = x[i]
+        new_y[j] = y[i] if y[i] is not np.ma.masked else np.nan
+        extra = extras[i]
+        if extra is np.ma.masked:
+            extra = 0
+        elif extra > 0:
+            ks = np.arange(extra+1)
+            fractions = (ks + 1) / (extra + 1.0)
+            new_x[j+1:j+extra+2] = (1.0-fractions)*x[i] + fractions*x[i+1]
+            new_y[j+1:j+extra+2] = (1.0-fractions)*y[i] + fractions*y[i+1]
+        j += 1 + extra
+    if j != new_npts-1:
+        raise RuntimeError('Interpolation error')
+    new_x[j] = x[-1]
+    new_y[j] = y[-1] if y[-1] is not np.ma.masked else np.nan
+    return new_x, new_y
+
+
 def apply_correction_model(correction_model, element_or_preset_name, array):
     correction = correction_model[element_or_preset_name]
     if correction[0] != 'poly':
