@@ -345,7 +345,7 @@ def consistency_impl(directory, pixel_totals, median):
     assert options.scale_bar_colour == 'black'
     assert options.histogram_bin_count == 100
     # Set options and check can read them back OK.
-    options.colourmap_name = 'viridis'
+    options.set_colourmap_name('viridis')
     assert options.colourmap_name == 'viridis'
 
     options.set_labels_and_scale(False, 'Title', True, True, True, 23.2, 'mm', False, 'upper right', 'white')
@@ -365,7 +365,7 @@ def consistency_impl(directory, pixel_totals, median):
     options.set_labels_and_scale(False, 'Title', True, True, True, 23.2, 'nm', False, 'lower right', 'white')
     assert options.scale_bar_location == 'lower right'
     with pytest.raises(RuntimeError):  # Invalid colourmap name.
-        options.colourmap_name = 'unknown colourmap'
+        options.set_colourmap_name('unknown colourmap')
     with pytest.raises(RuntimeError):  # Zero pixel size.
         options.set_labels_and_scale(False, 'Title', True, True, True, 0.0, 'mm', False, 'lower left', 'white')
     with pytest.raises(RuntimeError):  # Negative pixel size.
@@ -377,7 +377,7 @@ def consistency_impl(directory, pixel_totals, median):
     with pytest.raises(RuntimeError):  # Invalid scale bar colour.
         options.set_labels_and_scale(False, 'Title', True, True, True, 23.2, 'mm', False, 'lower left', 'purple')
 
-    options.set_histogram(20)
+    options.set_histogram(True, 20, 0.1, 1000, False)
     assert options.histogram_bin_count == 20
 
     # Cleanup.

@@ -130,7 +130,7 @@ class DisplayOptions:
     def scale_bar_location(self):
         return self._scale_bar_location
 
-    def set_colourmap_name(self, colourmap_name, refresh):
+    def set_colourmap_name(self, colourmap_name, refresh=True):
         name_to_check = colourmap_name
         if name_to_check.endswith('_r'):
             name_to_check = name_to_check[:-2]

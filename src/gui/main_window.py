@@ -211,15 +211,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
         self.update_matplotlib_widget()
         self.update_controls()
 
-
-
-            #if plot_type == PlotType.MAP_AND_TRANSECT:
-            #    self.matplotlibWidget.set_mode_type(ModeType.TRANSECT)
-            #else:
-            #    self.matplotlibWidget.set_mode_type(ModeType.ZOOM)
-
-
-
     def change_region(self):
         text = self.regionComboBox.currentText()
         if text == '':
@@ -1109,6 +1100,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
                 scale = matplotlib_widget._scale
                 from_ = np.asarray((map_axes.get_xlim(),
                                     map_axes.get_ylim())) / scale
+
+            # Ensure correct order of to array.
+            if to[0][1] < to[0][0]:  # x limits must be increasing.
+                to[0] = to[0, ::-1]
+            if to[1][1] > to[1][0]:  # y limits must be decreasing.
+                to[1] = to[1, ::-1]
 
             self._zoom_history.append(from_, to)
             self.change_zoom(to)

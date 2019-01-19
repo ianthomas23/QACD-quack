@@ -13,7 +13,7 @@ def adaptive_interp(x, y, max_extra):
     diff = np.absolute(np.diff(y))
     normalised_diff = diff / diff.max()  # In range 0 to 1.
     extras = (normalised_diff*max_extra).astype(np.int)  # In range 0 to max_extra.
-    extra_points = extras.sum()
+    extra_points = extras.sum() or 0
     new_npts = npts + extra_points
     new_x = np.empty(new_npts)
     new_y = np.full(new_npts, np.nan)

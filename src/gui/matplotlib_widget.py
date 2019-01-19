@@ -563,11 +563,7 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
         axes.clear()
 
         if self._display_options.transect_uses_colourmap:
-            import datetime as dt
-            s = dt.datetime.now()
             lambdas, values = adaptive_interp(lambdas, values, 19)
-            s = (dt.datetime.now() - s)
-            print(s.total_seconds())
 
             points = np.array([lambdas, values]).T.reshape(-1, 1, 2)
             segments = np.concatenate([points[:-1], points[1:]], axis=1)
