@@ -904,6 +904,7 @@
     <addaction name="actionExportImage"/>
     <addaction name="actionExportPixels"/>
     <addaction name="actionExportHistogram"/>
+    <addaction name="actionExportTransect"/>
    </widget>
    <widget class="QMenu" name="menuOptions">
     <property name="title">
@@ -1035,6 +1036,11 @@
   <action name="actionExportPixels">
    <property name="text">
     <string>Export Pixels to File ...</string>
+   </property>
+  </action>
+  <action name="actionExportTransect">
+   <property name="text">
+    <string>Export Transect to File ...</string>
    </property>
   </action>
  </widget>

@@ -51,7 +51,8 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
 
         self._map_line_points = None  # Line drawn on map (showing transect).
         self._map_line = None
-        self._transect = None       # Latest transect values before interpolation.
+        self._transect = None       # Latest transect (xs, ys, values) before
+                                    #   interpolation.
 
         # Scale and units initially from display options, but may need to
         # change them if distances are too large, e.g. 1000 mm goes to 1 m.
@@ -448,6 +449,10 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
     def has_transect_axes(self):
         return self._transect_axes is not None
 
+    def has_transect_contents(self):
+        return (self._transect_axes is not None and
+                self._map_line_points is not None)
+
     def initialise(self, owning_window, display_options, zoom_enabled=True,
                    status_callback=None):
         self._owning_window = owning_window
@@ -557,7 +562,10 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
         if not self.has_transect_axes():
             raise RuntimeError('MatplotlibWidget does not have transect axes')
 
-        lambdas, values = calculate_transect(self._array, points[0], points[1])
+        lambdas, xs, ys, values = calculate_transect( \
+            self._array, points[0], points[1])
+
+        self._transect = (xs, ys, values)
 
         axes = self._transect_axes
         axes.clear()
@@ -578,8 +586,10 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
         else:
             axes.plot(lambdas, values)
 
-        self._transect = values
         axes.set_xlim(0.0, 1.0)  # Needed in case end points are masked out.
+
+        if self._owning_window is not None:
+            self._owning_window.update_controls()
 
     def update(self, plot_type, array_type, array, array_stats, title, name,
                map_zoom=None, map_pixel_zoom=None, refresh=True):

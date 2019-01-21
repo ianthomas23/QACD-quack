@@ -88,7 +88,7 @@ def calculate_transect(array, start, end):
     j = np.floor(ys).astype(np.int32)
     values = array[j, i]
 
-    return lambdas, values
+    return lambdas, i, j, values
 
 
 def get_mask_extent(mask):

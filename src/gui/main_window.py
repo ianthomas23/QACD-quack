@@ -10,7 +10,7 @@ from src.model.elements import element_properties
 from src.model.qacd_project import QACDProject, State
 from .about_dialog import AboutDialog
 from .clustering_dialog import ClusteringDialog
-from .enums import ArrayType, ModeType, PlotType
+from .enums import ArrayType, ExportType, ModeType, PlotType
 from .display_options_dialog import DisplayOptionsDialog
 from .filter_dialog import FilterDialog
 from .matplotlib_widget import ArrayType, PlotType
@@ -87,6 +87,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
         self.actionExportImage.triggered.connect(self.export_image)
         self.actionExportHistogram.triggered.connect(self.export_histogram)
         self.actionExportPixels.triggered.connect(self.export_pixels)
+        self.actionExportTransect.triggered.connect(self.export_transect)
         self.actionDisplayOptions.triggered.connect(self.display_options)
         self.actionAbout.triggered.connect(self.about)
 
@@ -302,8 +303,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
 
             current.selected_array, current.selected_array_stats = ret
 
-        self.update_controls()
         self.update_matplotlib_widget(override_cursor=False)
+        self.update_controls()
         QtWidgets.QApplication.restoreOverrideCursor()
 
     def change_zoom(self, zoom):
@@ -459,8 +460,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
         self._display_options_shown = True
         self.update_controls()
 
-    def export_common(self, is_histogram):
-        name = 'histogram' if is_histogram else 'pixels'
+    def export_common(self, export_type):
+        name = export_type.name.lower()
 
         options = QtWidgets.QFileDialog.Options()
         options |= QtWidgets.QFileDialog.DontUseNativeDialog
@@ -474,16 +475,32 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
             QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
 
             options = self._project.display_options
+
+            notes = [
+                ('project filename', self._project.filename),
+                ('date', self._project.display_options.date),
+                ('title', self.matplotlibWidget._title + ' ' + name),
+                ('phase', self.phaseComboBox.currentText() or 'None'),
+                ('region', self.regionComboBox.currentText() or 'None'),
+            ]
+
             pixel_zoom = self._current.pixel_zoom
-            if (pixel_zoom is None or
-                (is_histogram and not options.zoom_updates_stats)):
+            if export_type == ExportType.TRANSECT:
+                pass
+            elif (pixel_zoom is None or
+                (export_type == ExportType.PIXELS and not options.zoom_updates_stats)):
                 ny, nx = self._current.selected_array.shape
-                pixels = '{}x{}'.format(nx, ny)
-                zoom = 'None'
+                notes += [
+                    ('pixels', nx, ny),
+                    ('zoom', 'None'),
+                ]
             else:
                 ((imin, imax), (jmin, jmax)) = pixel_zoom
-                pixels = '{}x{}'.format(imax-imin, jmax-jmin)
-                zoom = '{} to {} x {} to {}'.format(imin, imax-1, jmin, jmax-1)
+                notes += [
+                    ('pixels', imax-imin, jmax-jmin),
+                    ('zoom', '{} to {}'.format(imin, imax-1),
+                             '{} to {}'.format(jmin, jmax-1)),
+                ]
 
             if (options.manual_colourmap_zoom and
                 self._current.array_type not in
@@ -494,18 +511,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
             else:
                 colourmap_zoom = 'None'
 
-            notes = [
-                ('project filename', self._project.filename),
-                ('date', self._project.display_options.date),
-                ('title', self.matplotlibWidget._title + ' ' + name),
-                ('phase', self.phaseComboBox.currentText() or 'None'),
-                ('region', self.regionComboBox.currentText() or 'None'),
-                ('pixels', pixels),
-                ('zoom', zoom),
+            notes += [
                 ('colourmap zoom', colourmap_zoom),
             ]
 
-            if is_histogram:
+            if export_type == ExportType.HISTOGRAM:
                 histogram, bin_edges, bin_width = self.matplotlibWidget._histogram
                 bin_centres = 0.5*(bin_edges[:-1] + bin_edges[1:])
 
@@ -513,19 +523,33 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
                     ('bin width', '{:g}'.format(bin_width)),
                     ('bin count', len(histogram)),
                 ]
-            else:
-                no_data_value = -99
-                notes += [('no data value', no_data_value)]
+            elif export_type == ExportType.PIXELS:
+                no_data_value = -9999
+                notes += [
+                    ('no data value', no_data_value),
+                ]
+            else:  # export_type == ExportType.TRANSECT
+                no_data_value = -9999
+                xs, ys, values = self.matplotlibWidget._transect
+                values[np.isnan(values)] = no_data_value
+                notes += [
+                    ('no data value', no_data_value),
+                    ('start pixel', xs[0], ys[0]),
+                    ('end pixel', xs[-1], ys[-1]),
+                ]
 
             with open(filename, 'w') as f:
                 for note in notes:
-                    f.write('{},{}\n'.format(*note))
+                    if len(note) == 3:
+                        f.write('{},{},{}\n'.format(*note))
+                    else:
+                        f.write('{},{}\n'.format(*note))
                 f.write('\n')
-                if is_histogram:
+                if export_type == ExportType.HISTOGRAM:
                     f.write('bin centre,number of pixels\n')
                     for bin_centre, count in zip(bin_centres, histogram):
                         f.write('{:g},{}\n'.format(bin_centre, count))
-                else:
+                elif export_type == ExportType.PIXELS:
                     f.write('pixels\n')
                     subarray = self._current.displayed_array
                     pixel_zoom = self._current.pixel_zoom
@@ -537,11 +561,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
                     else:
                         subarray = np.ma.filled(subarray, no_data_value)
                     np.savetxt(f, subarray, delimiter=',', fmt='%g')
+                else:  # export_type == ExportType.TRANSECT
+                    f.write('x,y,value\n')
+                    for x, y, value in zip(xs, ys, values):
+                        f.write('{},{},{:g}\n'.format(x, y, value))
 
             QtWidgets.QApplication.restoreOverrideCursor()
 
     def export_histogram(self):
-        self.export_common(True)
+        self.export_common(ExportType.HISTOGRAM)
 
     def export_image(self):
         file_types = ['Joint Photographic ExpertsGroup (*.jpg)',
@@ -569,7 +597,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
             self.matplotlibWidget.export_to_file(filename)
 
     def export_pixels(self):
-        self.export_common(False)
+        self.export_common(ExportType.PIXELS)
+
+    def export_transect(self):
+        self.export_common(ExportType.TRANSECT)
 
     def fill_table_widget(self, index):
         array_type, tab_widget, table_widget, tab_title, editable_name = \
@@ -911,6 +942,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
         self.actionExportImage.setEnabled(self.matplotlibWidget.has_content())
         self.actionExportHistogram.setEnabled(self.matplotlibWidget.has_histogram_axes())
         self.actionExportPixels.setEnabled(self.matplotlibWidget.has_map_axes())
+        self.actionExportTransect.setEnabled(self.matplotlibWidget.has_transect_contents())
 
         self.actionNewRegion.setEnabled(valid_project and
                                         not self._new_region_shown)
@@ -1030,6 +1062,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
         self.actionExportImage.setEnabled(self.matplotlibWidget.has_content())
         self.actionExportHistogram.setEnabled(self.matplotlibWidget.has_histogram_axes())
         self.actionExportPixels.setEnabled(self.matplotlibWidget.has_map_axes())
+        self.actionExportPixels.setEnabled(self.matplotlibWidget.has_transect_contents())
 
         self.update_status_bar()
 

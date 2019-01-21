@@ -444,6 +444,8 @@ class Ui_MainWindow(object):
         self.actionExportHistogram.setObjectName("actionExportHistogram")
         self.actionExportPixels = QtWidgets.QAction(MainWindow)
         self.actionExportPixels.setObjectName("actionExportPixels")
+        self.actionExportTransect = QtWidgets.QAction(MainWindow)
+        self.actionExportTransect.setObjectName("actionExportTransect")
         self.menuProject.addAction(self.actionProjectNew)
         self.menuProject.addAction(self.actionProjectOpen)
         self.menuProject.addAction(self.actionProjectClose)
@@ -453,6 +455,7 @@ class Ui_MainWindow(object):
         self.menuAction.addAction(self.actionExportImage)
         self.menuAction.addAction(self.actionExportPixels)
         self.menuAction.addAction(self.actionExportHistogram)
+        self.menuAction.addAction(self.actionExportTransect)
         self.menuOptions.addAction(self.actionDisplayOptions)
         self.menuHelp.addAction(self.actionAbout)
         self.menubar.addAction(self.menuProject.menuAction())
@@ -574,6 +577,7 @@ class Ui_MainWindow(object):
         self.actionAbout.setToolTip(_translate("MainWindow", "About QACD-quack"))
         self.actionExportHistogram.setText(_translate("MainWindow", "Export Histogram to File ..."))
         self.actionExportPixels.setText(_translate("MainWindow", "Export Pixels to File ..."))
+        self.actionExportTransect.setText(_translate("MainWindow", "Export Transect to File ..."))
 
 from .matplotlib_widget import MatplotlibWidget
 

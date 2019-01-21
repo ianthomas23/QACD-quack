@@ -14,6 +14,13 @@ class ArrayType(Enum):
 
 
 @unique
+class ExportType(Enum):
+    PIXELS    = 0
+    HISTOGRAM = 1
+    TRANSECT  = 2
+
+
+@unique
 class ModeType(Enum):
     INVALID          = 0
     ZOOM             = 1
