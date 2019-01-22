@@ -12,6 +12,7 @@ from .about_dialog import AboutDialog
 from .clustering_dialog import ClusteringDialog
 from .enums import ArrayType, ExportType, ModeType, PlotType
 from .display_options_dialog import DisplayOptionsDialog
+from .file_save_dialog import FileSaveDialog
 from .filter_dialog import FilterDialog
 from .matplotlib_widget import ArrayType, PlotType
 from .new_phase_cluster_dialog import NewPhaseClusterDialog
@@ -465,13 +466,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
 
         options = QtWidgets.QFileDialog.Options()
         options |= QtWidgets.QFileDialog.DontUseNativeDialog
-        filename, file_type = QtWidgets.QFileDialog.getSaveFileName( \
+        filename, file_type = FileSaveDialog.getSaveFileName( \
             self, 'Select filename to export {} to'.format(name), '',
             'Comma Separated Values (*.csv)', '', options=options)
         if filename:
-            if os.path.splitext(filename)[1].lower() != '.csv':
-                filename = os.path.splitext(filename)[0] + '.csv'
-
             QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
 
             options = self._project.display_options
@@ -579,21 +577,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
 
         options = QtWidgets.QFileDialog.Options()
         options |= QtWidgets.QFileDialog.DontUseNativeDialog
-        filename, file_type = QtWidgets.QFileDialog.getSaveFileName( \
+        filename, file_type = FileSaveDialog.getSaveFileName( \
             self, 'Select filename to export to', '',
             ';;'.join(file_types),  # Filter.
             file_types[2],          # Initial selected filter.
             options=options)
         if filename:
-            correct_extension = file_type[-5:-1]
-            file_extension = os.path.splitext(filename)[1]
-            if not file_extension:
-                filename = filename + correct_extension
-            elif file_extension != correct_extension:
-                QtWidgets.QMessageBox.critical(self, 'Error',
-                    'Incorrect file extension {}\nShould be {} or leave it empty.'.format(file_extension, correct_extension))
-                return
-
             self.matplotlibWidget.export_to_file(filename)
 
     def export_pixels(self):
@@ -746,7 +735,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
         # Select file to save new project to.
         options = QtWidgets.QFileDialog.Options()
         options |= QtWidgets.QFileDialog.DontUseNativeDialog
-        filename, _ = QtWidgets.QFileDialog.getSaveFileName( \
+        filename, _ = FileSaveDialog.getSaveFileName( \
             self, 'Save new project as...', '',
             'Quack project files (*.quack)', options=options)
         if not filename:
