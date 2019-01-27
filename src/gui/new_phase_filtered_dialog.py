@@ -27,8 +27,8 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
 
         self.fill_element_table()
         self.elementTable.itemSelectionChanged.connect(self.change_element)
-        self.lowerSlider.sliderReleased.connect(self.update_element_map)
-        self.upperSlider.sliderReleased.connect(self.update_element_map)
+        self.lowerSlider.sliderReleased.connect(self.update_element_map_colourmap_limits)
+        self.upperSlider.sliderReleased.connect(self.update_element_map_colourmap_limits)
         self.lowerSlider.actionTriggered.connect(self.change_lower_slider)
         self.upperSlider.actionTriggered.connect(self.change_upper_slider)
         self.updateThresholdsButton.clicked.connect(self.update_thresholds)
@@ -43,6 +43,7 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
         self.element = None
         self.array = None
         self.array_stats = None
+        self.zoom = None    # None or float array of shape (2,2).
 
         # Cache of per-element filtered within limits arrays.
         self.cache = {}
@@ -109,7 +110,7 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
         self.lowerLineEdit.setText(str(position))
 
         if action != QtWidgets.QAbstractSlider.SliderMove:
-            self.update_element_map()
+            self.update_element_map_colourmap_limits()
 
     def change_upper_slider(self, action):
         position = self.upperSlider.sliderPosition()
@@ -119,7 +120,16 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
         self.upperLineEdit.setText(str(position))
 
         if action != QtWidgets.QAbstractSlider.SliderMove:
-            self.update_element_map()
+            self.update_element_map_colourmap_limits()
+
+    def change_zoom(self, zoom):
+        self.zoom = zoom
+        for widget in (self.elementMatplotlibWidget,
+                       self.phaseMatplotlibWidget):
+            if widget._array is not None:
+                widget.update(PlotType.MAP, widget._array_type, widget._array,
+                              widget._array_stats, widget._title, widget._name,
+                              map_zoom=self.zoom)
 
     def clear_thresholds(self):
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
@@ -168,7 +178,7 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
 
             self.elementMatplotlibWidget.update(PlotType.MAP,
                 ArrayType.FILTERED, self.array, self.array_stats, title,
-                self.element)
+                self.element, map_zoom=self.zoom)
 
             for control in (self.lowerSlider, self.upperSlider,
                             self.lowerLineEdit, self.upperLineEdit,
@@ -192,7 +202,7 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
             self.upperLineEdit.setText(str(upper))
 
             if lower is not None and upper is not None:
-                self.update_element_map()
+                self.update_element_map_colourmap_limits()
         else:
             for control in (self.lowerSlider, self.upperSlider,
                             self.lowerLineEdit, self.upperLineEdit,
@@ -252,7 +262,7 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
         self.undoButton.setEnabled(self.zoom_history.has_undo())
         self.redoButton.setEnabled(self.zoom_history.has_redo())
 
-    def update_element_map(self):
+    def update_element_map_colourmap_limits(self):
         lower = self.lowerSlider.value()
         upper = self.upperSlider.value()
         self.elementMatplotlibWidget.set_colourmap_limits(lower, upper)
@@ -277,18 +287,20 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
         else:
             self.phase_map = np.ma.masked_equal(self.phase_map, 0)
             self.phaseMatplotlibWidget.update(PlotType.MAP, ArrayType.PHASE,
-                self.phase_map, None, None, None)
+                self.phase_map, None, None, None, map_zoom=self.zoom)
             if previously_empty and self.zoom_history.has_any():
                 zoom = self.zoom_history.current()
-                self.phaseMatplotlibWidget.set_map_zoom(zoom[1][0], zoom[1][1])
+                self.change_zoom(zoom[1])
 
     def update_status_bar(self):
         if self.status_callback_data is None:
             msg = None
-        elif self.status_callback_data[2] is None:
-            msg = 'x={} y={} value=none'.format(*self.status_callback_data)
         else:
-            msg = 'x={} y={} value={:g}'.format(*self.status_callback_data)
+            x, y, value = self.status_callback_data[1:]
+            if value is None:
+                msg = 'x={} y={} value=none'.format(x, y)
+            else:
+                msg = 'x={} y={} value={:g}'.format(x, y, value)
 
         self.statusbar.setText(msg)
 
@@ -303,18 +315,15 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
 
     def zoom_append(self, matplotlib_widget, from_, to):
         self.zoom_history.append(from_, to)
-        for widget in (self.elementMatplotlibWidget, self.phaseMatplotlibWidget):
-            widget.set_map_zoom(to[0], to[1])
+        self.change_zoom(to)
         self.update_buttons()
 
     def zoom_redo(self):
         zoom = self.zoom_history.redo()
-        for widget in (self.elementMatplotlibWidget, self.phaseMatplotlibWidget):
-            widget.set_map_zoom(zoom[1][0], zoom[1][1])
+        self.change_zoom(zoom[1])
         self.update_buttons()
 
     def zoom_undo(self):
         zoom = self.zoom_history.undo()
-        for widget in (self.elementMatplotlibWidget, self.phaseMatplotlibWidget):
-            widget.set_map_zoom(zoom[0][0], zoom[0][1])
+        self.change_zoom(zoom[0])
         self.update_buttons()
