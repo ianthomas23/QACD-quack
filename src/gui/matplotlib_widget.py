@@ -86,7 +86,10 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
         if self._scale_bar:
             # Clear old scale bar.
             if self._map_axes and self._scale_bar in self._map_axes.artists:
-                self._scale_bar.remove()
+                try:
+                    self._scale_bar.remove()
+                except:
+                    pass
             self._scale_bar = None
 
         if self._map_axes is not None:
@@ -216,7 +219,10 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
 
             if self._map_line is not None and self.has_transect_axes():
                 # Redraw existing map_line on new map_axes.
-                self._map_line.remove()
+                try:
+                    self._map_line.remove()
+                except:
+                    pass
                 path_effects = self._map_line.get_path_effects()
                 self._map_line = self._map_axes.plot( \
                     self._map_line_points[:, 0]*self._scale,
@@ -385,7 +391,10 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
     def create_map_line(self, points, path_effects):
         if self._map_line is not None:
             self._map_line_points = None
-            self._map_line.remove()
+            try:
+                self._map_line.remove()
+            except:
+                pass
             self._map_line = None
 
         if self._map_axes is not None:

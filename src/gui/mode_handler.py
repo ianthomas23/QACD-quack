@@ -118,14 +118,20 @@ class RegionHandler(ModeHandler):
 
             for artist in self._artists:
                 if artist is not None:
-                    artist.remove()
+                    try:
+                        artist.remove()
+                    except:
+                        pass
             self._artists = []
 
             if self._region is not None:
                 self._region = None
 
             if self._region_image is not None:
-                self._region_image.remove()
+                try:
+                    self._region_image.remove()
+                except:
+                    pass
                 self._region_image = None
 
             self._editing = False
@@ -379,7 +385,10 @@ class PolygonRegionHandler(RegionHandler):
                         'o', c='yellow')[0]
                     self.matplotlib_widget._redraw()
             elif self._artists[2]:
-                self._artists[2].remove()
+                try:
+                    self._artists[2].remove()
+                except:
+                    pass
                 self._artists[2] = None
                 self.matplotlib_widget._redraw()
 
@@ -443,7 +452,10 @@ class ZoomHandler(ModeHandler):
 
     def clear(self):
         if self._zoom_rectangle is not None:
-            self._zoom_rectangle.remove()
+            try:
+                self._zoom_rectangle.remove()
+            except:
+                pass
             self._zoom_rectangle = None
 
         self.send_status_callback(None)
