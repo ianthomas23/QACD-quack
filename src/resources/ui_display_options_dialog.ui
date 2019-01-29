@@ -317,17 +317,17 @@
       </attribute>
       <layout class="QVBoxLayout" name="v3">
        <item>
-        <widget class="QCheckBox" name="autoZoomRegionCheckBox">
-         <property name="text">
-          <string>Auto zoom when change region</string>
-         </property>
-        </widget>
-       </item>
-       <item>
         <widget class="QCheckBox" name="zoomUpdatesStatsCheckBox">
          <property name="text">
           <string>Histogram, colour bar and status bar are limited to zoomed area
 rather than whole element map</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="autoZoomRegionCheckBox">
+         <property name="text">
+          <string>Auto zoom when change region</string>
          </property>
         </widget>
        </item>

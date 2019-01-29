@@ -37,8 +37,8 @@ class DisplayOptions:
         self._show_mean_median_std_lines = True
 
         # Zoom options.
-        self._auto_zoom_region = False
-        self._zoom_updates_stats = False
+        self._auto_zoom_region = True
+        self._zoom_updates_stats = True
         self._manual_colourmap_zoom = False
         self._lower_colourmap_limit = 0.0
         self._upper_colourmap_limit = 1.0
