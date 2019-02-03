@@ -1,5 +1,6 @@
 from enum import Enum, unique
 import math
+import matplotlib as mpl
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 import matplotlib.cm as cm
 from matplotlib.collections import LineCollection
@@ -148,6 +149,9 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
     def _update_draw(self, refresh=True):
         # Draw using cached variables.
 
+        options = self._display_options
+        mpl.rcParams.update({'font.size': options.font_size})
+
         # Derived quantities.
         show_colourbar = True
         cmap_int_max = None
@@ -165,7 +169,6 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
         figure = self._canvas.figure
         figure.clear()
 
-        options = self._display_options
         self._map_axes = None
         self._histogram_axes = None
         self._transect_axes = None

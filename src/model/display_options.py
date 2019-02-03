@@ -14,6 +14,7 @@ class DisplayOptions:
         # Label options.
         self._valid_scale_bar_locations = \
             ['upper left', 'upper right', 'lower left', 'lower right']
+        self._font_size = 10
         self._show_ticks_and_labels = True
         self._overall_title = ''
         self._show_project_filename = False
@@ -71,6 +72,10 @@ class DisplayOptions:
     @property
     def date(self):
         return dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    @property
+    def font_size(self):
+        return self._font_size
 
     def get_next_larger_units(self, units):
         index = self._valid_units.index(units)
@@ -159,12 +164,14 @@ class DisplayOptions:
             for listener in self._listeners:
                 listener.update_histogram_options()
 
-    def set_labels_and_scale(self, show_ticks_and_labels, overall_title,
-                             show_project_filename, show_date, use_scale,
-                             pixel_size, units, show_scale_bar,
+    def set_labels_and_scale(self, font_size, show_ticks_and_labels,
+                             overall_title, show_project_filename, show_date,
+                             use_scale, pixel_size, units, show_scale_bar,
                              scale_bar_location, scale_bar_colour,
                              refresh=True):
         # Validation.
+        if font_size <= 0:
+            raise RuntimeError('Font size must be positive')
         if pixel_size <= 0.0:
             raise RuntimeError('Pixel size must be positive')
         if units not in self.valid_units:
@@ -175,6 +182,7 @@ class DisplayOptions:
             raise RuntimeError('Unrecognised scale bar colour {}'.format(scale_bar_colour))
 
         # Labels.
+        self._font_size = font_size
         self._show_ticks_and_labels = show_ticks_and_labels
         self._overall_title = overall_title
         self._show_project_filename = show_project_filename
