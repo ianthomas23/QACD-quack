@@ -2,6 +2,9 @@ class DisplayOptionsListener:
     def update_colourmap_name(self):
         pass
 
+    def update_export(self):
+        pass
+
     def update_histogram_options(self):
         pass
 

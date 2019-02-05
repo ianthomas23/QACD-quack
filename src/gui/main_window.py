@@ -583,7 +583,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
             file_types[2],          # Initial selected filter.
             options=options)
         if filename:
-            self.matplotlibWidget.export_to_file(filename)
+            dpi = self._project.display_options.image_dots_per_inch
+            self.matplotlibWidget.export_to_file(filename, dpi)
 
     def export_pixels(self):
         self.export_common(ExportType.PIXELS)

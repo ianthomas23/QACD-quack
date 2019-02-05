@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>493</width>
+    <width>538</width>
     <height>576</height>
    </rect>
   </property>
@@ -21,6 +21,9 @@
        <width>411</width>
        <height>490</height>
       </size>
+     </property>
+     <property name="tabPosition">
+      <enum>QTabWidget::North</enum>
      </property>
      <property name="currentIndex">
       <number>1</number>
@@ -54,9 +57,147 @@
        </item>
       </layout>
      </widget>
+     <widget class="QWidget" name="exportTab">
+      <attribute name="title">
+       <string>Export</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_6">
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_6">
+         <item>
+          <widget class="QLabel" name="label6">
+           <property name="text">
+            <string>Image DPI (Dots Per Inch)</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="imageDotsPerInchComboBox"/>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QLabel" name="dummy">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>1</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="histogramTab">
+      <attribute name="title">
+       <string>Histogram</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="v" stretch="0,0,0,0,0,0">
+       <item>
+        <widget class="QGroupBox" name="fixedBinCountGroupBox">
+         <property name="title">
+          <string>Fixed bin count</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+         <layout class="QHBoxLayout" name="h">
+          <item>
+           <widget class="QLabel" name="label_2">
+            <property name="text">
+             <string>Number of bins</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="histogramBinCountComboBox"/>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="fixedBinWidthGroupBox">
+         <property name="title">
+          <string>Fixed bin width</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+         <property name="checked">
+          <bool>false</bool>
+         </property>
+         <layout class="QGridLayout" name="g">
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_2a">
+            <property name="text">
+             <string>Bin width</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLineEdit" name="histogramBinWidthLineEdit"/>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_2b">
+            <property name="text">
+             <string>Maximum number of bins</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLineEdit" name="maxBinCountLineEdit"/>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>10</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="Line" name="line2">
+         <property name="frameShadow">
+          <enum>QFrame::Sunken</enum>
+         </property>
+         <property name="lineWidth">
+          <number>1</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="showMeanMedianStdCheckBox">
+         <property name="text">
+          <string>Show mean, median and standard deviation lines</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="dummy">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>1</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
      <widget class="QWidget" name="labelsAndScaleTab">
       <attribute name="title">
-       <string>Labels and scale</string>
+       <string>Labels/scale</string>
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,0,0,0,0,0,0,0,0,0,0,0,0">
        <item>
@@ -235,103 +376,20 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="histogramTab">
+     <widget class="QWidget" name="transectTab">
       <attribute name="title">
-       <string>Histogram</string>
+       <string>Transect</string>
       </attribute>
-      <layout class="QVBoxLayout" name="v" stretch="0,0,0,0,0,0">
+      <layout class="QVBoxLayout" name="v4">
        <item>
-        <widget class="QGroupBox" name="fixedBinCountGroupBox">
-         <property name="title">
-          <string>Fixed bin count</string>
-         </property>
-         <property name="checkable">
-          <bool>true</bool>
-         </property>
-         <layout class="QHBoxLayout" name="h">
-          <item>
-           <widget class="QLabel" name="label_2">
-            <property name="text">
-             <string>Number of bins</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QComboBox" name="histogramBinCountComboBox"/>
-          </item>
-         </layout>
-        </widget>
-       </item>
-       <item>
-        <widget class="QGroupBox" name="fixedBinWidthGroupBox">
-         <property name="title">
-          <string>Fixed bin width</string>
-         </property>
-         <property name="checkable">
-          <bool>true</bool>
-         </property>
-         <property name="checked">
-          <bool>false</bool>
-         </property>
-         <layout class="QGridLayout" name="g">
-          <item row="0" column="0">
-           <widget class="QLabel" name="label_2a">
-            <property name="text">
-             <string>Bin width</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="1">
-           <widget class="QLineEdit" name="histogramBinWidthLineEdit"/>
-          </item>
-          <item row="1" column="0">
-           <widget class="QLabel" name="label_2b">
-            <property name="text">
-             <string>Maximum number of bins</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="1">
-           <widget class="QLineEdit" name="maxBinCountLineEdit"/>
-          </item>
-         </layout>
-        </widget>
-       </item>
-       <item>
-        <spacer name="horizontalSpacer">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>10</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item>
-        <widget class="Line" name="line2">
-         <property name="frameShadow">
-          <enum>QFrame::Sunken</enum>
-         </property>
-         <property name="lineWidth">
-          <number>1</number>
-         </property>
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QCheckBox" name="showMeanMedianStdCheckBox">
+        <widget class="QCheckBox" name="transectUsesColourmapCheckBox">
          <property name="text">
-          <string>Show mean, median and standard deviation lines</string>
+          <string>Transect displayed using colourmap</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QLabel" name="dummy">
+        <widget class="QLabel" name="dummy4">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
            <horstretch>0</horstretch>
@@ -419,30 +477,6 @@ rather than whole element map</string>
        </item>
        <item>
         <widget class="QLabel" name="dummy2">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>1</verstretch>
-          </sizepolicy>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-     <widget class="QWidget" name="transectTab">
-      <attribute name="title">
-       <string>Transect</string>
-      </attribute>
-      <layout class="QVBoxLayout" name="v4">
-       <item>
-        <widget class="QCheckBox" name="transectUsesColourmapCheckBox">
-         <property name="text">
-          <string>Transect displayed using colourmap</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="dummy4">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
            <horstretch>0</horstretch>

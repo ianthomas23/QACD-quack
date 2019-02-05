@@ -11,6 +11,9 @@ class DisplayOptions:
         self._valid_colourmap_names = self._determine_valid_colourmap_names()
         self._colourmap_name = 'rainbow'
 
+        # Export options.
+        self._image_dots_per_inch = 100
+
         # Label options.
         self._valid_scale_bar_locations = \
             ['upper left', 'upper right', 'lower left', 'lower right']
@@ -97,6 +100,10 @@ class DisplayOptions:
         return self._histogram_max_bin_count
 
     @property
+    def image_dots_per_inch(self):
+        return self._image_dots_per_inch
+
+    @property
     def lower_colourmap_limit(self):
         return self._lower_colourmap_limit
 
@@ -148,6 +155,15 @@ class DisplayOptions:
 
             for listener in self._listeners:
                 listener.update_colourmap_name()
+
+    def set_export(self, image_dots_per_inch, refresh=True):
+        self._image_dots_per_inch = image_dots_per_inch
+
+        if refresh:
+            self._project().save_display_options()
+
+            for listener in self._listeners:
+                listener.update_export()
 
     def set_histogram(self, use_histogram_bin_count, histogram_bin_count,
                 histogram_bin_width, histogram_max_bin_count,

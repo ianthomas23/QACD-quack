@@ -408,9 +408,9 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
 
             self._redraw()
 
-    def export_to_file(self, filename):
+    def export_to_file(self, filename, dpi):
         figure = self._canvas.figure
-        figure.savefig(filename)
+        figure.savefig(filename, dpi=dpi)
 
     def get_histogram_at_x(self, x):
         # Return histogram data at specified x value.
