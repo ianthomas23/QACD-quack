@@ -304,14 +304,24 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
                 median = self._array_stats.get('median')
                 std = self._array_stats.get('std')
                 if mean is not None:
-                    self._histogram_axes.axvline(mean, c='k', ls='-', label='mean')
+                    label = 'mean'
+                    if options.show_mean_median_std_values:
+                        label += ' ({:g})'.format(mean)
+                    self._histogram_axes.axvline(mean, c='k', ls='-',
+                                                 label=label)
                     if std is not None:
+                        label = 'mean \u00b1 std'
+                        if options.show_mean_median_std_values:
+                            label += ' ({:g})'.format(std)
                         self._histogram_axes.axvline(mean-std, c='k', ls='-.',
-                                                     label='mean \u00b1 std')
+                                                     label=label)
                         self._histogram_axes.axvline(mean+std, c='k', ls='-.')
                 if median is not None:
+                    label = 'median'
+                    if options.show_mean_median_std_values:
+                        label += ' ({:g})'.format(median)
                     self._histogram_axes.axvline(median, c='k', ls='--',
-                                                 label='median')
+                                                 label=label)
 
                 if mean is not None or median is not None:
                     self._histogram_axes.legend()

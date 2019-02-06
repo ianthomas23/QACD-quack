@@ -39,6 +39,7 @@ class DisplayOptions:
         self._histogram_bin_width = 0.005
         self._histogram_max_bin_count = 200
         self._show_mean_median_std_lines = True
+        self._show_mean_median_std_values = True
 
         # Zoom options.
         self._auto_zoom_region = True
@@ -167,12 +168,14 @@ class DisplayOptions:
 
     def set_histogram(self, use_histogram_bin_count, histogram_bin_count,
                 histogram_bin_width, histogram_max_bin_count,
-                show_mean_median_std_lines, refresh=True):
+                show_mean_median_std_lines, show_mean_median_std_values,
+                refresh=True):
         self._use_histogram_bin_count = use_histogram_bin_count
         self._histogram_bin_count = histogram_bin_count
         self._histogram_bin_width = histogram_bin_width
         self._histogram_max_bin_count = histogram_max_bin_count
         self._show_mean_median_std_lines = show_mean_median_std_lines
+        self._show_mean_median_std_values = show_mean_median_std_values
 
         if refresh:
             self._project().save_display_options()
@@ -249,6 +252,10 @@ class DisplayOptions:
     @property
     def show_mean_median_std_lines(self):
         return self._show_mean_median_std_lines
+
+    @property
+    def show_mean_median_std_values(self):
+        return self._show_mean_median_std_values
 
     @property
     def show_project_filename(self):

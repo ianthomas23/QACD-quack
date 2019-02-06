@@ -26,7 +26,7 @@
       <enum>QTabWidget::North</enum>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="colourmapTab">
       <attribute name="title">
@@ -177,9 +177,16 @@
         </widget>
        </item>
        <item>
-        <widget class="QCheckBox" name="showMeanMedianStdCheckBox">
+        <widget class="QCheckBox" name="showMeanMedianStdLinesCheckBox">
          <property name="text">
           <string>Show mean, median and standard deviation lines</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="showMeanMedianStdValuesCheckBox">
+         <property name="text">
+          <string>Show mean, median and standard deviation values in legend</string>
          </property>
         </widget>
        </item>

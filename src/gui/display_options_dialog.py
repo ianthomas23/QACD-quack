@@ -71,7 +71,8 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         self._linked_histogram_groups = True
         self.histogramBinWidthLineEdit.textChanged.connect(self.update_buttons)
         self.maxBinCountLineEdit.textChanged.connect(self.update_buttons)
-        self.showMeanMedianStdCheckBox.stateChanged.connect(self.update_buttons)
+        self.showMeanMedianStdLinesCheckBox.stateChanged.connect(self.update_controls)
+        self.showMeanMedianStdValuesCheckBox.stateChanged.connect(self.update_buttons)
 
         # Zoom tab controls.
         self.autoZoomRegionCheckBox.stateChanged.connect(self.update_buttons)
@@ -135,12 +136,14 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
                 raise RuntimeError('Histogram max bin count should be between {} and {}'.format( \
                     validator.bottom(), validator.top()))
 
-            show_mean_median_std_lines = self.showMeanMedianStdCheckBox.isChecked()
+            show_mean_median_std_lines = self.showMeanMedianStdLinesCheckBox.isChecked()
+            show_mean_median_std_values = self.showMeanMedianStdValuesCheckBox.isChecked()
 
             self._display_options.set_histogram( \
                 use_histogram_bin_count, histogram_bin_count,
                 histogram_bin_width, histogram_max_bin_count,
-                show_mean_median_std_lines, refresh=refresh)
+                show_mean_median_std_lines, show_mean_median_std_values,
+                refresh=refresh)
             self.update_buttons()
         elif tab == self.labelsAndScaleTab:
             font_size = self.fontSizeSpinBox.value()
@@ -312,7 +315,8 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
         self.maxBinCountLineEdit.setValidator(validator2)
         self.maxBinCountLineEdit.setText(str(options.histogram_max_bin_count))
 
-        self.showMeanMedianStdCheckBox.setChecked(options.show_mean_median_std_lines)
+        self.showMeanMedianStdLinesCheckBox.setChecked(options.show_mean_median_std_lines)
+        self.showMeanMedianStdValuesCheckBox.setChecked(options.show_mean_median_std_values)
 
     def init_labels_and_scale_tab(self):
         options = self._display_options
@@ -413,7 +417,8 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
                 int(self.histogramBinCountComboBox.currentText()) != options.histogram_bin_count or \
                 locale.toDouble(self.histogramBinWidthLineEdit.text())[0] != options.histogram_bin_width or \
                 locale.toInt(self.maxBinCountLineEdit.text())[0] != options.histogram_max_bin_count or \
-                self.showMeanMedianStdCheckBox.isChecked() != options.show_mean_median_std_lines
+                self.showMeanMedianStdLinesCheckBox.isChecked() != options.show_mean_median_std_lines or \
+                self.showMeanMedianStdValuesCheckBox.isChecked() != options.show_mean_median_std_values
         elif tab == self.labelsAndScaleTab:
             enabled = \
                 self.fontSizeSpinBox.value() != options.font_size or \
@@ -444,6 +449,10 @@ class DisplayOptionsDialog(QtWidgets.QDialog, Ui_DisplayOptionsDialog):
 
     def update_controls(self):
         self.update_buttons()
+
+        # Histogram tab.
+        self.showMeanMedianStdValuesCheckBox.setEnabled( \
+            self.showMeanMedianStdLinesCheckBox.isChecked())
 
         # Scale tab.
         use_scale = self.useScaleCheckBox.isChecked()
