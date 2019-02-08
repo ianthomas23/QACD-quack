@@ -141,13 +141,7 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
         self.update_buttons()
 
     def fill_element_table(self):
-        # Correct table widget properties.
         table_widget = self.elementTable
-        horiz = table_widget.horizontalHeader()
-        horiz.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
-        horiz.setDefaultAlignment(QtCore.Qt.AlignLeft)
-        vert = table_widget.verticalHeader()
-        vert.setDefaultSectionSize(vert.minimumSectionSize())
 
         # Disable sorting whilst changing content.
         sorting = table_widget.isSortingEnabled()
@@ -161,6 +155,18 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
             self.set_table_widget_cell(table_widget, row, 0, element)
             name = element_properties[element][0]
             self.set_table_widget_cell(table_widget, row, 1, name)
+
+        # Correct table widget properties.
+        horiz = table_widget.horizontalHeader()
+
+        horiz.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
+        column_width = horiz.sectionSize(1)
+        horiz.setSectionResizeMode(QtWidgets.QHeaderView.Interactive)
+        horiz.resizeSection(1, column_width)
+
+        horiz.setDefaultAlignment(QtCore.Qt.AlignLeft)
+        vert = table_widget.verticalHeader()
+        vert.setDefaultSectionSize(vert.minimumSectionSize())
 
         # Re-enable sorting.
         table_widget.setSortingEnabled(sorting)
