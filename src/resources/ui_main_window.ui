@@ -17,694 +17,698 @@
    <iconset>
     <normaloff>resources/application_icon.png</normaloff>resources/application_icon.png</iconset>
   </property>
-  <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout_2">
+  <widget class="QWidget" name="centralWidget">
+   <layout class="QVBoxLayout" name="topLayout">
     <item>
-     <layout class="QHBoxLayout" name="hlayout" stretch="0,1">
-      <item>
-       <widget class="QTabWidget" name="tabWidget">
+     <widget class="QSplitter" name="splitter">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="childrenCollapsible">
+       <bool>false</bool>
+      </property>
+      <widget class="QTabWidget" name="tabWidget">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="tabPosition">
+        <enum>QTabWidget::West</enum>
+       </property>
+       <property name="currentIndex">
+        <number>6</number>
+       </property>
+       <widget class="QWidget" name="rawTab">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
-        <property name="tabPosition">
-         <enum>QTabWidget::West</enum>
-        </property>
-        <property name="currentIndex">
-         <number>6</number>
-        </property>
-        <widget class="QWidget" name="rawTab">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
+        <attribute name="title">
+         <string>Raw</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout">
+         <property name="leftMargin">
+          <number>9</number>
          </property>
-         <attribute name="title">
-          <string>Raw</string>
-         </attribute>
-         <layout class="QVBoxLayout" name="verticalLayout">
-          <property name="leftMargin">
-           <number>9</number>
-          </property>
-          <property name="topMargin">
-           <number>9</number>
-          </property>
-          <property name="rightMargin">
-           <number>9</number>
-          </property>
-          <property name="bottomMargin">
-           <number>9</number>
-          </property>
-          <item>
-           <widget class="QTableWidget" name="rawTable">
-            <property name="sizeAdjustPolicy">
-             <enum>QAbstractScrollArea::AdjustIgnored</enum>
-            </property>
-            <property name="selectionMode">
-             <enum>QAbstractItemView::SingleSelection</enum>
-            </property>
-            <property name="selectionBehavior">
-             <enum>QAbstractItemView::SelectRows</enum>
-            </property>
-            <property name="showGrid">
-             <bool>false</bool>
-            </property>
-            <property name="gridStyle">
-             <enum>Qt::SolidLine</enum>
-            </property>
-            <property name="sortingEnabled">
-             <bool>true</bool>
-            </property>
-            <property name="columnCount">
-             <number>2</number>
-            </property>
-            <attribute name="horizontalHeaderDefaultSectionSize">
-             <number>50</number>
-            </attribute>
-            <attribute name="horizontalHeaderHighlightSections">
-             <bool>false</bool>
-            </attribute>
-            <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
-             <bool>true</bool>
-            </attribute>
-            <attribute name="horizontalHeaderStretchLastSection">
-             <bool>true</bool>
-            </attribute>
-            <attribute name="verticalHeaderVisible">
-             <bool>false</bool>
-            </attribute>
-            <column>
-             <property name="text">
-              <string>Element</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Name</string>
-             </property>
-            </column>
-           </widget>
-          </item>
-         </layout>
-        </widget>
-        <widget class="QWidget" name="filteredTab">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
+         <property name="topMargin">
+          <number>9</number>
          </property>
-         <attribute name="title">
-          <string>Filtered</string>
-         </attribute>
-         <layout class="QVBoxLayout" name="verticalLayout">
-          <property name="leftMargin">
-           <number>9</number>
-          </property>
-          <property name="topMargin">
-           <number>9</number>
-          </property>
-          <property name="rightMargin">
-           <number>9</number>
-          </property>
-          <property name="bottomMargin">
-           <number>9</number>
-          </property>
-          <item>
-           <widget class="QTableWidget" name="filteredTable">
-            <property name="sizeAdjustPolicy">
-             <enum>QAbstractScrollArea::AdjustIgnored</enum>
-            </property>
-            <property name="selectionMode">
-             <enum>QAbstractItemView::SingleSelection</enum>
-            </property>
-            <property name="selectionBehavior">
-             <enum>QAbstractItemView::SelectRows</enum>
-            </property>
-            <property name="showGrid">
-             <bool>false</bool>
-            </property>
-            <property name="gridStyle">
-             <enum>Qt::SolidLine</enum>
-            </property>
-            <property name="sortingEnabled">
-             <bool>true</bool>
-            </property>
-            <property name="columnCount">
-             <number>2</number>
-            </property>
-            <attribute name="horizontalHeaderDefaultSectionSize">
-             <number>50</number>
-            </attribute>
-            <attribute name="horizontalHeaderHighlightSections">
-             <bool>false</bool>
-            </attribute>
-            <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
-             <bool>true</bool>
-            </attribute>
-            <attribute name="horizontalHeaderStretchLastSection">
-             <bool>true</bool>
-            </attribute>
-            <attribute name="verticalHeaderVisible">
-             <bool>false</bool>
-            </attribute>
-            <column>
-             <property name="text">
-              <string>Element</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Name</string>
-             </property>
-            </column>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="pixelTotalsCheckBox">
+         <property name="rightMargin">
+          <number>9</number>
+         </property>
+         <property name="bottomMargin">
+          <number>9</number>
+         </property>
+         <item>
+          <widget class="QTableWidget" name="rawTable">
+           <property name="sizeAdjustPolicy">
+            <enum>QAbstractScrollArea::AdjustIgnored</enum>
+           </property>
+           <property name="selectionMode">
+            <enum>QAbstractItemView::SingleSelection</enum>
+           </property>
+           <property name="selectionBehavior">
+            <enum>QAbstractItemView::SelectRows</enum>
+           </property>
+           <property name="showGrid">
+            <bool>false</bool>
+           </property>
+           <property name="gridStyle">
+            <enum>Qt::SolidLine</enum>
+           </property>
+           <property name="sortingEnabled">
+            <bool>true</bool>
+           </property>
+           <property name="columnCount">
+            <number>2</number>
+           </property>
+           <attribute name="horizontalHeaderDefaultSectionSize">
+            <number>50</number>
+           </attribute>
+           <attribute name="horizontalHeaderHighlightSections">
+            <bool>false</bool>
+           </attribute>
+           <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+            <bool>true</bool>
+           </attribute>
+           <attribute name="horizontalHeaderStretchLastSection">
+            <bool>true</bool>
+           </attribute>
+           <attribute name="verticalHeaderVisible">
+            <bool>false</bool>
+           </attribute>
+           <column>
             <property name="text">
-             <string>Clip pixel totals</string>
+             <string>Element</string>
             </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="medianFilterCheckBox">
+           </column>
+           <column>
             <property name="text">
-             <string>3-by-3 median filter</string>
+             <string>Name</string>
             </property>
-           </widget>
-          </item>
-         </layout>
-        </widget>
-        <widget class="QWidget" name="normalisedTab">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <attribute name="title">
-          <string>Normalised</string>
-         </attribute>
-         <layout class="QVBoxLayout" name="verticalLayout">
-          <property name="leftMargin">
-           <number>9</number>
-          </property>
-          <property name="topMargin">
-           <number>9</number>
-          </property>
-          <property name="rightMargin">
-           <number>9</number>
-          </property>
-          <property name="bottomMargin">
-           <number>9</number>
-          </property>
-          <item>
-           <widget class="QTableWidget" name="normalisedTable">
-            <property name="sizeAdjustPolicy">
-             <enum>QAbstractScrollArea::AdjustIgnored</enum>
-            </property>
-            <property name="selectionMode">
-             <enum>QAbstractItemView::SingleSelection</enum>
-            </property>
-            <property name="selectionBehavior">
-             <enum>QAbstractItemView::SelectRows</enum>
-            </property>
-            <property name="showGrid">
-             <bool>false</bool>
-            </property>
-            <property name="gridStyle">
-             <enum>Qt::SolidLine</enum>
-            </property>
-            <property name="sortingEnabled">
-             <bool>true</bool>
-            </property>
-            <property name="columnCount">
-             <number>2</number>
-            </property>
-            <attribute name="horizontalHeaderDefaultSectionSize">
-             <number>50</number>
-            </attribute>
-            <attribute name="horizontalHeaderHighlightSections">
-             <bool>false</bool>
-            </attribute>
-            <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
-             <bool>true</bool>
-            </attribute>
-            <attribute name="horizontalHeaderStretchLastSection">
-             <bool>true</bool>
-            </attribute>
-            <attribute name="verticalHeaderVisible">
-             <bool>false</bool>
-            </attribute>
-            <column>
-             <property name="text">
-              <string>Element</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Name</string>
-             </property>
-            </column>
-           </widget>
-          </item>
-         </layout>
-        </widget>
-        <widget class="QWidget" name="ratioTab">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <attribute name="title">
-          <string>Ratios</string>
-         </attribute>
-         <layout class="QVBoxLayout" name="verticalLayout">
-          <property name="leftMargin">
-           <number>9</number>
-          </property>
-          <property name="topMargin">
-           <number>9</number>
-          </property>
-          <property name="rightMargin">
-           <number>9</number>
-          </property>
-          <property name="bottomMargin">
-           <number>9</number>
-          </property>
-          <item>
-           <widget class="QTableWidget" name="ratioTable">
-            <property name="sizeAdjustPolicy">
-             <enum>QAbstractScrollArea::AdjustIgnored</enum>
-            </property>
-            <property name="selectionMode">
-             <enum>QAbstractItemView::SingleSelection</enum>
-            </property>
-            <property name="selectionBehavior">
-             <enum>QAbstractItemView::SelectRows</enum>
-            </property>
-            <property name="showGrid">
-             <bool>false</bool>
-            </property>
-            <property name="gridStyle">
-             <enum>Qt::SolidLine</enum>
-            </property>
-            <property name="sortingEnabled">
-             <bool>true</bool>
-            </property>
-            <property name="columnCount">
-             <number>3</number>
-            </property>
-            <attribute name="horizontalHeaderHighlightSections">
-             <bool>false</bool>
-            </attribute>
-            <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
-             <bool>true</bool>
-            </attribute>
-            <attribute name="horizontalHeaderStretchLastSection">
-             <bool>true</bool>
-            </attribute>
-            <attribute name="verticalHeaderVisible">
-             <bool>false</bool>
-            </attribute>
-            <column>
-             <property name="text">
-              <string>Name</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Formula</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Correction model</string>
-             </property>
-            </column>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="label">
-            <property name="text">
-             <string>Double-click on a name to change it.</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout">
-            <item>
-             <widget class="QPushButton" name="newRatioButton">
-              <property name="toolTip">
-               <string>Create a new ratio map</string>
-              </property>
-              <property name="text">
-               <string>New ratio</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="deleteRatioButton">
-              <property name="toolTip">
-               <string>Delete the selected ratio map</string>
-              </property>
-              <property name="text">
-               <string>Delete ratio</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="dummyLabel2">
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-         </layout>
-        </widget>
-        <widget class="QWidget" name="clusterTab">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <attribute name="title">
-          <string>Clusters</string>
-         </attribute>
-         <layout class="QVBoxLayout" name="verticalLayout">
-          <property name="leftMargin">
-           <number>9</number>
-          </property>
-          <property name="topMargin">
-           <number>9</number>
-          </property>
-          <property name="rightMargin">
-           <number>9</number>
-          </property>
-          <property name="bottomMargin">
-           <number>9</number>
-          </property>
-          <item>
-           <widget class="QTableWidget" name="clusterTable">
-            <property name="sizeAdjustPolicy">
-             <enum>QAbstractScrollArea::AdjustIgnored</enum>
-            </property>
-            <property name="selectionMode">
-             <enum>QAbstractItemView::SingleSelection</enum>
-            </property>
-            <property name="selectionBehavior">
-             <enum>QAbstractItemView::SelectRows</enum>
-            </property>
-            <property name="showGrid">
-             <bool>false</bool>
-            </property>
-            <property name="gridStyle">
-             <enum>Qt::SolidLine</enum>
-            </property>
-            <property name="sortingEnabled">
-             <bool>true</bool>
-            </property>
-            <property name="columnCount">
-             <number>1</number>
-            </property>
-            <attribute name="horizontalHeaderHighlightSections">
-             <bool>false</bool>
-            </attribute>
-            <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
-             <bool>true</bool>
-            </attribute>
-            <attribute name="horizontalHeaderStretchLastSection">
-             <bool>true</bool>
-            </attribute>
-            <attribute name="verticalHeaderVisible">
-             <bool>false</bool>
-            </attribute>
-            <column>
-             <property name="text">
-              <string>k (number of phases)</string>
-             </property>
-            </column>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="includedElementsLabel">
-            <property name="text">
-             <string>Included elements:</string>
-            </property>
-            <property name="wordWrap">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_2">
-            <item>
-             <widget class="QPushButton" name="newPhaseClusterButton">
-              <property name="toolTip">
-               <string>Create new phase map(s) from selected cluster map</string>
-              </property>
-              <property name="text">
-               <string>New phase(s)</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="dummyLabel_2">
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-         </layout>
-        </widget>
-        <widget class="QWidget" name="phaseTab">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <attribute name="title">
-          <string>Phases</string>
-         </attribute>
-         <layout class="QVBoxLayout" name="verticalLayout">
-          <property name="leftMargin">
-           <number>9</number>
-          </property>
-          <property name="topMargin">
-           <number>9</number>
-          </property>
-          <property name="rightMargin">
-           <number>9</number>
-          </property>
-          <property name="bottomMargin">
-           <number>9</number>
-          </property>
-          <item>
-           <widget class="QTableWidget" name="phaseTable">
-            <property name="sizeAdjustPolicy">
-             <enum>QAbstractScrollArea::AdjustIgnored</enum>
-            </property>
-            <property name="selectionMode">
-             <enum>QAbstractItemView::SingleSelection</enum>
-            </property>
-            <property name="selectionBehavior">
-             <enum>QAbstractItemView::SelectRows</enum>
-            </property>
-            <property name="showGrid">
-             <bool>false</bool>
-            </property>
-            <property name="gridStyle">
-             <enum>Qt::SolidLine</enum>
-            </property>
-            <property name="sortingEnabled">
-             <bool>true</bool>
-            </property>
-            <property name="columnCount">
-             <number>3</number>
-            </property>
-            <attribute name="horizontalHeaderHighlightSections">
-             <bool>false</bool>
-            </attribute>
-            <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
-             <bool>true</bool>
-            </attribute>
-            <attribute name="horizontalHeaderStretchLastSection">
-             <bool>true</bool>
-            </attribute>
-            <attribute name="verticalHeaderVisible">
-             <bool>false</bool>
-            </attribute>
-            <column>
-             <property name="text">
-              <string>Name</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Source</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Details</string>
-             </property>
-            </column>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="label_2">
-            <property name="text">
-             <string>Double-click on a name to change it.</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout">
-            <item>
-             <widget class="QPushButton" name="newPhaseFilteredButton">
-              <property name="toolTip">
-               <string>Create new phase map by thresholding filtered element maps</string>
-              </property>
-              <property name="text">
-               <string>New phase</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="deletePhaseButton">
-              <property name="toolTip">
-               <string>Delete the selected phase map</string>
-              </property>
-              <property name="text">
-               <string>Delete phase</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="dummyLabel3">
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-         </layout>
-        </widget>
-        <widget class="QWidget" name="regionTab">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <attribute name="title">
-          <string>Regions</string>
-         </attribute>
-         <layout class="QVBoxLayout" name="verticalLayout">
-          <property name="leftMargin">
-           <number>9</number>
-          </property>
-          <property name="topMargin">
-           <number>9</number>
-          </property>
-          <property name="rightMargin">
-           <number>9</number>
-          </property>
-          <property name="bottomMargin">
-           <number>9</number>
-          </property>
-          <item>
-           <widget class="QTableWidget" name="regionTable">
-            <property name="sizeAdjustPolicy">
-             <enum>QAbstractScrollArea::AdjustIgnored</enum>
-            </property>
-            <property name="selectionMode">
-             <enum>QAbstractItemView::SingleSelection</enum>
-            </property>
-            <property name="selectionBehavior">
-             <enum>QAbstractItemView::SelectRows</enum>
-            </property>
-            <property name="showGrid">
-             <bool>false</bool>
-            </property>
-            <property name="gridStyle">
-             <enum>Qt::SolidLine</enum>
-            </property>
-            <property name="sortingEnabled">
-             <bool>true</bool>
-            </property>
-            <property name="columnCount">
-             <number>2</number>
-            </property>
-            <attribute name="horizontalHeaderHighlightSections">
-             <bool>false</bool>
-            </attribute>
-            <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
-             <bool>true</bool>
-            </attribute>
-            <attribute name="horizontalHeaderStretchLastSection">
-             <bool>true</bool>
-            </attribute>
-            <attribute name="verticalHeaderVisible">
-             <bool>false</bool>
-            </attribute>
-            <column>
-             <property name="text">
-              <string>Name</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Shape</string>
-             </property>
-            </column>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="label_2">
-            <property name="text">
-             <string>Double-click on a name to change it.</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout">
-            <item>
-             <widget class="QPushButton" name="deleteRegionButton">
-              <property name="toolTip">
-               <string>Delete the selected region</string>
-              </property>
-              <property name="text">
-               <string>Delete region</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="dummyLabel3">
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-         </layout>
-        </widget>
+           </column>
+          </widget>
+         </item>
+        </layout>
        </widget>
-      </item>
-      <item>
+       <widget class="QWidget" name="filteredTab">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <attribute name="title">
+         <string>Filtered</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout">
+         <property name="leftMargin">
+          <number>9</number>
+         </property>
+         <property name="topMargin">
+          <number>9</number>
+         </property>
+         <property name="rightMargin">
+          <number>9</number>
+         </property>
+         <property name="bottomMargin">
+          <number>9</number>
+         </property>
+         <item>
+          <widget class="QTableWidget" name="filteredTable">
+           <property name="sizeAdjustPolicy">
+            <enum>QAbstractScrollArea::AdjustIgnored</enum>
+           </property>
+           <property name="selectionMode">
+            <enum>QAbstractItemView::SingleSelection</enum>
+           </property>
+           <property name="selectionBehavior">
+            <enum>QAbstractItemView::SelectRows</enum>
+           </property>
+           <property name="showGrid">
+            <bool>false</bool>
+           </property>
+           <property name="gridStyle">
+            <enum>Qt::SolidLine</enum>
+           </property>
+           <property name="sortingEnabled">
+            <bool>true</bool>
+           </property>
+           <property name="columnCount">
+            <number>2</number>
+           </property>
+           <attribute name="horizontalHeaderDefaultSectionSize">
+            <number>50</number>
+           </attribute>
+           <attribute name="horizontalHeaderHighlightSections">
+            <bool>false</bool>
+           </attribute>
+           <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+            <bool>true</bool>
+           </attribute>
+           <attribute name="horizontalHeaderStretchLastSection">
+            <bool>true</bool>
+           </attribute>
+           <attribute name="verticalHeaderVisible">
+            <bool>false</bool>
+           </attribute>
+           <column>
+            <property name="text">
+             <string>Element</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Name</string>
+            </property>
+           </column>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="pixelTotalsCheckBox">
+           <property name="text">
+            <string>Clip pixel totals</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="medianFilterCheckBox">
+           <property name="text">
+            <string>3-by-3 median filter</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="normalisedTab">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <attribute name="title">
+         <string>Normalised</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout">
+         <property name="leftMargin">
+          <number>9</number>
+         </property>
+         <property name="topMargin">
+          <number>9</number>
+         </property>
+         <property name="rightMargin">
+          <number>9</number>
+         </property>
+         <property name="bottomMargin">
+          <number>9</number>
+         </property>
+         <item>
+          <widget class="QTableWidget" name="normalisedTable">
+           <property name="sizeAdjustPolicy">
+            <enum>QAbstractScrollArea::AdjustIgnored</enum>
+           </property>
+           <property name="selectionMode">
+            <enum>QAbstractItemView::SingleSelection</enum>
+           </property>
+           <property name="selectionBehavior">
+            <enum>QAbstractItemView::SelectRows</enum>
+           </property>
+           <property name="showGrid">
+            <bool>false</bool>
+           </property>
+           <property name="gridStyle">
+            <enum>Qt::SolidLine</enum>
+           </property>
+           <property name="sortingEnabled">
+            <bool>true</bool>
+           </property>
+           <property name="columnCount">
+            <number>2</number>
+           </property>
+           <attribute name="horizontalHeaderDefaultSectionSize">
+            <number>50</number>
+           </attribute>
+           <attribute name="horizontalHeaderHighlightSections">
+            <bool>false</bool>
+           </attribute>
+           <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+            <bool>true</bool>
+           </attribute>
+           <attribute name="horizontalHeaderStretchLastSection">
+            <bool>true</bool>
+           </attribute>
+           <attribute name="verticalHeaderVisible">
+            <bool>false</bool>
+           </attribute>
+           <column>
+            <property name="text">
+             <string>Element</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Name</string>
+            </property>
+           </column>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="ratioTab">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <attribute name="title">
+         <string>Ratios</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout">
+         <property name="leftMargin">
+          <number>9</number>
+         </property>
+         <property name="topMargin">
+          <number>9</number>
+         </property>
+         <property name="rightMargin">
+          <number>9</number>
+         </property>
+         <property name="bottomMargin">
+          <number>9</number>
+         </property>
+         <item>
+          <widget class="QTableWidget" name="ratioTable">
+           <property name="sizeAdjustPolicy">
+            <enum>QAbstractScrollArea::AdjustIgnored</enum>
+           </property>
+           <property name="selectionMode">
+            <enum>QAbstractItemView::SingleSelection</enum>
+           </property>
+           <property name="selectionBehavior">
+            <enum>QAbstractItemView::SelectRows</enum>
+           </property>
+           <property name="showGrid">
+            <bool>false</bool>
+           </property>
+           <property name="gridStyle">
+            <enum>Qt::SolidLine</enum>
+           </property>
+           <property name="sortingEnabled">
+            <bool>true</bool>
+           </property>
+           <property name="columnCount">
+            <number>3</number>
+           </property>
+           <attribute name="horizontalHeaderHighlightSections">
+            <bool>false</bool>
+           </attribute>
+           <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+            <bool>true</bool>
+           </attribute>
+           <attribute name="horizontalHeaderStretchLastSection">
+            <bool>true</bool>
+           </attribute>
+           <attribute name="verticalHeaderVisible">
+            <bool>false</bool>
+           </attribute>
+           <column>
+            <property name="text">
+             <string>Name</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Formula</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Correction model</string>
+            </property>
+           </column>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label">
+           <property name="text">
+            <string>Double-click on a name to change it.</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout">
+           <item>
+            <widget class="QPushButton" name="newRatioButton">
+             <property name="toolTip">
+              <string>Create a new ratio map</string>
+             </property>
+             <property name="text">
+              <string>New ratio</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="deleteRatioButton">
+             <property name="toolTip">
+              <string>Delete the selected ratio map</string>
+             </property>
+             <property name="text">
+              <string>Delete ratio</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="dummyLabel2">
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="clusterTab">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <attribute name="title">
+         <string>Clusters</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout">
+         <property name="leftMargin">
+          <number>9</number>
+         </property>
+         <property name="topMargin">
+          <number>9</number>
+         </property>
+         <property name="rightMargin">
+          <number>9</number>
+         </property>
+         <property name="bottomMargin">
+          <number>9</number>
+         </property>
+         <item>
+          <widget class="QTableWidget" name="clusterTable">
+           <property name="sizeAdjustPolicy">
+            <enum>QAbstractScrollArea::AdjustIgnored</enum>
+           </property>
+           <property name="selectionMode">
+            <enum>QAbstractItemView::SingleSelection</enum>
+           </property>
+           <property name="selectionBehavior">
+            <enum>QAbstractItemView::SelectRows</enum>
+           </property>
+           <property name="showGrid">
+            <bool>false</bool>
+           </property>
+           <property name="gridStyle">
+            <enum>Qt::SolidLine</enum>
+           </property>
+           <property name="sortingEnabled">
+            <bool>true</bool>
+           </property>
+           <property name="columnCount">
+            <number>1</number>
+           </property>
+           <attribute name="horizontalHeaderHighlightSections">
+            <bool>false</bool>
+           </attribute>
+           <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+            <bool>true</bool>
+           </attribute>
+           <attribute name="horizontalHeaderStretchLastSection">
+            <bool>true</bool>
+           </attribute>
+           <attribute name="verticalHeaderVisible">
+            <bool>false</bool>
+           </attribute>
+           <column>
+            <property name="text">
+             <string>k (number of phases)</string>
+            </property>
+           </column>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="includedElementsLabel">
+           <property name="text">
+            <string>Included elements:</string>
+           </property>
+           <property name="wordWrap">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_2">
+           <item>
+            <widget class="QPushButton" name="newPhaseClusterButton">
+             <property name="toolTip">
+              <string>Create new phase map(s) from selected cluster map</string>
+             </property>
+             <property name="text">
+              <string>New phase(s)</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="dummyLabel_2">
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="phaseTab">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <attribute name="title">
+         <string>Phases</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout">
+         <property name="leftMargin">
+          <number>9</number>
+         </property>
+         <property name="topMargin">
+          <number>9</number>
+         </property>
+         <property name="rightMargin">
+          <number>9</number>
+         </property>
+         <property name="bottomMargin">
+          <number>9</number>
+         </property>
+         <item>
+          <widget class="QTableWidget" name="phaseTable">
+           <property name="sizeAdjustPolicy">
+            <enum>QAbstractScrollArea::AdjustIgnored</enum>
+           </property>
+           <property name="selectionMode">
+            <enum>QAbstractItemView::SingleSelection</enum>
+           </property>
+           <property name="selectionBehavior">
+            <enum>QAbstractItemView::SelectRows</enum>
+           </property>
+           <property name="showGrid">
+            <bool>false</bool>
+           </property>
+           <property name="gridStyle">
+            <enum>Qt::SolidLine</enum>
+           </property>
+           <property name="sortingEnabled">
+            <bool>true</bool>
+           </property>
+           <property name="columnCount">
+            <number>3</number>
+           </property>
+           <attribute name="horizontalHeaderHighlightSections">
+            <bool>false</bool>
+           </attribute>
+           <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+            <bool>true</bool>
+           </attribute>
+           <attribute name="horizontalHeaderStretchLastSection">
+            <bool>true</bool>
+           </attribute>
+           <attribute name="verticalHeaderVisible">
+            <bool>false</bool>
+           </attribute>
+           <column>
+            <property name="text">
+             <string>Name</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Source</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Details</string>
+            </property>
+           </column>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_2">
+           <property name="text">
+            <string>Double-click on a name to change it.</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout">
+           <item>
+            <widget class="QPushButton" name="newPhaseFilteredButton">
+             <property name="toolTip">
+              <string>Create new phase map by thresholding filtered element maps</string>
+             </property>
+             <property name="text">
+              <string>New phase</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="deletePhaseButton">
+             <property name="toolTip">
+              <string>Delete the selected phase map</string>
+             </property>
+             <property name="text">
+              <string>Delete phase</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="dummyLabel3">
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="regionTab">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <attribute name="title">
+         <string>Regions</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout">
+         <property name="leftMargin">
+          <number>9</number>
+         </property>
+         <property name="topMargin">
+          <number>9</number>
+         </property>
+         <property name="rightMargin">
+          <number>9</number>
+         </property>
+         <property name="bottomMargin">
+          <number>9</number>
+         </property>
+         <item>
+          <widget class="QTableWidget" name="regionTable">
+           <property name="sizeAdjustPolicy">
+            <enum>QAbstractScrollArea::AdjustIgnored</enum>
+           </property>
+           <property name="selectionMode">
+            <enum>QAbstractItemView::SingleSelection</enum>
+           </property>
+           <property name="selectionBehavior">
+            <enum>QAbstractItemView::SelectRows</enum>
+           </property>
+           <property name="showGrid">
+            <bool>false</bool>
+           </property>
+           <property name="gridStyle">
+            <enum>Qt::SolidLine</enum>
+           </property>
+           <property name="sortingEnabled">
+            <bool>true</bool>
+           </property>
+           <property name="columnCount">
+            <number>2</number>
+           </property>
+           <attribute name="horizontalHeaderHighlightSections">
+            <bool>false</bool>
+           </attribute>
+           <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+            <bool>true</bool>
+           </attribute>
+           <attribute name="horizontalHeaderStretchLastSection">
+            <bool>true</bool>
+           </attribute>
+           <attribute name="verticalHeaderVisible">
+            <bool>false</bool>
+           </attribute>
+           <column>
+            <property name="text">
+             <string>Name</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Shape</string>
+            </property>
+           </column>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_2">
+           <property name="text">
+            <string>Double-click on a name to change it.</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout">
+           <item>
+            <widget class="QPushButton" name="deleteRegionButton">
+             <property name="toolTip">
+              <string>Delete the selected region</string>
+             </property>
+             <property name="text">
+              <string>Delete region</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="dummyLabel3">
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="rightVerticalLayoutWidget">
        <layout class="QVBoxLayout" name="rightVerticalLayout">
         <item>
          <layout class="QHBoxLayout" name="topRightHorizontalLayout" stretch="0,1">
@@ -861,7 +865,7 @@
         <item>
          <widget class="MatplotlibWidget" name="matplotlibWidget" native="true">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
             <horstretch>1</horstretch>
             <verstretch>1</verstretch>
            </sizepolicy>
@@ -869,8 +873,8 @@
          </widget>
         </item>
        </layout>
-      </item>
-     </layout>
+      </widget>
+     </widget>
     </item>
    </layout>
   </widget>

@@ -72,6 +72,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
 
         self.setupUi(self)
 
+        self.splitter.setStretchFactor(0, 0)
+        self.splitter.setStretchFactor(1, 1)
+
         self.matplotlibWidget.initialise(owning_window=self,
                                          display_options=None,
                                          status_callback=self.status_callback)
