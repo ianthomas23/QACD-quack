@@ -482,6 +482,16 @@
             </widget>
            </item>
            <item>
+            <widget class="QPushButton" name="clusterStatsButton">
+             <property name="toolTip">
+              <string>Show stats of selected k cluster</string>
+             </property>
+             <property name="text">
+              <string>Show stats</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <widget class="QLabel" name="dummyLabel_2">
              <property name="text">
               <string/>

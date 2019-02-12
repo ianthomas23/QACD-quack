@@ -594,6 +594,25 @@ class QACDProject:
         stage = 2
         self.create_h_factor(progress_callback=local_callback)
 
+    def get_cluster_centroids(self, k):
+        # Return centroids array of shape (k, number of elements).
+        if not self.has_cluster():
+            raise RuntimeError('No k-means cluster data present')
+
+        with self._h5file_ro() as h5file:
+            node_name = '/cluster'
+            elements = h5file.get_node(node_name)._v_attrs.elements
+            if elements == 'all':
+                elements = self.elements
+            else:
+                elements = elements.split(', ')
+
+            # Simple read of array that does not have a 'data' and 'mask'.
+            node_name = '/cluster/k{}/centroids'.format(k)
+            centroids = h5file.get_node(node_name).read()
+
+        return elements, centroids
+
     def get_cluster_elements(self):
         with self._h5file_ro() as h5file:
             if '/cluster' in h5file:
@@ -1232,8 +1251,10 @@ class QACDProject:
                 if k_min > k_max:
                     raise RuntimeError('Cluster k_min is greater than k_max')
 
-                n_cluster_elements = len(self.elements) \
-                    if cluster_elements == 'all' else len(cluster_elements)
+                if cluster_elements == 'all':
+                    n_cluster_elements = len(self.elements)
+                else:
+                    n_cluster_elements = len(cluster_elements.split(', '))
 
                 cluster_chunkshape = None
                 for k in range(k_min, k_max+1):

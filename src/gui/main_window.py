@@ -99,6 +99,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
         self.newRatioButton.clicked.connect(self.new_ratio)
         self.deleteRatioButton.clicked.connect(self.delete_ratio)
         self.newPhaseClusterButton.clicked.connect(self.new_phase_cluster)
+        self.clusterStatsButton.clicked.connect(self.show_cluster_stats)
         self.newPhaseFilteredButton.clicked.connect(self.new_phase_filtered)
         self.deletePhaseButton.clicked.connect(self.delete_phase)
         self.deleteRegionButton.clicked.connect(self.delete_region)
@@ -908,6 +909,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
     def short_wait(self):
         time.sleep(0.1)
 
+    def show_cluster_stats(self):
+        stats = self._current.selected_array_stats
+        k = stats['max'] + 1
+        #print(stats, k)
+
+        elements, centroids = self._project.get_cluster_centroids(k)
+        #print(elements, centroids)
+
+
+
     def status_bar_change(self):
         if (self.statusbar.currentMessage() == '' and \
             self._current.selected_array is not None):
@@ -945,6 +956,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
         self.deletePhaseButton.setEnabled(self.phaseTable.currentItem() is not None)
         self.deleteRegionButton.setEnabled(self.regionTable.currentItem() is not None)
         self.newPhaseClusterButton.setEnabled(self.clusterTable.currentItem() is not None)
+        self.clusterStatsButton.setEnabled(self.clusterTable.currentItem() is not None)
 
         # Matplotlib toolbar controls.
         self.plotTypeComboBox.setEnabled(not showing_phase_or_region)
