@@ -9,6 +9,7 @@ from src.model.display_options_listener import DisplayOptionsListener
 from src.model.elements import element_properties
 from src.model.qacd_project import QACDProject, State
 from .about_dialog import AboutDialog
+from .cluster_stats_dialog import ClusterStatsDialog
 from .clustering_dialog import ClusteringDialog
 from .enums import ArrayType, ExportType, ModeType, PlotType
 from .display_options_dialog import DisplayOptionsDialog
@@ -910,12 +911,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
         time.sleep(0.1)
 
     def show_cluster_stats(self):
-        stats = self._current.selected_array_stats
-        k = stats['max'] + 1
-        #print(stats, k)
+        k = self._current.selected_array_stats['max'] + 1
+        cmap = self.matplotlibWidget.create_cluster_colourmap(k)
 
-        elements, centroids = self._project.get_cluster_centroids(k)
-        #print(elements, centroids)
+        dialog = ClusterStatsDialog(self._project, k, cmap, parent=self)
+        if dialog.exec_():
+            pass
 
 
 

@@ -392,14 +392,16 @@ class MatplotlibWidget(QtWidgets.QWidget, DisplayOptionsListener):
         self._map_zoom = None
         self._map_pixel_zoom = None
 
+    def create_cluster_colourmap(self, k):
+        return cm.get_cmap(self._display_options.colourmap_name, k)
+
     def create_colourmap(self):
         if self._array_type in (ArrayType.PHASE, ArrayType.REGION):
             return self._create_black_colourmap()
         if self._cmap_int_max is None:
             return cm.get_cmap(self._display_options.colourmap_name)
         else:
-            return cm.get_cmap(self._display_options.colourmap_name,
-                               self._cmap_int_max)
+            return self.create_cluster_colourmap(self._cmap_int_max)
 
     def create_map_line(self, points, path_effects):
         if self._map_line is not None:
