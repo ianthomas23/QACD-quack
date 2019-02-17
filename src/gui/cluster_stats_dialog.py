@@ -9,53 +9,67 @@ class ClusterStatsDialog(QtWidgets.QDialog, Ui_ClusterStatsDialog):
     def __init__(self, project, k, cmap, parent=None):
         QtWidgets.QDialog.__init__(self, parent)
         self.setupUi(self)
+        self.setWindowFlags(QtCore.Qt.Window)
 
        # self.table.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
 
-        self.project = project
-        self.k = k
-        self.cmap = cmap
-        self.elements, self.centroids = self.project.get_cluster_centroids(self.k)
+        self._project = project
+        self._k = k
+        self._cmap = cmap
+        self._elements, self._centroids = \
+            self._project.get_cluster_centroids(self._k)
 
-        self.fill_table()
+        self.tabWidget.setCurrentIndex(0)
+        self.fill_tabs()
 
-    def fill_table(self):
+    def fill_tabs(self):
+        ## Table tab.
         table = self.table
 
-        nelements = len(self.elements)
-        table.setRowCount(self.k)
+        nelements = len(self._elements)
+        table.setRowCount(self._k)
         table.setColumnCount(nelements+1)
 
-        colours = self.cmap(np.arange(self.k) / (self.k-1.0))
+        colours = self._cmap(np.arange(self._k) / (self._k-1.0))
         colours = (np.asarray(colours[:, :3])*255).astype(np.int)
         is_dark = [QtGui.qGray(*colour) < 128 for colour in colours]
-        colours = [QtGui.QColor(*colour) for colour in colours]
-        white = QtGui.QColor(255, 255, 255)
+        qt_colours = [QtGui.QColor(*colour) for colour in colours]
+        qt_white = QtGui.QColor(255, 255, 255)
 
         # Column headings.
         table.setHorizontalHeaderItem(0, QtWidgets.QTableWidgetItem('Cluster'))
         for i in range(nelements):
-            text = self.elements[i]
+            text = self._elements[i]
             table.setHorizontalHeaderItem(i+1, QtWidgets.QTableWidgetItem(text))
 
         # Row headings.
-        for k in range(self.k):
+        for k in range(self._k):
             item = QtWidgets.QTableWidgetItem(str(k))
             item.setTextAlignment(QtCore.Qt.AlignCenter)
-            item.setBackground(colours[k])
+            item.setBackground(qt_colours[k])
             if is_dark[k]:
-                item.setForeground(white)
+                item.setForeground(qt_white)
             table.setItem(k, 0, item)
 
         # Cell contents.
-        for k in range(self.k):
+        for k in range(self._k):
             for i in range(nelements):
-                item = NumericTableWidgetItem(self.centroids[k, i])
-                item.setBackground(colours[k])
+                item = NumericTableWidgetItem(self._centroids[k, i], '{:.1f}')
+                item.setBackground(qt_colours[k])
                 if is_dark[k]:
-                    item.setForeground(white)
+                    item.setForeground(qt_white)
                 table.setItem(k, i+1, item)
 
         # Reset cells.
         table.resizeColumnsToContents()
         #table.resizeRowsToContents()
+
+        ## Plot tab.
+        widget = self.clusterStatsWidget
+
+        widget.initialise(self, self._project, self._elements, self._centroids,
+                          colours)
+
+        widget.update()
+
+

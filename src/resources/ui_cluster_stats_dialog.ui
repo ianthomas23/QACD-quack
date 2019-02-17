@@ -15,8 +15,11 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QTabWidget" name="tableTab">
-     <widget class="QWidget" name="tab">
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="currentIndex">
+      <number>1</number>
+     </property>
+     <widget class="QWidget" name="tableTab">
       <attribute name="title">
        <string>Table</string>
       </attribute>
@@ -67,10 +70,34 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="otherTab">
+     <widget class="QWidget" name="plotTab">
       <attribute name="title">
-       <string>Other</string>
+       <string>Plot</string>
       </attribute>
+      <layout class="QVBoxLayout" name="plotLayout">
+       <property name="leftMargin">
+        <number>9</number>
+       </property>
+       <property name="topMargin">
+        <number>9</number>
+       </property>
+       <property name="rightMargin">
+        <number>9</number>
+       </property>
+       <property name="bottomMargin">
+        <number>9</number>
+       </property>
+       <item>
+        <widget class="ClusterStatsWidget" name="clusterStatsWidget" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+           <horstretch>1</horstretch>
+           <verstretch>1</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </widget>
     </widget>
    </item>
@@ -86,6 +113,14 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ClusterStatsWidget</class>
+   <extends>QWidget</extends>
+   <header>.cluster_stats_widget</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections>
   <connection>
