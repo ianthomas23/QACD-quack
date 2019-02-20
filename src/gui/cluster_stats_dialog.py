@@ -19,6 +19,8 @@ class ClusterStatsDialog(QtWidgets.QDialog, Ui_ClusterStatsDialog):
         self._elements, self._centroids = \
             self._project.get_cluster_centroids(self._k)
 
+        self._latest_callback_data = None
+
         self.tabWidget.setCurrentIndex(0)
         self.fill_tabs()
 
@@ -68,8 +70,14 @@ class ClusterStatsDialog(QtWidgets.QDialog, Ui_ClusterStatsDialog):
         widget = self.clusterStatsWidget
 
         widget.initialise(self, self._project, self._elements, self._centroids,
-                          colours)
+                          colours, self.on_status_callback)
 
         widget.update()
 
-
+    def on_status_callback(self, callback_data):
+        if callback_data != self._latest_callback_data:
+            self._latest_callback_data = callback_data
+            msg = ''
+            if self._latest_callback_data is not None:
+                msg = 'element={}, value={:.1f}'.format(*self._latest_callback_data)
+            self.statusLabel.setText(msg)
