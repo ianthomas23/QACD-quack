@@ -26,6 +26,7 @@ class ClusterStatsWidget(QtWidgets.QWidget):
         self._k = None
         self._colours = None
         self._limits = None
+        self._symbols = None         # Artists to show/hide for each k.
         self._status_callback = None
 
         self._canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
@@ -41,6 +42,7 @@ class ClusterStatsWidget(QtWidgets.QWidget):
         self._centroids = centroids
         self._k = self._centroids.shape[0]
         self._colours = colours / 255.0
+        self._symbols = [[] for k in range(self._k)]
         self._status_callback = status_callback
 
         # Limits by element.
@@ -61,6 +63,12 @@ class ClusterStatsWidget(QtWidgets.QWidget):
     def on_resize(self, event):
         self._adjust_layout()
 
+    def show_cluster(self, k, show):
+        for symbol in self._symbols[k]:
+            symbol.set_visible(show)
+
+        self._canvas.draw()
+
     def update(self):
         figure = self._canvas.figure
         figure.clear()
@@ -76,11 +84,14 @@ class ClusterStatsWidget(QtWidgets.QWidget):
                 for k in sorted_indices:
                     x = self._centroids[k, i]
                     w = self._triangle_width*np.diff(self._limits[i])
-                    ax.fill([x-w/2, x+w/2, x], [0, 0, 1], edgecolor=None,
-                            color=self._colours[k], lw=None)
+                    symbol = ax.fill([x-w/2, x+w/2, x], [0, 0, 1], lw=None,
+                                     edgecolor=None, color=self._colours[k])[0]
+                    self._symbols[k].append(symbol)
             else:
                 for k in range(self._k):
-                    ax.axvline(self._centroids[k, i], self._colours[k], lw=3)
+                    symbol = ax.axvline(self._centroids[k, i],
+                                        c=self._colours[k], lw=3)
+                    self._symbols[k].append(symbol)
 
             ax.set_xlim(self._limits[i])
             if self._want_triangles:

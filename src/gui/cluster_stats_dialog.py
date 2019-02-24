@@ -24,6 +24,8 @@ class ClusterStatsDialog(QtWidgets.QDialog, Ui_ClusterStatsDialog):
         self.tabWidget.setCurrentIndex(0)
         self.fill_tabs()
 
+        self.showClusterTableWidget.itemChanged.connect(self.on_checkbox)
+
     def fill_tabs(self):
         ## Table tab.
         table = self.table
@@ -67,12 +69,37 @@ class ClusterStatsDialog(QtWidgets.QDialog, Ui_ClusterStatsDialog):
         #table.resizeRowsToContents()
 
         ## Plot tab.
-        widget = self.clusterStatsWidget
 
+        # Table widget.
+        table = self.showClusterTableWidget
+        table.setColumnCount(2)
+        table.setRowCount(self._k)
+        for k in range(self._k):
+            item = QtWidgets.QTableWidgetItem()
+            item.setTextAlignment(QtCore.Qt.AlignCenter)
+            item.setBackground(qt_colours[k])
+            item.setCheckState(QtCore.Qt.Checked)
+            table.setItem(k, 0, item)
+
+            item = QtWidgets.QTableWidgetItem(str(k))
+            item.setTextAlignment(QtCore.Qt.AlignCenter)
+            item.setBackground(qt_colours[k])
+            if is_dark[k]:
+                item.setForeground(qt_white)
+            table.setItem(k, 1, item)
+
+        table.resizeColumnsToContents()
+
+        # Matplotlib widget.
+        widget = self.clusterStatsWidget
         widget.initialise(self, self._project, self._elements, self._centroids,
                           colours, self.on_status_callback)
-
         widget.update()
+
+    def on_checkbox(self, item):
+        k = item.row()
+        checked = item.checkState() == QtCore.Qt.Checked
+        self.clusterStatsWidget.show_cluster(k, checked)
 
     def on_status_callback(self, callback_data):
         if callback_data != self._latest_callback_data:
