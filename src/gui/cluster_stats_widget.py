@@ -29,6 +29,9 @@ class ClusterStatsWidget(QtWidgets.QWidget):
         self._symbols = None         # Artists to show/hide for each k.
         self._status_callback = None
 
+        # Initialised in update().
+        self._axes = None
+
         self._canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
         self._canvas.mpl_connect('resize_event', self.on_resize)
 
@@ -63,20 +66,28 @@ class ClusterStatsWidget(QtWidgets.QWidget):
     def on_resize(self, event):
         self._adjust_layout()
 
-    def show_cluster(self, k, show):
-        for symbol in self._symbols[k]:
-            symbol.set_visible(show)
+    def show_clusters(self, ks, show):
+        for k in ks:
+            for symbol in self._symbols[k]:
+                symbol.set_visible(show)
 
+        self._canvas.draw()
+
+    def show_x_axis_labels(self, show):
+        for ax in self._axes:
+            ax.xaxis.set_visible(show)
+
+        self._adjust_layout()
         self._canvas.draw()
 
     def update(self):
         figure = self._canvas.figure
         figure.clear()
 
-        axes = figure.subplots(nrows=len(self._elements))
+        self._axes = figure.subplots(nrows=len(self._elements))
 
         for i, element in enumerate(self._elements):
-            ax = axes[i]
+            ax = self._axes[i]
 
             if self._want_triangles:
                 # Draw triangles in sorted order, left to right.
