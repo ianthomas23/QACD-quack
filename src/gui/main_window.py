@@ -562,6 +562,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
                     if subarray.dtype == np.bool:
                         subarray = np.ma.filled(subarray, 0)
                     else:
+                        if subarray.dtype in (np.int8, np.uint8):
+                            subarray = subarray.astype(np.int32)
                         subarray = np.ma.filled(subarray, no_data_value)
                     np.savetxt(f, subarray, delimiter=',', fmt='%g')
                 else:  # export_type == ExportType.TRANSECT
