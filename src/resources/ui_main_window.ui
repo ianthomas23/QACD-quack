@@ -912,11 +912,18 @@
     <property name="title">
      <string>Action</string>
     </property>
+    <widget class="QMenu" name="menuExportPixels">
+     <property name="title">
+      <string>Export Pixels to File</string>
+     </property>
+     <addaction name="actionExportPixelsDisplayedElement"/>
+     <addaction name="actionExportPixelsAllElements"/>
+    </widget>
     <addaction name="actionFilter"/>
     <addaction name="actionClustering"/>
     <addaction name="actionNewRegion"/>
     <addaction name="actionExportImage"/>
-    <addaction name="actionExportPixels"/>
+    <addaction name="menuExportPixels"/>
     <addaction name="actionExportHistogram"/>
     <addaction name="actionExportTransect"/>
    </widget>
@@ -1047,14 +1054,19 @@
     <string>Export Histogram to File ...</string>
    </property>
   </action>
-  <action name="actionExportPixels">
-   <property name="text">
-    <string>Export Pixels to File ...</string>
-   </property>
-  </action>
   <action name="actionExportTransect">
    <property name="text">
     <string>Export Transect to File ...</string>
+   </property>
+  </action>
+  <action name="actionExportPixelsDisplayedElement">
+   <property name="text">
+    <string>Displayed Element only ...</string>
+   </property>
+  </action>
+  <action name="actionExportPixelsAllElements">
+   <property name="text">
+    <string>All Elements ...</string>
    </property>
   </action>
  </widget>

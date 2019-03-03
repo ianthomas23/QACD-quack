@@ -68,6 +68,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
             else:
                 self.mask = None
 
+        def is_element_map(self):
+            return self.array_type in (ArrayType.RAW, ArrayType.FILTERED,
+                                       ArrayType.NORMALISED) and \
+                   self.name not in ('Total', 'h', 'h-factor')
+
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
 
@@ -91,7 +96,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
         self.actionNewRegion.triggered.connect(self.new_region)
         self.actionExportImage.triggered.connect(self.export_image)
         self.actionExportHistogram.triggered.connect(self.export_histogram)
-        self.actionExportPixels.triggered.connect(self.export_pixels)
+        self.actionExportPixelsDisplayedElement.triggered.connect( \
+            self.export_pixels_displayed_element)
+        self.actionExportPixelsAllElements.triggered.connect( \
+            self.export_pixels_all_elements)
         self.actionExportTransect.triggered.connect(self.export_transect)
         self.actionDisplayOptions.triggered.connect(self.display_options)
         self.actionAbout.triggered.connect(self.about)
@@ -467,7 +475,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
         self.update_controls()
 
     def export_common(self, export_type):
-        name = export_type.name.lower()
+        if export_type == ExportType.PIXELS:
+            name = 'displayed element pixels'
+        elif export_type == ExportType.PIXELS_ALL_ELEMENTS:
+            name = 'all element pixels'
+        else:
+            name = export_type.name.lower()
 
         options = QtWidgets.QFileDialog.Options()
         options |= QtWidgets.QFileDialog.DontUseNativeDialog
@@ -479,10 +492,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
 
             options = self._project.display_options
 
+            title = self.matplotlibWidget._title + ' ' + name
+            if export_type == ExportType.PIXELS:
+                title = self.matplotlibWidget._title + ' pixels'
+            elif export_type == ExportType.PIXELS_ALL_ELEMENTS:
+                title = title.split()[0] + ' ' + name
+
             notes = [
                 ('project filename', self._project.filename),
                 ('date', self._project.display_options.date),
-                ('title', self.matplotlibWidget._title + ' ' + name),
+                ('title', title),
                 ('phase', self.phaseComboBox.currentText() or 'None'),
                 ('region', self.regionComboBox.currentText() or 'None'),
             ]
@@ -526,7 +545,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
                     ('bin width', '{:g}'.format(bin_width)),
                     ('bin count', len(histogram)),
                 ]
-            elif export_type == ExportType.PIXELS:
+            elif export_type in (ExportType.PIXELS,
+                                 ExportType.PIXELS_ALL_ELEMENTS):
                 no_data_value = -9999
                 notes += [
                     ('no data value', no_data_value),
@@ -554,18 +574,60 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
                         f.write('{:g},{}\n'.format(bin_centre, count))
                 elif export_type == ExportType.PIXELS:
                     f.write('pixels\n')
+
                     subarray = self._current.displayed_array
                     pixel_zoom = self._current.pixel_zoom
                     if pixel_zoom is not None:
                         ((imin, imax), (jmin, jmax)) = pixel_zoom
                         subarray = subarray[jmin:jmax, imin:imax]
+
                     if subarray.dtype == np.bool:
                         subarray = np.ma.filled(subarray, 0)
                     else:
                         if subarray.dtype in (np.int8, np.uint8):
                             subarray = subarray.astype(np.int32)
                         subarray = np.ma.filled(subarray, no_data_value)
+
                     np.savetxt(f, subarray, delimiter=',', fmt='%g')
+                elif export_type == ExportType.PIXELS_ALL_ELEMENTS:
+                    f.write('x,y,' + ','.join(self._project.elements) + '\n')
+
+                    subarray = self._current.displayed_array
+                    pixel_zoom = self._current.pixel_zoom
+                    if pixel_zoom is not None:
+                        ((imin, imax), (jmin, jmax)) = pixel_zoom
+                        subarray = subarray[jmin:jmax, imin:imax]
+
+                    # Collate all data in single array, one element at a time,
+                    # before writing to file.
+                    project = self._project
+                    current = self._current
+
+                    # Indices of pixels that are not masked.
+                    j, i = np.where(subarray.mask == False)
+                    if pixel_zoom is not None:
+                        ((imin, imax), (jmin, jmax)) = pixel_zoom
+                        j += jmin
+                        i += imin
+
+                    values = np.empty((len(i), len(project.elements)+2),
+                                      dtype=subarray.dtype)
+                    values[:, 0] = i
+                    values[:, 1] = j
+
+                    for k, element in enumerate(project.elements):
+                        if current.array_type == ArrayType.RAW:
+                            map_ = project.get_raw(element, masked=False)
+                        elif current.array_type == ArrayType.FILTERED:
+                            map_ = project.get_filtered(element, masked=False)
+                        elif current.array_type == ArrayType.NORMALISED:
+                            map_ = project.get_normalised(element, masked=False)
+                        else:
+                            raise RuntimeError('Unexpected array type {}'.format(array_type))
+
+                        values[:, k+2] = map_[j, i]
+
+                    np.savetxt(f, values, delimiter=',', fmt='%g')
                 else:  # export_type == ExportType.TRANSECT
                     f.write('x,y,value\n')
                     for x, y, value in zip(xs, ys, values):
@@ -593,7 +655,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
             dpi = self._project.display_options.image_dots_per_inch
             self.matplotlibWidget.export_to_file(filename, dpi)
 
-    def export_pixels(self):
+    def export_pixels_all_elements(self):
+        self.export_common(ExportType.PIXELS_ALL_ELEMENTS)
+
+    def export_pixels_displayed_element(self):
         self.export_common(ExportType.PIXELS)
 
     def export_transect(self):
@@ -920,8 +985,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
         if dialog.exec_():
             pass
 
-
-
     def status_bar_change(self):
         if (self.statusbar.currentMessage() == '' and \
             self._current.selected_array is not None):
@@ -936,6 +999,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
         valid_project = self._project is not None
         showing_phase_or_region = self._current.array_type in \
             (ArrayType.PHASE, ArrayType.REGION)
+        has_histogram = self.matplotlibWidget.has_histogram_axes()
+        has_map = self.matplotlibWidget.has_map_axes()
+        has_transect = self.matplotlibWidget.has_transect_contents()
 
         # Menu items.
         self.actionProjectClose.setEnabled(valid_project)
@@ -947,9 +1013,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
                                              not self._display_options_shown)
         # actionExport* are also updated in update_matplotlib_widget.
         self.actionExportImage.setEnabled(self.matplotlibWidget.has_content())
-        self.actionExportHistogram.setEnabled(self.matplotlibWidget.has_histogram_axes())
-        self.actionExportPixels.setEnabled(self.matplotlibWidget.has_map_axes())
-        self.actionExportTransect.setEnabled(self.matplotlibWidget.has_transect_contents())
+        self.actionExportHistogram.setEnabled(has_histogram)
+        self.actionExportPixelsDisplayedElement.setEnabled(has_map)
+        self.actionExportPixelsAllElements.setEnabled( \
+            has_map and self._current.is_element_map())
+        self.actionExportTransect.setEnabled(has_transect)
 
         self.actionNewRegion.setEnabled(valid_project and
                                         not self._new_region_shown)
@@ -968,10 +1036,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
         self.phaseLabel.setEnabled(not showing_phase_or_region)
         self.regionComboBox.setEnabled(not showing_phase_or_region)
         self.regionLabel.setEnabled(not showing_phase_or_region)
-        self.undoButton.setEnabled(self._zoom_history.has_undo() and
-                                   self.matplotlibWidget.has_map_axes())
-        self.redoButton.setEnabled(self._zoom_history.has_redo() and
-                                   self.matplotlibWidget.has_map_axes())
+        self.undoButton.setEnabled(self._zoom_history.has_undo() and has_map)
+        self.redoButton.setEnabled(self._zoom_history.has_redo() and has_map)
 
     def update_histogram_options(self):
         # Handler for DisplayOptions callback.
@@ -1069,8 +1135,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
         # rather than all the controls.
         self.actionExportImage.setEnabled(self.matplotlibWidget.has_content())
         self.actionExportHistogram.setEnabled(self.matplotlibWidget.has_histogram_axes())
-        self.actionExportPixels.setEnabled(self.matplotlibWidget.has_map_axes())
-        self.actionExportPixels.setEnabled(self.matplotlibWidget.has_transect_contents())
+        self.actionExportPixelsDisplayedElement.setEnabled( \
+            self.matplotlibWidget.has_map_axes())
+        self.actionExportPixelsAllElements.setEnabled( \
+            self.matplotlibWidget.has_map_axes() and self._current.is_element_map())
+        self.actionExportTransect.setEnabled(self.matplotlibWidget.has_transect_contents())
 
         self.update_status_bar()
 

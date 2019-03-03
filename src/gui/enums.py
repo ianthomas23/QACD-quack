@@ -15,9 +15,10 @@ class ArrayType(Enum):
 
 @unique
 class ExportType(Enum):
-    PIXELS    = 0
-    HISTOGRAM = 1
-    TRANSECT  = 2
+    PIXELS              = 0
+    PIXELS_ALL_ELEMENTS = 1
+    HISTOGRAM           = 2
+    TRANSECT            = 3
 
 
 @unique
