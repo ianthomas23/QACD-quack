@@ -1052,7 +1052,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
             QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
 
         current = self._current
-        options = self._project.display_options
+        if self._project is not None:
+            options = self._project.display_options
+        else:
+            options = None
 
         if current.array_type is ArrayType.INVALID:
             self.matplotlibWidget.clear()
