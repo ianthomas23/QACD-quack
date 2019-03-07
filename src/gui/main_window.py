@@ -610,24 +610,48 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow, DisplayOptionsListener):
                         j += jmin
                         i += imin
 
-                    values = np.empty((len(i), len(project.elements)+2),
-                                      dtype=subarray.dtype)
-                    values[:, 0] = i
-                    values[:, 1] = j
+                    def thread_func(project, array_type, i, j, progress_callback):
+                        elements = project.elements
+                        values = np.empty((len(i), len(elements)+2),
+                                          dtype=subarray.dtype)
+                        values[:, 0] = i
+                        values[:, 1] = j
 
-                    for k, element in enumerate(project.elements):
-                        if current.array_type == ArrayType.RAW:
-                            map_ = project.get_raw(element, masked=False)
-                        elif current.array_type == ArrayType.FILTERED:
-                            map_ = project.get_filtered(element, masked=False)
-                        elif current.array_type == ArrayType.NORMALISED:
-                            map_ = project.get_normalised(element, masked=False)
-                        else:
-                            raise RuntimeError('Unexpected array type {}'.format(array_type))
+                        # Read element maps and store in values array.
+                        for k, element in enumerate(project.elements):
+                            if progress_callback:
+                                progress_callback(0.3*k/len(elements),
+                                                  'Reading element {}'.format(element))
+                            if array_type == ArrayType.RAW:
+                                map_ = project.get_raw(element, masked=False)
+                            elif array_type == ArrayType.FILTERED:
+                                map_ = project.get_filtered(element, masked=False)
+                            elif array_type == ArrayType.NORMALISED:
+                                map_ = project.get_normalised(element, masked=False)
+                            else:
+                                raise RuntimeError('Unexpected array type {}'.format(array_type))
 
-                        values[:, k+2] = map_[j, i]
+                            values[:, k+2] = map_[j, i]
 
-                    np.savetxt(f, values, delimiter=',', fmt='%g')
+                        # Write values array a chunk at a time so can update
+                        # progress bar.
+                        nlines = len(values)
+                        nchunks = 70
+                        for i in range(nchunks):
+                            if progress_callback:
+                                progress_callback(0.3 + 0.7*i/nchunks,
+                                                  'Writing to file...')
+                            start_index = nlines*i // nchunks
+                            end_index = nlines*(i+1) // nchunks
+                            np.savetxt(f, values[start_index:end_index],
+                                       delimiter=',', fmt='%g')
+
+                        if progress_callback:
+                            progress_callback(1.0, 'Finished')
+
+                    ProgressDialog.worker_thread( \
+                        self, 'Export all element pixels to CSV file', thread_func,
+                        args=[self._project, current.array_type, i, j])
                 else:  # export_type == ExportType.TRANSECT
                     f.write('x,y,value\n')
                     for x, y, value in zip(xs, ys, values):
