@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_NewRegionDialog(object):
     def setupUi(self, NewRegionDialog):
         NewRegionDialog.setObjectName("NewRegionDialog")
-        NewRegionDialog.resize(392, 452)
+        NewRegionDialog.resize(478, 823)
         self.formLayout = QtWidgets.QFormLayout(NewRegionDialog)
         self.formLayout.setObjectName("formLayout")
         self.label_2 = QtWidgets.QLabel(NewRegionDialog)
@@ -35,17 +35,32 @@ class Ui_NewRegionDialog(object):
         self.rectangleRadioButton.setObjectName("rectangleRadioButton")
         self.verticalLayout_3.addWidget(self.rectangleRadioButton)
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.SpanningRole, self.groupBox)
+        self.label2 = QtWidgets.QLabel(NewRegionDialog)
+        self.label2.setObjectName("label2")
+        self.formLayout.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.label2)
+        self.regionComboBox = QtWidgets.QComboBox(NewRegionDialog)
+        self.regionComboBox.setObjectName("regionComboBox")
+        self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.regionComboBox)
         self.label = QtWidgets.QLabel(NewRegionDialog)
         self.label.setObjectName("label")
-        self.formLayout.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.label)
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.LabelRole, self.label)
         self.nameLineEdit = QtWidgets.QLineEdit(NewRegionDialog)
         self.nameLineEdit.setObjectName("nameLineEdit")
-        self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.nameLineEdit)
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.nameLineEdit)
+        self.matplotlibWidget = MatplotlibWidget(NewRegionDialog)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(1)
+        sizePolicy.setVerticalStretch(1)
+        sizePolicy.setHeightForWidth(self.matplotlibWidget.sizePolicy().hasHeightForWidth())
+        self.matplotlibWidget.setSizePolicy(sizePolicy)
+        self.matplotlibWidget.setMinimumSize(QtCore.QSize(100, 100))
+        self.matplotlibWidget.setObjectName("matplotlibWidget")
+        self.formLayout.setWidget(4, QtWidgets.QFormLayout.SpanningRole, self.matplotlibWidget)
         self.buttonBox = QtWidgets.QDialogButtonBox(NewRegionDialog)
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
         self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
         self.buttonBox.setObjectName("buttonBox")
-        self.formLayout.setWidget(3, QtWidgets.QFormLayout.SpanningRole, self.buttonBox)
+        self.formLayout.setWidget(5, QtWidgets.QFormLayout.SpanningRole, self.buttonBox)
 
         self.retranslateUi(NewRegionDialog)
         self.buttonBox.accepted.connect(NewRegionDialog.accept)
@@ -70,8 +85,10 @@ class Ui_NewRegionDialog(object):
         self.ellipseRadioButton.setText(_translate("NewRegionDialog", "Ellipse"))
         self.polygonRadioButton.setText(_translate("NewRegionDialog", "Polygon"))
         self.rectangleRadioButton.setText(_translate("NewRegionDialog", "Rectangle"))
-        self.label.setText(_translate("NewRegionDialog", "Region name"))
+        self.label2.setText(_translate("NewRegionDialog", "Region to add to"))
+        self.label.setText(_translate("NewRegionDialog", "New region name"))
 
+from .matplotlib_widget import MatplotlibWidget
 
 if __name__ == "__main__":
     import sys
