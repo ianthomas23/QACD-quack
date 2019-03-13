@@ -124,12 +124,15 @@ class NewPhaseFilteredDialog(QtWidgets.QDialog, Ui_NewPhaseFilteredDialog):
 
     def change_zoom(self, zoom):
         self.zoom = zoom
-        for widget in (self.elementMatplotlibWidget,
-                       self.phaseMatplotlibWidget):
+
+        widgets = (self.elementMatplotlibWidget, self.phaseMatplotlibWidget)
+        refreshes = (False, True)
+        for widget, refresh in zip(widgets, refreshes):
             if widget._array is not None:
                 widget.update(PlotType.MAP, widget._array_type, widget._array,
                               widget._array_stats, widget._title, widget._name,
-                              map_zoom=self.zoom)
+                              map_zoom=self.zoom, refresh=refresh)
+        self.update_element_map_colourmap_limits()
 
     def clear_thresholds(self):
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.BusyCursor)
