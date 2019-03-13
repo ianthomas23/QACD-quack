@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>478</width>
-    <height>823</height>
+    <width>392</width>
+    <height>445</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -85,40 +85,14 @@ For an ellipse or rectangle region, click and hold the mouse button down, drag t
    <item row="2" column="0">
     <widget class="QLabel" name="label2">
      <property name="text">
-      <string>Region to add to</string>
+      <string>Region name</string>
      </property>
     </widget>
    </item>
    <item row="2" column="1">
-    <widget class="QComboBox" name="regionComboBox"/>
-   </item>
-   <item row="3" column="0">
-    <widget class="QLabel" name="label">
-     <property name="text">
-      <string>New region name</string>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="1">
     <widget class="QLineEdit" name="nameLineEdit"/>
    </item>
-   <item row="4" column="0" colspan="2">
-    <widget class="MatplotlibWidget" name="matplotlibWidget" native="true">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-       <horstretch>1</horstretch>
-       <verstretch>1</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="minimumSize">
-      <size>
-       <width>100</width>
-       <height>100</height>
-      </size>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="0" colspan="2">
+   <item row="3" column="0" colspan="2">
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
@@ -130,14 +104,6 @@ For an ellipse or rectangle region, click and hold the mouse button down, drag t
    </item>
   </layout>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>MatplotlibWidget</class>
-   <extends>QWidget</extends>
-   <header>.matplotlib_widget</header>
-   <container>1</container>
-  </customwidget>
- </customwidgets>
  <resources/>
  <connections>
   <connection>
