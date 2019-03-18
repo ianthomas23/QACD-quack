@@ -15,6 +15,13 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>Filtered element values of centroids of each cluster.</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
       <number>1</number>

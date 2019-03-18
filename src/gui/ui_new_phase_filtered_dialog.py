@@ -184,7 +184,7 @@ class Ui_NewPhaseFilteredDialog(object):
         self.phaseMatplotlibWidget.setSizePolicy(sizePolicy)
         self.phaseMatplotlibWidget.setMinimumSize(QtCore.QSize(100, 100))
         self.phaseMatplotlibWidget.setObjectName("phaseMatplotlibWidget")
-        self.gridLayoutBottom.addWidget(self.phaseMatplotlibWidget, 1, 0, 2, 1)
+        self.gridLayoutBottom.addWidget(self.phaseMatplotlibWidget, 1, 0, 1, 1)
         self.statusbar = QtWidgets.QLabel(self.gridLayoutWidgetBottom)
         self.statusbar.setText("")
         self.statusbar.setObjectName("statusbar")
