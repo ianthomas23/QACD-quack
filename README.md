@@ -13,3 +13,8 @@ See [docs/QACD-quack_start_guide.odt](docs/QACD-quack_start_guide.odt) or [docs/
 ### Tutorial
 
 See [docs/Tutorial.odt](docs/Tutorial.odt) or [docs/Tutorial.pdf](docs/Tutorial.pdf).
+
+### Screenshot
+
+![Screenshot](screenshot.png?raw=true)
+
