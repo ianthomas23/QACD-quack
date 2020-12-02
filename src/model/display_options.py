@@ -54,15 +54,13 @@ class DisplayOptions:
         self._listeners = weakref.WeakSet()
 
     def _determine_valid_colourmap_names(self):
-        # Exclude reversed cmaps which have names ending with '_r'.
-        all_ = set(filter(lambda s: not s.endswith('_r'), cm.cmap_d.keys()))
+        all_ = set(list(cm.cmaps_listed)+list(cm.datad))
 
-        # Exclude qualitative and repeating cmaps, and the deprecated
-        # 'spectral' which has been replaced with 'nipy_spectral'.
+        # Exclude qualitative and repeating cmaps.
         exclude = set(['Accent', 'Dark2', 'Paired', 'Pastel1', 'Pastel2',
                        'Set1', 'Set2', 'Set3', 'Vega10', 'Vega20', 'Vega20b',
-                       'Vega20c', 'flag', 'prism', 'spectral', 'tab10',
-                       'tab20', 'tab20b', 'tab20c'])
+                       'Vega20c', 'flag', 'prism', 'tab10', 'tab20', 'tab20b',
+                       'tab20c'])
         return sorted(all_.difference(exclude))
 
     @property
